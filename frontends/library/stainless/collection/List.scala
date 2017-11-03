@@ -283,9 +283,17 @@ sealed abstract class List[T] {
   }} ensuring { _.isDefined != this.isEmpty }
 
   def unique: List[T] = this match {
-    case Nil() => Nil()
+    case Nil() =>
+      Nil[T]()
     case Cons(h, t) =>
       Cons(h, t.unique - h)
+  }
+
+  def hasNoDuplicates: Boolean = this match {
+    case Nil() =>
+      true
+    case Cons(h, t) =>
+      !t.contains(h) && t.hasNoDuplicates
   }
 
   def splitAt(e: T): List[List[T]] =  split(Cons(e, Nil()))
@@ -925,4 +933,14 @@ object ListSpecs {
       case Cons(head, tail) => if(i == 0) p(head) else applyForAll(l.tail, i - 1, p)
     }
   )
+
+  // def uniqueHasNoDuplicates[T](l: List[T]): Boolean = {
+  //   l.unique.hasNoDuplicates
+  // }.holds because {
+  //   l.unique match {
+  //     case Nil() => trivial
+  //     case Cons(head, tail) => !tail.contains(head) && uniqueHasNoDuplicates(tail)
+  //   }
+  // }
+
 }
