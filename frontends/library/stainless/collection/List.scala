@@ -457,6 +457,16 @@ sealed abstract class List[T] {
   def flatMap[R](f: T => List[R]): List[R] =
     ListOps.flatten(this map f)
 
+  def permutations: List[List[T]] = this match {
+    case Nil() =>
+      Cons(Nil(), Nil())
+
+    case xs => for {
+      x  <- xs
+      ls <- (xs - x).permutations
+    } yield Cons(x, ls)
+  }
+
   def filter(p: T => Boolean): List[T] = { this match {
     case Nil() => Nil[T]()
     case Cons(h, t) if p(h) => Cons(h, t.filter(p))
