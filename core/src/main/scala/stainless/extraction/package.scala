@@ -73,9 +73,6 @@ package object extraction {
       innerfuns.extractor  andThen
       inlining.extractor
 
-    val extracted: Program { val trees: extraction.trees.type } =
-      program.transform(pipeline)
-
-    new PreconditionInference(extracted, ctx).targetProgram
+    program.transform(pipeline)
   }
 }
