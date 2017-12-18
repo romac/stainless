@@ -140,7 +140,7 @@ trait Printer extends innerfuns.Printer {
   protected val trees: Trees
   import trees._
 
-  override protected def ppBody(tree: Tree)(implicit ctx: PrinterContext): Unit = tree match {
+  override def ppBody(tree: Tree)(implicit ctx: PrinterContext): Unit = tree match {
     case Block(exprs, last) =>
       p"${nary(exprs :+ last, "\n")}"
 

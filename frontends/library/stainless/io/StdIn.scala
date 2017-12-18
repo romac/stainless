@@ -158,4 +158,16 @@ object StdIn {
     scala.io.StdIn.readBoolean
   } ensuring((x: Boolean) => true)
 
+  @library
+  def readLine(text: String)(implicit state: State): String = {
+    state.seed += 1
+    nativeReadLine(text, state.seed)
+  }
+
+  @library
+  @extern
+  private def nativeReadLine(text: String, seed: BigInt): String = {
+    scala.io.StdIn.readLine(text)
+  } ensuring((x: String) => true)
+
 }

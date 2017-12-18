@@ -37,20 +37,21 @@ trait ASTExtractors {
     val selfs = actualSymbol.annotations
     val owners = if (ignoreOwner) Set.empty else actualSymbol.owner.annotations
     val companions = if (actualSymbol.isSynthetic) actualSymbol.companionSymbol.annotations else Set.empty
-    (for {
-      a <- (selfs ++ owners ++ companions)
-      name = a.atp.safeToString.replaceAll("\\.package\\.", ".")
-    } yield {
-      if (name startsWith "stainless.annotation.") {
-        val shortName = name drop "stainless.annotation.".length
-        Some(shortName, a.args)
-      } else if (name == "inline") {
-        Some(name, a.args)
-      } else {
-        None
-      }
-    }).flatten.toMap
+    val annots = for (a <- selfs ++ owners ++ companions) yield extractAnnotation(a)
+    annots.flatten.toMap
   }
+
+  def extractAnnotation(annot: Annotation): Option[(String, Seq[Tree])] = {
+    val name = annot.atp.safeToString.replaceAll("\\.package\\.", ".")
+    if (name startsWith "stainless.annotation.") {
+      val shortName = name drop "stainless.annotation.".length
+      Some(shortName -> annot.args)
+    } else if (name == "inline") {
+      Some(name -> annot.args)
+    } else {
+      None
+    }
+   }
 
   protected lazy val scalaMapSym  = classFromName("scala.collection.immutable.Map")
   protected lazy val scalaSetSym  = classFromName("scala.collection.immutable.Set")
@@ -68,6 +69,8 @@ trait ASTExtractors {
   protected lazy val listSymbol = classFromName("stainless.collection.List")
   protected lazy val consSymbol = classFromName("stainless.collection.Cons")
   protected lazy val nilSymbol  = classFromName("stainless.collection.Nil")
+
+  protected lazy val linearSymbol = classFromName("stainless.linear.Linear")
 
   protected lazy val arraySym           = classFromName("scala.Array")
   protected lazy val someClassSym       = classFromName("scala.Some")
@@ -123,6 +126,10 @@ trait ASTExtractors {
 
   def isScalaMapSym(sym: Symbol) : Boolean = {
     getResolvedTypeSym(sym) == scalaMapSym
+  }
+
+  def isLinearSym(sym: Symbol) : Boolean = {
+    getResolvedTypeSym(sym) == linearSymbol
   }
 
   def isFunction(sym: Symbol, i: Int) : Boolean =
@@ -1114,6 +1121,24 @@ trait ASTExtractors {
 
         case _ =>
           None
+      }
+    }
+
+    object ExLinearize {
+      def unapply(tree: Apply): Option[Tree] = tree match {
+        case Apply(TypeApply(ExSelected("stainless", "linear", "package", "linearize"), _), Seq(arg)) =>
+          Some(arg)
+
+        case _ => None
+      }
+    }
+
+    object ExDelinearize {
+      def unapply(tree: Apply): Option[Tree] = tree match {
+        case Apply(TypeApply(ExSelected("stainless", "linear", "package", "delinearize"), _), Seq(arg)) =>
+          Some(arg)
+
+        case _ => None
       }
     }
 

@@ -921,7 +921,7 @@ trait CodeExtraction extends ASTExtractors {
     case ExClassConstruction(tpt, args) =>
       extractType(tpt) match {
         case ct: xt.ClassType => xt.ClassConstructor(ct, args.map(extractTree))
-        case _ => outOfSubsetError(tr, "Construction of a non-class type.")
+        case tp => outOfSubsetError(tr, s"Construction of a non-class type ($tp).")
       }
 
     case ExNot(e)        => xt.Not(extractTree(e))
@@ -993,6 +993,12 @@ trait CodeExtraction extends ASTExtractors {
 
     case ExImplies(lhs, rhs) =>
       xt.Implies(extractTree(lhs), extractTree(rhs))
+
+    case l @ ExLinearize(value) =>
+      xt.Linearize(extractTree(value))
+
+    case d @ ExDelinearize(value) =>
+      xt.Delinearize(extractTree(value))
 
     case c @ ExCall(rec, sym, tps, args) => rec match {
       case None =>
@@ -1105,6 +1111,9 @@ trait CodeExtraction extends ASTExtractors {
               Seq.empty,
               Seq(xt.Lambda(Seq(), extractTree(orElse)).setPos(tr.pos))
             )
+
+          case (xt.LinearType(tp), "!", Seq()) =>
+            xt.Delinearize(extractTree(lhs))
 
           case (_, "unary_+", Seq()) => injectCast(e => e)(lhs)
           case (_, "-",   Seq(rhs)) => injectCasts(xt.Minus)(lhs, rhs)
@@ -1296,6 +1305,9 @@ trait CodeExtraction extends ASTExtractors {
 
     case TypeRef(_, sym, btt :: Nil) if isArrayClassSym(sym) =>
       xt.ArrayType(extractType(btt))
+
+    case TypeRef(_, sym, btt :: Nil) if isLinearSym(sym) =>
+      xt.LinearType(extractType(btt))
 
     case TypeRef(_, sym, subs) if subs.nonEmpty && isFunction(sym, subs.size - 1) =>
       val from = subs.init

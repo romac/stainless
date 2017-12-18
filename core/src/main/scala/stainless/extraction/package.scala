@@ -66,11 +66,12 @@ package object extraction {
     ctx: inox.Context
   ): Program { val trees: extraction.trees.type } = {
     val pipeline =
-      xlang.extractor      andThen
-      oo.extractor         andThen
-      holes.extractor      andThen
-      imperative.extractor andThen
-      innerfuns.extractor  andThen
+      xlang.extractor        andThen
+      oo.extractor           andThen
+      holes.extractor        andThen
+      imperative.extractor   andThen
+      innerfuns.extractor    andThen
+      linearity.checker(ctx) andThen
       inlining.extractor
 
     TreeSanitizer.check(program) // Might throw some MissformedStainlessCode

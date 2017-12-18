@@ -5,7 +5,7 @@ package extraction
 package innerfuns
 import inox.utils.{NoPosition, Position}
 
-trait Trees extends inlining.Trees { self =>
+trait Trees extends linearity.Trees { self =>
 
   case class LocalFunDef(name: ValDef, tparams: Seq[TypeParameterDef], body: Lambda) extends Definition {
     val id = name.id
@@ -131,11 +131,11 @@ trait Trees extends inlining.Trees { self =>
   }
 }
 
-trait Printer extends inlining.Printer {
+trait Printer extends linearity.Printer {
   protected val trees: Trees
   import trees._
 
-  override protected def ppBody(tree: Tree)(implicit ctx: PrinterContext): Unit = tree match {
+  override def ppBody(tree: Tree)(implicit ctx: PrinterContext): Unit = tree match {
     case LetRec(defs, body) =>
       defs foreach { case (LocalFunDef(name, tparams, Lambda(args, body))) =>
         for (f <- name.flags) p"""|${f.asString(ctx.opts)}
@@ -186,7 +186,7 @@ trait Printer extends inlining.Printer {
   }
 }
 
-trait TreeDeconstructor extends inlining.TreeDeconstructor {
+trait TreeDeconstructor extends linearity.TreeDeconstructor {
   protected val s: Trees
   protected val t: Trees
 
@@ -219,7 +219,7 @@ trait TreeDeconstructor extends inlining.TreeDeconstructor {
   }
 }
 
-trait ExprOps extends extraction.ExprOps {
+trait ExprOps extends linearity.ExprOps {
   protected val trees: Trees
   import trees._
   /** Returns functions in directly nested LetDefs */

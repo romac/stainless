@@ -23,5 +23,9 @@ package object annotation {
   @ignore
   class extern     extends Annotation
 
+  // Linearity annotation
+  @ignore
+  class linear     extends Annotation
+
 }
 

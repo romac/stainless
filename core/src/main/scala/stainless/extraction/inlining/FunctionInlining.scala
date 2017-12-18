@@ -26,7 +26,7 @@ trait FunctionInlining extends inox.ast.SymbolTransformer { self =>
             throw MissformedStainlessCode(tfd.fd, "Can't inline recursive function: " + tfd.fd.id.name)
           }
 
-          if (tfd.fd.flags contains Inline) {
+          if (tfd.fd.flags.contains(Inline) && !tfd.fd.flags.contains(Extern)) {
             val body = exprOps.withoutSpecs(tfd.fullBody)
             val uncheckedBody = body match {
               case None => throw MissformedStainlessCode(tfd.fd, "Inlining function with empty body: not supported")
