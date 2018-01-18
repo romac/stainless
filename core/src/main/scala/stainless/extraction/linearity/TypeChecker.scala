@@ -80,7 +80,7 @@ trait TypeChecker extends Extractors {
     case sort: TypedADTSort        => sort.constructors.exists(containsLinearFields)
   }
 
-  private def checkUsedOnce(vd: ValDef, body: Expr): Unit = vd.tpe match {
+  private def checkUsedOnce(vd: ValDef, body: Expr): Unit = vd.getType match {
     case adt: ADTType if containsLinearFields(adt.getADT) =>
       error(NonLinearTypeContainsLinearFields(adt.getADT, vd.getPos))
 
@@ -150,6 +150,33 @@ trait TypeChecker extends Extractors {
     case LinearTerm(term) =>
       delta + (term -> term.getPos)
 
+    case let @ Let(vd, value, body) =>
+      checkValidUse(value, vd.tpe, let)
+      checkUsedOnce(vd, body)
+
+      val bindDelta = value match {
+        case v: Variable => delta + (v -> let.getPos)
+        case expr        => check(expr)(delta)
+      }
+
+      check(body)(bindDelta)
+
+    case LinearTerm(l @ Lambda(args, body)) =>
+      args foreach { arg => checkUsedOnce(arg, body) }
+      check(body)(delta)
+
+    case l @ Lambda(args, body) =>
+      val linFV = exprOps.variablesOf(l).filter(isLinear(_))
+      if (!linFV.isEmpty) {
+        error(CannotCaptureLinearVar(l, linFV.head))
+      }
+
+      args foreach { arg =>
+        checkUsedOnce(arg, body)
+      }
+
+      check(body)(delta)
+
     case LinearMethodInvocation(fi, id, _, thiss, args) if isLinear(thiss) =>
       checkKinds(fi.tfd.tpSubst)
 
@@ -197,31 +224,6 @@ trait TypeChecker extends Extractors {
       }
 
       check(callee)(delta) >> checks(args)
-
-    case LinearTerm(l @ Lambda(args, body)) =>
-      args foreach { arg => checkUsedOnce(arg, body) }
-      check(body)(delta)
-
-    case l @ Lambda(args, body) =>
-      val linFV = exprOps.variablesOf(l).filter(isLinear(_))
-      if (!linFV.isEmpty) {
-        error(CannotCaptureLinearVar(l, linFV.head))
-      }
-
-      args foreach { arg => checkUsedOnce(arg, body) }
-
-      check(body)(delta)
-
-    case let @ Let(vd, value, body) =>
-      checkValidUse(value, vd.tpe, let)
-      checkUsedOnce(vd, body)
-
-      val bindDelta = value match {
-        case v: Variable => delta + (v -> let.getPos)
-        case expr        => check(expr)(delta)
-      }
-
-      check(body)(bindDelta)
 
     case m @ MatchExpr(scrutinee, cases) =>
       cases foreach { case c =>

@@ -28,7 +28,7 @@ trait Extractors { self: TypeChecker =>
     def unapply(expr: Expr): Option[Expr] = expr match {
       case d @ Delinearize(v: Variable)           => Some(v.copy().setPos(d.getPos))
       case l @ Linearize(Operator(es, recons), _) => Some(recons(es).setPos(l.getPos))
-      case term if isLinear(term)                 => Some(term)
+      // case term if isLinear(term)                 => Some(term)
       case _                                      => None
     }
   }
