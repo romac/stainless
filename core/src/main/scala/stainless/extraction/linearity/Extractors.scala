@@ -26,10 +26,10 @@ trait Extractors { self: TypeChecker =>
 
   object LinearTerm {
     def unapply(expr: Expr): Option[Expr] = expr match {
-      case d @ Delinearize(v: Variable)        => Some(v.copy().setPos(d.getPos))
-      case l @ Linearize(Operator(es, recons)) => Some(recons(es).setPos(l.getPos))
-      case term if isLinear(term)              => Some(term)
-      case _                                   => None
+      case d @ Delinearize(v: Variable)           => Some(v.copy().setPos(d.getPos))
+      case l @ Linearize(Operator(es, recons), _) => Some(recons(es).setPos(l.getPos))
+      case term if isLinear(term)                 => Some(term)
+      case _                                      => None
     }
   }
 
@@ -43,8 +43,8 @@ trait Extractors { self: TypeChecker =>
   }
 
   def realType(expr: Expr): Type = expr match {
-    case Delinearize(_) => LinearType(expr.getType)
-    case Linearize(_)   => expr.getType
+    case _: Delinearize => LinearType(expr.getType)
+    case _: Linearize   => expr.getType
     case Wrapped(term)  => term.getType
     case _              => expr.getType
   }

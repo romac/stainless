@@ -22,8 +22,8 @@ abstract class LinearityChecker(val ctx: inox.Context) extends inox.ast.SymbolTr
       }
 
       override def transform(expr: s.Expr): t.Expr = expr match {
-        case s.Linearize(value) => transform(value)
-        case s.Delinearize(value) => transform(value)
+        case s.Linearize(value, _) => transform(value)
+        case s.Delinearize(value)  => transform(value)
         case _ => super.transform(expr)
       }
 

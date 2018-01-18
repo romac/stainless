@@ -1125,9 +1125,9 @@ trait ASTExtractors {
     }
 
     object ExLinearize {
-      def unapply(tree: Apply): Option[Tree] = tree match {
-        case Apply(TypeApply(ExSelected("stainless", "linear", "package", "linearize"), _), Seq(arg)) =>
-          Some(arg)
+      def unapply(tree: Apply): Option[(Tree, Tree)] = tree match {
+        case Apply(TypeApply(ExSelected("stainless", "linear", "package", "linearize"), Seq(tp)), Seq(arg)) =>
+          Some((arg, tp))
 
         case _ => None
       }

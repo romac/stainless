@@ -994,8 +994,8 @@ trait CodeExtraction extends ASTExtractors {
     case ExImplies(lhs, rhs) =>
       xt.Implies(extractTree(lhs), extractTree(rhs))
 
-    case l @ ExLinearize(value) =>
-      xt.Linearize(extractTree(value))
+    case l @ ExLinearize(value, tp) =>
+      xt.Linearize(extractTree(value), extractType(tp))
 
     case d @ ExDelinearize(value) =>
       xt.Delinearize(extractTree(value))

@@ -198,7 +198,7 @@ val scriptSettings: Seq[Setting[_]] = Seq(
 
 def ghProject(repo: String, version: String) = RootProject(uri(s"${repo}#${version}"))
 
-//lazy val inox = RootProject(file("../inox"))
+lazy val inox = RootProject(file("../inox"))
 //lazy val dotty = ghProject("git://github.com/lampepfl/dotty.git", "b3194406d8e1a28690faee12257b53f9dcf49506")
 
 // Allow integration test to use facilities from regular tests
@@ -207,7 +207,7 @@ lazy val IntegrationTest = config("it") extend(Test)
 lazy val `stainless-core` = (project in file("core"))
   .settings(name := "stainless-core")
   .settings(commonSettings)
-  //.dependsOn(inox % "compile->compile;test->test")
+  .dependsOn(inox % "compile->compile;test->test")
 
 lazy val `stainless-scalac` = (project in file("frontends/scalac"))
   .settings(
@@ -216,7 +216,7 @@ lazy val `stainless-scalac` = (project in file("frontends/scalac"))
     extraClasspath := "", // no need for the classpath extension with scalac
     libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value)
   .dependsOn(`stainless-core`)
-  //.dependsOn(inox % "test->test;it->test,it")
+  .dependsOn(inox % "test->test;it->test,it")
   .configs(IntegrationTest)
   .settings(commonSettings, commonFrontendSettings, scriptSettings)
 
@@ -234,7 +234,7 @@ lazy val `stainless-dotty` = (project in file("frontends/stainless-dotty"))
   // Should truly depend on dotty, overriding the "provided" modifier above:
   .settings(libraryDependencies += "ch.epfl.lamp" % "dotty_2.11" % dottyVersion)
   .aggregate(`stainless-dotty-frontend`)
-  //.dependsOn(inox % "test->test;it->test,it")
+  .dependsOn(inox % "test->test;it->test,it")
   .configs(IntegrationTest)
   .settings(commonSettings, commonFrontendSettings, artifactSettings, scriptSettings)
 

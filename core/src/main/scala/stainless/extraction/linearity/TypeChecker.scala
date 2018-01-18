@@ -144,7 +144,7 @@ trait TypeChecker extends Extractors {
       error(DiscardedLinearTerm(term))
       check(term)(delta)
 
-    case Linearize(term) =>
+    case Linearize(term, _) =>
       check(term)(delta) + (term -> term.getPos)
 
     case LinearTerm(term) =>
@@ -182,8 +182,9 @@ trait TypeChecker extends Extractors {
     case adt @ ADT(adtTpe, args) =>
       checkKinds(adtTpe)
 
-      adtTpe.tps.zip(args) foreach { case (tpe, arg) =>
-        checkValidUse(arg, tpe, adt)
+      val params = adtTpe.getADT.toConstructor.fields
+      params.zip(args) foreach { case (vd, arg) =>
+        checkValidUse(arg, vd.getType, adt)
       }
 
       checks(args)(delta)

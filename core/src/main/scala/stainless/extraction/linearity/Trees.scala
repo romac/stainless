@@ -12,9 +12,9 @@ trait Trees extends inlining.Trees { self =>
 
   case class LinearType(tpe: Type) extends Type
 
-  case class Linearize(expr: Expr) extends Expr with CachingTyped {
+  case class Linearize(expr: Expr, tp: Type) extends Expr with CachingTyped {
     protected def computeType(implicit s: Symbols): Type = {
-      LinearType(expr.getType)
+      LinearType(tp)
     }
   }
 
@@ -50,10 +50,10 @@ trait Printer extends inlining.Printer {
   import trees._
 
   override def ppBody(tree: Tree)(implicit ctx: PrinterContext): Unit = tree match {
-    case LinearType(tp)    => p"Linear[$tp]"
-    case Linearize(expr)   => p"linearize($expr)"
-    case Delinearize(expr) => p"$expr!"
-    case _                 => super.ppBody(tree)
+    case LinearType(tp)      => p"Linear[$tp]"
+    case Linearize(expr, tp) => p"linearize($expr)"
+    case Delinearize(expr)   => p"$expr!"
+    case _                   => super.ppBody(tree)
   }
 }
 
@@ -72,8 +72,8 @@ trait TreeDeconstructor extends inlining.TreeDeconstructor {
   }
 
   override def deconstruct(e: s.Expr): DeconstructedExpr = e match {
-    case s.Linearize(expr) =>
-      (Seq(), Seq(), Seq(expr), Seq(), (_, _, es, _) => t.Linearize(es(0)))
+    case s.Linearize(expr, tp) =>
+      (Seq(), Seq(), Seq(expr), Seq(tp), (_, _, es, ts) => t.Linearize(es(0), ts(0)))
 
     case s.Delinearize(expr) =>
       (Seq(), Seq(), Seq(expr), Seq(), (_, _, es, _) => t.Delinearize(es(0)))
