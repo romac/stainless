@@ -57,4 +57,28 @@ object ActorMasterWorker {
     case class Order(computation: Computation) extends Msg
   }
 
+  val initialSystem = {
+    val masterId = Master()
+    val master = MasterB(Nil(), Nil())
+
+    val ids = List(1, 2, 3, 4, 5)
+    val workerIds = ids.map(Worker(_))
+    val workers = ids.map(WorkerB(_, masterId))
+
+    val behaviors = CMap { (id: ActorRef) => workers !! id }
+  }
+
+  // object Main {
+  //   def run = {
+  //     val masterId = Master()
+  //     val master = MasterB(Nil(), Nil())
+
+  //     val ids = List(1, 2, 3, 4, 5)
+  //     val workerIds = ids.map(Worker(_))
+  //     val workers = ids.map(WorkerB(_, masterId))
+
+  //     workerIds.foreach(_ ! Worker.Init)
+  //   }
+  // }
+
 }
