@@ -116,7 +116,7 @@ object ActorMasterWorker {
   }
 
   def validMessages(s: ActorSystem) = {
-    s.inboxes(Master()  -> Master()).isEmpty &&
+    s.inboxes(Master()  -> Master() ).isEmpty &&
     s.inboxes(Worker(1) -> Worker(1)).isEmpty &&
     s.inboxes(Worker(1) -> Worker(2)).isEmpty &&
     s.inboxes(Worker(1) -> Worker(3)).isEmpty &&
@@ -126,12 +126,12 @@ object ActorMasterWorker {
     s.inboxes(Worker(3) -> Worker(1)).isEmpty &&
     s.inboxes(Worker(3) -> Worker(2)).isEmpty &&
     s.inboxes(Worker(3) -> Worker(3)).isEmpty &&
-    s.inboxes(Master() -> Worker(1)).forall(masterWorkerMsg) &&
-    s.inboxes(Master() -> Worker(1)).forall(masterWorkerMsg) &&
-    s.inboxes(Master() -> Worker(3)).forall(masterWorkerMsg) &&
-    s.inboxes(Worker(1) -> Master()).forall(workerMasterMsg(1)) &&
-    s.inboxes(Worker(2) -> Master()).forall(workerMasterMsg(2)) &&
-    s.inboxes(Worker(3) -> Master()).forall(workerMasterMsg(3))
+    s.inboxes(Master()  -> Worker(1)).forall(masterWorkerMsg) &&
+    s.inboxes(Master()  -> Worker(1)).forall(masterWorkerMsg) &&
+    s.inboxes(Master()  -> Worker(3)).forall(masterWorkerMsg) &&
+    s.inboxes(Worker(1) -> Master() ).forall(workerMasterMsg(1)) &&
+    s.inboxes(Worker(2) -> Master() ).forall(workerMasterMsg(2)) &&
+    s.inboxes(Worker(3) -> Master() ).forall(workerMasterMsg(3))
   }
 
   def validMessages_initial = validMessages(initialSystem).holds
@@ -147,17 +147,16 @@ object ActorMasterWorker {
     validMessages(s.step(from, to))
   }.holds
 
-  // object Main {
-  //   def run = {
-  //     val masterId = Master()
-  //     val master = MasterB(Nil(), Nil())
+  def validSystem(s: ActorSystem) = validMessages(s) && validBehaviors(s)
 
-  //     val ids = List(1, 2, 3, 4, 5)
-  //     val workerIds = ids.map(Worker(_))
-  //     val workers = ids.map(WorkerB(_, masterId))
-
-  //     workerIds.foreach(_ ! Worker.Init)
-  //   }
-  // }
+  def workerRespondsWithReadyToInit(s: ActorSystem, ref: ActorRef) = {
+    require {
+      validWorkerRef(ref) &&
+      validSystem(s) &&
+      s.inboxes(Master() -> ref).headOption == Some[Msg](Worker.Init)
+    }
+    val t = s.step(Master(), ref)
+    t.inboxes(ref -> Master()).headOption == Some[Msg](Master.Ready(ref))
+  }.holds
 
 }
