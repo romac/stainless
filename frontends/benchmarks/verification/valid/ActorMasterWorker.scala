@@ -149,14 +149,20 @@ object ActorMasterWorker {
 
   def validSystem(s: ActorSystem) = validMessages(s) && validBehaviors(s)
 
-  def workerRespondsWithReadyToInit(s: ActorSystem, ref: ActorRef) = {
+  def workerRespondsWithReady(s: ActorSystem, ref: ActorRef) = {
     require {
       validWorkerRef(ref) &&
-      validSystem(s) &&
-      s.inboxes(Master() -> ref).headOption == Some[Msg](Worker.Init)
+      validSystem(s) && {
+        s.inboxes(Master() -> ref) match {
+          case Cons(Worker.Init, _)     => true
+          case Cons(Worker.Order(_), _) => true
+          case _ => false
+        }
+      }
     }
-    val t = s.step(Master(), ref)
-    t.inboxes(ref -> Master()).headOption == Some[Msg](Master.Ready(ref))
+
+    s.step(Master(), ref).inboxes(ref -> Master()).headOption == Some[Msg](Master.Ready(ref))
   }.holds
 
 }
+
