@@ -4,6 +4,8 @@ enablePlugins(GitVersioning)
 git.baseVersion in ThisBuild := "0.1.0"
 git.formattedShaVersion in ThisBuild := git.gitHeadCommit.value map { sha => s"${git.baseVersion.value}-${sha}" }
 
+scapegoatVersion in ThisBuild := "1.3.8"
+
 val osInf = Option(System.getProperty("os.name")).getOrElse("")
 
 val isUnix    = osInf.indexOf("nix") >= 0 || osInf.indexOf("nux") >= 0
