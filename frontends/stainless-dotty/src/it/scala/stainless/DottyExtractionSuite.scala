@@ -26,7 +26,8 @@ class DottyExtractionSuite extends ExtractionSuite {
     "extraction/invalid/GhostEffect3.scala",
     "extraction/invalid/ghost-patmat.scala",
     "extraction/invalid/ghost-dafny.scala",
-    "extraction/invalid/SuperAbstract.scala")
+    "extraction/invalid/SuperAbstract.scala",
+    "extraction/invalid/AnonymousClassRefine.scala")
 
 }
 
