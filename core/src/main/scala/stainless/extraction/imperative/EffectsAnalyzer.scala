@@ -268,6 +268,9 @@ trait EffectsAnalyzer extends oo.CachingPhase {
       case Assert(_, _, e) => rec(e, path)
       case Annotated(e, _) => rec(e, path)
 
+      case m: MatchExpr =>
+        rec(symbols.matchToIfThenElse(m), path)
+
       case IfExpr(cnd, thn, els) =>
         for {
           // c <- getEffects(cnd)
