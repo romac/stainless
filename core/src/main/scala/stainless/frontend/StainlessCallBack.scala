@@ -43,6 +43,8 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
     }
   }
 
+  var symbols = xt.NoSymbols
+
   final override def apply(file: String, unit: xt.UnitDef,
                            classes: Seq[xt.ClassDef], functions: Seq[xt.FunDef]): Unit = {
     reporter.debug(s"Got a unit for $file: ${unit.id} with:")
@@ -55,15 +57,14 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
       toProcess ++= functions map { _.id }
     }
 
-    val symss = registry.update(classes, functions)
-    processSymbols(symss)
+    // val symss = registry.update(classes, functions)
+    symbols = symbols.withClasses(classes).withFunctions(functions)
   }
 
   final override def failed(): Unit = registry.failed()
 
   final override def endExtractions(): Unit = {
-    val symss = registry.checkpoint()
-    processSymbols(symss)
+    processSymbols(Seq(symbols))
 
     if (report != null) report = report.filter(recentIdentifiers.toSet)
     recentIdentifiers.clear()
