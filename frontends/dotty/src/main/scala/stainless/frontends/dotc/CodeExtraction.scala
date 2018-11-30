@@ -1315,6 +1315,8 @@ class CodeExtraction(inoxCtx: inox.Context, cache: SymbolsContext)(implicit val 
           case (xt.ArrayType(_), "update",  Seq(index, value)) => xt.ArrayUpdate(extractTree(lhs), extractTree(index), extractTree(value))
           case (xt.ArrayType(_), "clone",   Seq())             => extractTree(lhs)
 
+          case (_, "toString",  Seq()) => xt.ToString(extractTree(lhs))
+
           case (xt.MapType(_, _), "get", Seq(rhs)) =>
             xt.MapApply(extractTree(lhs), extractTree(rhs))
 

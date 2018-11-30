@@ -166,6 +166,9 @@ trait TreeDeconstructor extends inox.ast.TreeDeconstructor {
     case s.ArrayLength(array) =>
       (Seq(), Seq(), Seq(array), Seq(), Seq(), (_, _, es, _, _) => t.ArrayLength(es.head))
 
+    case s.ToString(expr) =>
+      (Seq(), Seq(), Seq(expr), Seq(), Seq(), (_, _, es, _, _) => t.ToString(es.head))
+
     case _ => super.deconstruct(expr)
   }
 

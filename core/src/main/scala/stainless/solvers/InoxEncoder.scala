@@ -159,6 +159,15 @@ trait InoxEncoder extends ProgramEncoder {
         val s.FunctionType(from, to) = caller.getType
         t.Application(transform(caller).copiedFrom(e), args map transform).copiedFrom(e)
 
+      case s.ToString(l: Literal[_]) =>
+        transform(StringLiteral(l.value.toString).copiedFrom(e))
+
+      case s.ToString(v) =>
+        t.Choose(
+          t.ValDef(FreshIdentifier("toString", true), transform(s.StringType())).copiedFrom(e),
+          t.BooleanLiteral(true).copiedFrom(e)
+        ).copiedFrom(e)
+
       case _ => super.transform(e)
     }
 

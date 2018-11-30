@@ -265,6 +265,9 @@ trait TransformerWithType extends TreeTransformer {
     case s.ArrayLength(array) =>
       t.ArrayLength(transform(array)).copiedFrom(expr)
 
+    case s.ToString(value) =>
+      t.ToString(transform(value)).copiedFrom(expr)
+
     // Inner function expressions
     case s.LetRec(fds, body) =>
       t.LetRec(
