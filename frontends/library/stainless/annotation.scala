@@ -16,6 +16,10 @@ class ignore extends Annotation
 @ignore
 class library      extends Annotation
 
+/** Keep the annotated function or method in the symbols, even if nothing depends on it. */
+@ignore
+class keep         extends Annotation
+
 /** Apply the "induct" tactic during verification of the annotated function. */
 @ignore
 class induct       extends Annotation

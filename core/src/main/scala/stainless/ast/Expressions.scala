@@ -250,13 +250,4 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
       case _ => Untyped
     }
   }
-
-  /** $encodingof `expr.toString` */
-  sealed case class ToString(expr: Expr) extends Expr with CachingTyped {
-    override protected def computeType(implicit s: Symbols): Type = expr.getType match {
-      case Untyped => Untyped
-      case _ => StringType()
-    }
-  }
-
 }

@@ -166,9 +166,6 @@ trait TreeDeconstructor extends inox.ast.TreeDeconstructor {
     case s.ArrayLength(array) =>
       (Seq(), Seq(), Seq(array), Seq(), Seq(), (_, _, es, _, _) => t.ArrayLength(es.head))
 
-    case s.ToString(expr) =>
-      (Seq(), Seq(), Seq(expr), Seq(), Seq(), (_, _, es, _, _) => t.ToString(es.head))
-
     case _ => super.deconstruct(expr)
   }
 
@@ -183,6 +180,7 @@ trait TreeDeconstructor extends inox.ast.TreeDeconstructor {
     case s.Opaque => (Seq(), Seq(), Seq(), (_, _, _) => t.Opaque)
     case s.Private => (Seq(), Seq(), Seq(), (_, _, _) => t.Private)
     case s.Final => (Seq(), Seq(), Seq(), (_, _, _) => t.Final)
+    case s.Keep => (Seq(), Seq(), Seq(), (_, _, _) => t.Keep)
     case s.Unchecked => (Seq(), Seq(), Seq(), (_, _, _) => t.Unchecked)
     case s.Synthetic => (Seq(), Seq(), Seq(), (_, _, _) => t.Synthetic)
     case s.Derived(id) => (Seq(id), Seq(), Seq(), (ids, _, _) => t.Derived(ids.head))

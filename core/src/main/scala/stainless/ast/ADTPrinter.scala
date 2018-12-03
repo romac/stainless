@@ -13,11 +13,15 @@ trait ADTPrinter extends Printer {
     val program = Program(trees)(symbols)
     val evaluator = stainless.evaluators.Evaluator(program, Context.empty)
 
-    evaluator.eval(ToString(adt)) match {
-      case Successful(StringLiteral(value)) => Some(value)
-      case other =>
-        println(s"Evaluation of $adt.toString failed: $other")
-        None
+    val adtType @ ADTType(_, tps) = adt.getType
+    symbols.lookupCustomToString(adtType) match {
+      case None => None
+      case Some(toStringFun) =>
+        val toStringCall = toStringFun.typed(tps).applied(Seq(adt))
+        evaluator.eval(toStringCall) match {
+          case Successful(StringLiteral(value)) => Some(value)
+          case other => None
+        }
     }
   }
 

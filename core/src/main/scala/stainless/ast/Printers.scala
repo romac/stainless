@@ -96,9 +96,6 @@ trait Printer extends inox.ast.Printer {
     case ArrayLength(array) =>
       p"$array.length"
 
-    case ToString(expr) =>
-      p"$expr.toString"
-
     case _ => super.ppBody(tree)
   }
 

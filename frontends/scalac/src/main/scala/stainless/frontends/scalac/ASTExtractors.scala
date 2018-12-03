@@ -1102,6 +1102,5 @@ trait ASTExtractors {
         }
       }
     }
-
   }
 }

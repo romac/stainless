@@ -1190,7 +1190,12 @@ trait CodeExtraction extends ASTExtractors {
           case (xt.BagType(_), "--",  Seq(rhs)) => xt.BagDifference(extractTree(lhs), extractTree(rhs))
           case (xt.BagType(_), "get", Seq(rhs)) => xt.MultiplicityInBag(extractTree(rhs), extractTree(lhs))
 
-          case (_, "toString", Seq()) => xt.ToString(extractTree(lhs))
+          case (
+            xt.StringType() | xt.BooleanType() | xt.IntegerType() | xt.BVType(_, _) |
+            xt.RealType() | xt.SetType(_) | xt.BagType(_) | xt.MapType(_, _) | xt.TypeParameter(_, _),
+            "toString",
+            Seq()
+          ) => xt.ToString(extractTree(lhs), tpe)
 
           case (xt.MapType(_, _), "get", Seq(rhs)) =>
             xt.MapApply(extractTree(lhs), extractTree(rhs))

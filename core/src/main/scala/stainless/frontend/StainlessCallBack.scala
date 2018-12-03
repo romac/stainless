@@ -39,11 +39,13 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
 
     if (firstCycle) {
       loadCaches()
+
+      symbols = xt.NoSymbols
       firstCycle = false
     }
   }
 
-  var symbols = xt.NoSymbols
+  private var symbols = xt.NoSymbols
 
   final override def apply(file: String, unit: xt.UnitDef,
                            classes: Seq[xt.ClassDef], functions: Seq[xt.FunDef]): Unit = {
@@ -219,9 +221,15 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
       }
     }
 
+    def toKeep(syms: xt.Symbols): Set[Identifier] = {
+      (syms.functions.values ++ syms.classes.values)
+        .filter(_.flags.contains(xt.Keep))
+        .map(_.id).toSet
+    }
+
     // The registry tells us something should be verified in these symbols.
     for (syms <- symss; id <- syms.functions.keys if shouldProcess(id, syms)) {
-      val deps = syms.dependencies(id) + id
+      val deps = (syms.dependencies(id) + id) ++ toKeep(syms)
       val clsDeps = syms.classes.values.filter(cd => deps(cd.id)).toSeq
       val funDeps = syms.functions.values.filter(fd => deps(fd.id)).toSeq
 

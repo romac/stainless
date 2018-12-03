@@ -13,6 +13,7 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
   case object Opaque extends Flag("opaque", Seq.empty)
   case object Private extends Flag("private", Seq.empty)
   case object Final extends Flag("final", Seq.empty)
+  case object Keep extends Flag("keep", Seq.empty)
   case object Unchecked extends Flag("unchecked", Seq.empty)
   case object Synthetic extends Flag("synthetic", Seq())
   case object PartialEval extends Flag("partialEval", Seq())
@@ -24,6 +25,7 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
     case ("ghost", Seq()) => Ghost
     case ("extern", Seq()) => Extern
     case ("opaque", Seq()) => Opaque
+    case ("keep", Seq()) => Keep
     case ("unchecked", Seq()) => Unchecked
     case ("partialEval", Seq()) => PartialEval
     case _ => Annotation(name, args)

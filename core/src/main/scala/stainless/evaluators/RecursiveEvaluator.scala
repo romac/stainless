@@ -61,15 +61,9 @@ trait RecursiveEvaluator extends inox.evaluators.RecursiveEvaluator {
       case LargeArray(_, _, s, _) => s
     }
 
-    case ToString(value) => e(value) match {
-      case lit: Literal[_] => StringLiteral(lit.value.toString)
-      case adt: ADT =>
-        val ADTType(_, tps) = adt.getType
-        lookupCustomToString(adt.getType) match {
-          case Some(fd) => e(fd.typed(tps).applied(Seq(adt)))
-          case None => ToString(adt).copiedFrom(expr)
-        }
-        case other => ToString(other).copiedFrom(expr)
+    case FunctionInvocation(id, _, Seq(v)) if id.name == "GenericToString" => e(v) match {
+      case (l: Literal[_]) => StringLiteral(l.toString)
+      case _ => expr
     }
 
     case Error(tpe, msg) =>
@@ -82,17 +76,6 @@ trait RecursiveEvaluator extends inox.evaluators.RecursiveEvaluator {
       e(body)
 
     case _ => super.e(expr)
-  }
-
-  private def lookupCustomToString(tpe: Type): Option[FunDef] = {
-    symbols.functions.values.find { fd =>
-      fd.id.name == "toString" &&
-      fd.params.size == 1 &&
-      ((fd.params.head.getType, tpe) match {
-        case (ADTType(id1, _), ADTType(id2, _)) => id1 == id2
-        case _ => false
-      })
-    }
   }
 
   protected def matchesCase(scrut: Expr, caze: MatchCase)

@@ -36,6 +36,14 @@ trait Trees extends methods.Trees { self =>
       functions
   }
 
+  /** $encodingof `expr.toString` */
+  sealed case class ToString(expr: Expr, tpe: Type) extends Expr with CachingTyped {
+    override protected def computeType(implicit s: Symbols): Type = expr.getType match {
+      case `tpe` => StringType()
+      case _ => Untyped
+    }
+  }
+
   override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
     case tree: Trees => new TreeDeconstructor {
       protected val s: self.type = self
@@ -94,18 +102,26 @@ trait Printer extends methods.Printer {
                                 |"""
       p"|}"
 
+    case ToString(expr, _) =>
+      p"$expr.toString"
+
     case _ => super.ppBody(tree)
   }
 }
 
 
 trait TreeDeconstructor extends methods.TreeDeconstructor {
-
   protected val s: Trees
   protected val t: Trees
 
   override def deconstruct(f: s.Flag): DeconstructedFlag = f match {
     case s.Ignore => (Seq(), Seq(), Seq(), (_, _, _) => t.Ignore)
     case _ => super.deconstruct(f)
+  }
+
+  override def deconstruct(e: s.Expr): Deconstructed[t.Expr] = e match {
+    case s.ToString(expr, tpe) =>
+      (Seq(), Seq(), Seq(expr), Seq(tpe), Seq(), (_, _, es, tps, _) => t.ToString(es.head, tps.head))
+    case _ => super.deconstruct(e)
   }
 }

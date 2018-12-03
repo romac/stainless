@@ -358,4 +358,16 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
     if (s.isEmpty) ""
     else "-------------" + header + "-------------\n" + s + "\n\n"
   }
+
+  def lookupCustomToString(tpe: Type): Option[FunDef] = {
+    symbols.functions.values.find { fd =>
+      fd.id.name == "toString" &&
+      fd.params.size == 1 &&
+      ((fd.params.head.getType, tpe) match {
+        case (ADTType(id1, _), ADTType(id2, _)) => id1 == id2
+        case _ => false
+      })
+    }
+  }
+
 }

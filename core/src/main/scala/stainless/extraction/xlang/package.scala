@@ -31,25 +31,32 @@ package object xlang {
       override protected type TransformerContext = identity.type
       override protected def getContext(symbols: s.Symbols) = identity
 
+      private def isXlangFlag(f: s.Flag) = f match {
+        case s.Ignore | s.Keep => true
+        case _ => false
+      }
+
       protected final object identity extends oo.TreeTransformer {
         override val s: self.s.type = self.s
         override val t: self.t.type = self.t
 
         override def transform(vd: s.ValDef): t.ValDef = {
-          super.transform(vd.copy(flags = vd.flags filterNot (_ == s.Ignore)))
+          super.transform(vd.copy(flags = vd.flags filterNot isXlangFlag))
         }
       }
 
       override protected def extractFunction(transformer: TransformerContext, fd: s.FunDef): t.FunDef =
-        transformer.transform(fd.copy(flags = fd.flags.filter { case s.Ignore => false case _ => true }))
+        transformer.transform(fd.copy(flags = fd.flags filterNot isXlangFlag))
 
       override protected def extractSort(transformer: TransformerContext, sort: s.ADTSort): t.ADTSort =
-        transformer.transform(sort.copy(flags = sort.flags filterNot (_ == s.Ignore)))
+        transformer.transform(sort.copy(flags = sort.flags filterNot isXlangFlag))
 
       override protected def extractClass(transformer: TransformerContext, cd: s.ClassDef): t.ClassDef =
-        transformer.transform(cd.copy(flags = cd.flags filterNot (_ == s.Ignore)))
+        transformer.transform(cd.copy(flags = cd.flags filterNot isXlangFlag))
     }
 
-    utils.DebugPipeline("PartialFunctions", PartialFunctions(trees)) andThen lowering
+    utils.DebugPipeline("ToString", ToString(trees))                 andThen
+    utils.DebugPipeline("PartialFunctions", PartialFunctions(trees)) andThen
+    lowering
   }
 }
