@@ -27,15 +27,15 @@ trait ToString
     val prefix = "stainless.lang.Printers."
 
     val toStringFuns = Map(
-      'BigInt  -> symbols.lookup[FunDef](prefix + "BigIntToString"),
-      'Int     -> symbols.lookup[FunDef](prefix + "IntToString"),
-      'Boolean -> symbols.lookup[FunDef](prefix + "BooleanToString"),
-      'String  -> symbols.lookup[FunDef](prefix + "StringToString"),
-      'Generic -> symbols.lookup[FunDef](prefix + "GenericToString")
+      'BigInt  -> symbols.lookup.get[FunDef](prefix + "BigIntToString"),
+      'Int     -> symbols.lookup.get[FunDef](prefix + "IntToString"),
+      'Boolean -> symbols.lookup.get[FunDef](prefix + "BooleanToString"),
+      'String  -> symbols.lookup.get[FunDef](prefix + "StringToString"),
+      'Generic -> symbols.lookup.get[FunDef](prefix + "GenericToString")
     )
 
     def toString(e: Expr, id: scala.Symbol, tps: Seq[Type]): Expr =
-      toStringFuns(id).typed(tps).applied(Seq(e)).copiedFrom(e)
+      toStringFuns(id).get.typed(tps).applied(Seq(e)).copiedFrom(e)
 
     override def transform(e: Expr): Expr = e match {
       case s.ToString(e, StringType()) =>
