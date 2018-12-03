@@ -28,16 +28,30 @@ trait ToString
 
     val toStringFuns = Map(
       'BigInt  -> symbols.lookup[FunDef](prefix + "BigIntToString"),
+      'Int     -> symbols.lookup[FunDef](prefix + "IntToString"),
+      'Boolean -> symbols.lookup[FunDef](prefix + "BooleanToString"),
       'String  -> symbols.lookup[FunDef](prefix + "StringToString"),
       'Generic -> symbols.lookup[FunDef](prefix + "GenericToString")
     )
 
+    def toString(e: Expr, id: scala.Symbol, tps: Seq[Type]): Expr =
+      toStringFuns(id).typed(tps).applied(Seq(e)).copiedFrom(e)
+
     override def transform(e: Expr): Expr = e match {
       case s.ToString(e, StringType()) =>
-        super.transform(e)
+        super.transform(toString(e, 'String, Seq.empty))
+
+      case s.ToString(e, IntegerType()) =>
+        super.transform(toString(e, 'BigInt, Seq.empty))
+
+      case s.ToString(e, BooleanType()) =>
+        super.transform(toString(e, 'Boolean, Seq.empty))
+
+      case s.ToString(e, BVType(true, 32)) =>
+        super.transform(toString(e, 'Int, Seq.empty))
 
       case s.ToString(e, tp: TypeParameter) =>
-        toStringFuns('Generic).typed(Seq(tp)).applied(Seq(e)).copiedFrom(e)
+        super.transform(toString(e, 'Generic, Seq(tp)))
 
       case _ => super.transform(e)
     }
