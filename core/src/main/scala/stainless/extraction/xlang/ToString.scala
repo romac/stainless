@@ -22,38 +22,82 @@ trait ToString
     override final val s: self.s.type = self.s
     override final val t: self.t.type = self.t
 
-    implicit val syms = symbols
+    implicit private val syms = symbols
 
-    val prefix = "stainless.lang.Printers."
+    private def lookup(typeName: String): FunDef =
+      symbols.lookup[FunDef](s"stainless.lang.Printers.${typeName}ToString")
 
-    val toStringFuns = Map(
-      'BigInt  -> symbols.lookup.get[FunDef](prefix + "BigIntToString"),
-      'Int     -> symbols.lookup.get[FunDef](prefix + "IntToString"),
-      'Boolean -> symbols.lookup.get[FunDef](prefix + "BooleanToString"),
-      'String  -> symbols.lookup.get[FunDef](prefix + "StringToString"),
-      'Generic -> symbols.lookup.get[FunDef](prefix + "GenericToString")
-    )
+    private sealed abstract class Printer {
+      def applied(expr: Expr): Expr
+      def partiallyApplied(args: Seq[Expr]): Lambda
+      def typed(tps: Seq[Type] = Seq.empty): Printer
+      def toLambda: Lambda = partiallyApplied(Seq.empty)
+    }
 
-    def toString(e: Expr, id: scala.Symbol, tps: Seq[Type]): Expr =
-      toStringFuns(id).get.typed(tps).applied(Seq(e)).copiedFrom(e)
+    private sealed case class PrintLambda(lam: Lambda) extends Printer {
+      override def typed(tps: Seq[Type] = Seq.empty): Printer = this
+      override def applied(expr: Expr): Expr = exprOps.freshenLocals(lam.withParamSubst(Seq(expr), lam.body))
+      override def partiallyApplied(args: Seq[Expr]): Lambda = {
+        require(args.isEmpty)
+        lam
+      }
+    }
 
-    override def transform(e: Expr): Expr = e match {
-      case s.ToString(e, StringType()) =>
-        super.transform(toString(e, 'String, Seq.empty))
+    private sealed case class PrintFunction(tfd: TypedFunDef) extends Printer {
+      override def typed(tps: Seq[Type] = Seq.empty): Printer = 
+        if (tps.isEmpty) PrintFunction(tfd.fd.typed)
+        else PrintFunction(tfd.fd.typed(tps))
 
-      case s.ToString(e, IntegerType()) =>
-        super.transform(toString(e, 'BigInt, Seq.empty))
+      override def applied(expr: Expr): Expr =
+        exprOps.freshenLocals(tfd.applied(Seq(expr)))
 
-      case s.ToString(e, BooleanType()) =>
-        super.transform(toString(e, 'Boolean, Seq.empty))
+      override def partiallyApplied(args: Seq[Expr]): Lambda = {
+        require(args.length <= tfd.params.length)
+        val vds = tfd.params.drop(args.length).map(_.freshen)
+        Lambda(vds, tfd.applied(args ++ vds.map(_.toVariable)))
+      }
+    }
 
-      case s.ToString(e, BVType(true, 32)) =>
-        super.transform(toString(e, 'Int, Seq.empty))
+    private def getPrinter(tpe: Type): Printer = tpe match {
+      case tp: TypeParameter =>
+        PrintFunction(lookup("Generic").typed(Seq(tp)))
 
-      case s.ToString(e, tp: TypeParameter) =>
-        super.transform(toString(e, 'Generic, Seq(tp)))
+      case BooleanType() =>
+        PrintFunction(lookup("Boolean").typed)
 
-      case _ => super.transform(e)
+      case IntegerType() =>
+        PrintFunction(lookup("BigInt").typed)
+
+      case BVType(true, 64) =>
+        PrintFunction(lookup("Long").typed)
+
+      case BVType(true, 32) =>
+        PrintFunction(lookup("Int").typed)
+
+      case BVType(true, 16) =>
+        PrintFunction(lookup("Short").typed)
+
+      case BVType(true, 8) =>
+        PrintFunction(lookup("Byte").typed)
+
+      case StringType() =>
+        PrintFunction(lookup("String").typed)
+
+      case TupleType(tps) =>
+        val args = tps map (t => getPrinter(t).toLambda)
+        val printer = lookup("Tuple" + tps.length).typed(tps)
+        PrintLambda(PrintFunction(printer).partiallyApplied(args))
+    }
+
+    private def toString(e: Expr): Expr = {
+      val res = exprOps.freshenLocals(getPrinter(e.getType).applied(e))
+      exprOps.postTraversal(_.copiedFrom(e))(res)
+      res
+    }
+
+    override def transform(expr: Expr): Expr = expr match {
+      case s.ToString(e, _) => super.transform(toString(e))
+      case _ => super.transform(expr)
     }
   }
 }

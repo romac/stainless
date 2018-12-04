@@ -37,6 +37,12 @@ object test {
     assert(0.toString == "0")
   }
 
+  def tupleTests = {
+    assert((1, 2).toString == "(1,2)")
+    assert((true, "Hello").toString == "(true,Hello)")
+    assert((1 -> true, false -> 2).toString == "((1,true),(false,2))")
+  }
+
   def prop(ls: StrList) = {
     val res = ls.toString
     assert(ls.size < 5)

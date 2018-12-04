@@ -1316,8 +1316,8 @@ class CodeExtraction(inoxCtx: inox.Context, cache: SymbolsContext)(implicit val 
           case (xt.ArrayType(_), "clone",   Seq())             => extractTree(lhs)
 
           case (
-            xt.StringType() | xt.BooleanType() | xt.IntegerType() | xt.BVType(_, _) |
-            xt.RealType() | xt.SetType(_) | xt.BagType(_) | xt.MapType(_, _) | xt.TypeParameter(_, _),
+            xt.StringType() | xt.BooleanType() | xt.IntegerType() | xt.BVType(_, _) | xt.RealType() |
+            xt.SetType(_) | xt.BagType(_) | xt.MapType(_, _) | xt.TupleType(_) | xt.TypeParameter(_, _),
             "toString",
             Seq()
           ) => xt.ToString(extractTree(lhs), tpe)

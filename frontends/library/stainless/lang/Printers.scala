@@ -72,6 +72,11 @@ object Printers {
     s
   }
 
+  @keep @library
+  def Tuple2ToString[A, B](f: A => String, g: B => String, t: (A, B)) = {
+    "(" + f(t._1) + "," + g(t._2) + ")"
+  }
+
   @keep @extern @pure @library
   def GenericToString[A](x: A): String = x.toString
 
