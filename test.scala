@@ -16,12 +16,6 @@ object test {
   case class StrCons(head: BigInt, tail: StrList) extends StrList
   case class StrNil() extends StrList
 
-  def bigIntTests = {
-    assert(BigInt(42).toString == "42")
-    assert(BigInt(-121).toString == "-121")
-    assert(BigInt(0).toString == "0")
-  }
-
   def booleanTests = {
     assert(true.toString == "true")
     assert(false.toString == "false")
@@ -31,10 +25,39 @@ object test {
     assert("Hello".toString == "Hello")
   }
 
+  def bigIntTests = {
+    assert(BigInt(0).toString == "0")
+    assert(BigInt(1).toString == "1")
+    assert(BigInt(42).toString == "42")
+    assert(BigInt(-121).toString == "-121")
+  }
+
+  def longTests = {
+    assert((0: Long).toString == "0")
+    assert((1: Long).toString == "1")
+    assert((42: Long).toString == "42")
+    assert((-121: Long).toString == "-121")
+  }
+
   def intTests = {
+    assert(0.toString == "0")
+    assert(1.toString == "1")
     assert(42.toString == "42")
     assert((-121).toString == "-121")
-    assert(0.toString == "0")
+  }
+
+  def shortTests = {
+    assert((0: Short).toString == "0")
+    assert((1: Short).toString == "1")
+    assert((42: Short).toString == "42")
+    assert((-121: Short).toString == "-121")
+  }
+
+  def byteTests = {
+    assert((0: Byte).toString == "0")
+    assert((1: Byte).toString == "1")
+    assert((42: Byte).toString == "42")
+    assert((-121: Byte).toString == "-121")
   }
 
   def tupleTests = {
