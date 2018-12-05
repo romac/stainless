@@ -27,16 +27,16 @@ object Printers {
   def digitToString(b: Long): String = {
     require(b >= 0 && b < 10)
     b match {
-      case 0 => "0"
-      case 1 => "1"
-      case 2 => "2"
-      case 3 => "3"
-      case 4 => "4"
-      case 5 => "5"
-      case 6 => "6"
-      case 7 => "7"
-      case 8 => "8"
-      case 9 => "9"
+      case _ if b == 0 => "0"
+      case _ if b == 1 => "1"
+      case _ if b == 2 => "2"
+      case _ if b == 3 => "3"
+      case _ if b == 4 => "4"
+      case _ if b == 5 => "5"
+      case _ if b == 6 => "6"
+      case _ if b == 7 => "7"
+      case _ if b == 8 => "8"
+      case _ if b == 9 => "9"
     }
   }
 
@@ -44,16 +44,16 @@ object Printers {
   def digitToString(b: Int): String = {
     require(b >= 0 && b < 10)
     b match {
-      case 0 => "0"
-      case 1 => "1"
-      case 2 => "2"
-      case 3 => "3"
-      case 4 => "4"
-      case 5 => "5"
-      case 6 => "6"
-      case 7 => "7"
-      case 8 => "8"
-      case 9 => "9"
+      case _ if b == 0 => "0"
+      case _ if b == 1 => "1"
+      case _ if b == 2 => "2"
+      case _ if b == 3 => "3"
+      case _ if b == 4 => "4"
+      case _ if b == 5 => "5"
+      case _ if b == 6 => "6"
+      case _ if b == 7 => "7"
+      case _ if b == 8 => "8"
+      case _ if b == 9 => "9"
     }
   }
 
