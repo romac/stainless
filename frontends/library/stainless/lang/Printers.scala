@@ -1,7 +1,6 @@
 /* Copyright 2009-2018 EPFL, Lausanne */
 
 package stainless.lang
-import stainless.math
 
 import stainless.annotation._
 
@@ -152,3 +151,4 @@ object Printers {
   def GenericToString[A](x: A): String = x.toString
 
 }
+

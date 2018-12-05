@@ -178,7 +178,7 @@ trait CodeExtraction extends ASTExtractors {
         // top level literal are ignored
 
       case t if (
-        (annotationsOf(t.symbol) contains xt.Ignore) ||
+        (annotationsOf(t.symbol, ignoreOwner = true) contains xt.Ignore) ||
         (t.symbol.isSynthetic && !t.symbol.isImplicit)
       ) =>
         // ignore

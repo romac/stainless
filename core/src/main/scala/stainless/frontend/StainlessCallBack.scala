@@ -156,7 +156,8 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
 
     val toKeep = (syms.functions.values ++ syms.classes.values)
       .filter(_.flags.contains(xt.Keep))
-      .map(_.id).toSet
+      .flatMap(d => syms.dependencies(d.id) + d.id)
+      .toSet
 
     for (id <- syms.functions.keys if shouldProcess(id)) {
       val deps = (syms.dependencies(id) + id) ++ toKeep

@@ -21,13 +21,16 @@ object parser {
 
   val value = Equal(Greater(Plus(IntLit(40), IntLit(2)), IntLit(40)), BoolLit(true))
 
-  // def test = {
-  //   assert(print(IntLit(42)) == "42")
-  //   assert(print(value) == "40 + 2 > 40 == true")
-  // }
+  def test = {
+    assert(print(IntLit(42)) == "42")
+    assert(print(value) == "40 + 2 > 40 == true")
+  }
 
-  def parse(e: Expr) = {
+  def parse1(e: Expr) = {
     assert(print(e) != "40 + 42")
+  }
+
+  def parse2(e: Expr) = {
     assert(print(e) != "40 + 42 > 0")
   }
 
