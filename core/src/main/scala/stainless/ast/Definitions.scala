@@ -17,6 +17,7 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
   case object Unchecked extends Flag("unchecked", Seq.empty)
   case object Synthetic extends Flag("synthetic", Seq())
   case object PartialEval extends Flag("partialEval", Seq())
+  case object Implicit extends Flag("implicit", Seq())
   case class Derived(id: Identifier) extends Flag("derived", Seq(id))
   case class IsField(isLazy: Boolean) extends Flag("field", Seq.empty)
   case class IsUnapply(isEmpty: Identifier, get: Identifier) extends Flag("unapply", Seq(isEmpty, get))

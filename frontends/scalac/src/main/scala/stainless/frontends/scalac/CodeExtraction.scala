@@ -104,9 +104,11 @@ trait CodeExtraction extends ASTExtractors {
   private def getIdentifier(sym: Symbol): SymbolIdentifier = cache fetch sym
 
   private def annotationsOf(sym: Symbol, ignoreOwner: Boolean = false): Seq[xt.Flag] = {
-    getAnnotations(sym, ignoreOwner).map { case (name, args) =>
+    val implicitFlag = if (sym.isImplicit) Seq(xt.Implicit) else Seq()
+    val annots = getAnnotations(sym, ignoreOwner).map { case (name, args) =>
       xt.extractFlag(name, args.map(extractTree(_)(DefContext())))
     }
+    implicitFlag ++ annots
   }
 
   private case class DefContext(
@@ -405,8 +407,6 @@ trait CodeExtraction extends ASTExtractors {
       flags
     ).setPos(sym.pos)
 
-    // if (sym.isImplicit) println(xcd -> fields)
-
     (xcd, allMethods)
   }
 
@@ -471,6 +471,7 @@ trait CodeExtraction extends ASTExtractors {
     val isAbstract = rhs == EmptyTree
 
     var flags = annotationsOf(sym).filterNot(_ == xt.IsMutable) ++
+      (if (sym.isImplicit) Seq(xt.Implicit) else Seq()) ++
       (if (sym.isImplicit && sym.isSynthetic) Seq(xt.Inline, xt.Synthetic) else Seq()) ++
       (if (sym.isPrivate) Seq(xt.Private) else Seq()) ++
       (if (sym.isFinal) Seq(xt.Final) else Seq()) ++

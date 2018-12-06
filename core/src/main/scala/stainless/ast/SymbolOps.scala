@@ -369,5 +369,4 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
       })
     }
   }
-
 }
