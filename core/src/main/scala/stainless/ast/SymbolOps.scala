@@ -5,6 +5,7 @@ package ast
 
 import inox.utils.Position
 import inox.transformers.{TransformerOp, TransformerWithExprOp, TransformerWithTypeOp}
+import stainless.utils.ImplicitResolution
 
 import scala.collection.mutable.{Map => MutableMap}
 
@@ -359,14 +360,17 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
     else "-------------" + header + "-------------\n" + s + "\n\n"
   }
 
-  def lookupCustomToString(tpe: Type): Option[FunDef] = {
-    symbols.functions.values.find { fd =>
-      fd.id.name == "toString" &&
-      fd.params.size == 1 &&
-      ((fd.params.head.getType, tpe) match {
-        case (ADTType(id1, _), ADTType(id2, _)) => id1 == id2
-        case _ => false
-      })
+  def lookupCustomToString(tpe: Type)(implicit ctx: inox.Context): Option[Expr => Expr] = {
+    val implicits = ImplicitResolution(trees)(symbols)
+    val showFunction = symbols.lookup[FunDef]("stainless.lang.show")
+    val tfd = showFunction.typed(Seq(tpe))(symbols)
+    val implicitParams = tfd.params.filter(_.flags contains Implicit)
+    val implicitArgs = implicitParams.flatMap { vd =>
+      implicits.findImplicitValueForType(vd.getType(symbols))
     }
+
+    if (implicitArgs.size == implicitParams.size) {
+      Some(e => tfd.applied(e +: implicitArgs))
+    } else None
   }
 }

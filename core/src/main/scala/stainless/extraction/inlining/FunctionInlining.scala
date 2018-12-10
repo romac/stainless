@@ -21,12 +21,7 @@ trait FunctionInlining extends CachingPhase with IdentitySorts { self =>
 
   override protected type FunctionResult = Option[t.FunDef]
   override protected type TransformerContext = s.Symbols
-  override protected def getContext(symbols: s.Symbols) = {
-    val implicits = stainless.utils.ImplicitResolution(s)(symbols)
-    implicits.test()
-
-    symbols
-  }
+  override protected def getContext(symbols: s.Symbols) = symbols
 
   private[this] object identity extends transformers.TreeTransformer {
     override val s: self.s.type = self.s

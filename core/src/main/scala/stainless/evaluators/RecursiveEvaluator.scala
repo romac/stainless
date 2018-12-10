@@ -3,6 +3,8 @@
 package stainless
 package evaluators
 
+import stainless.utils.ImplicitResolution
+
 trait RecursiveEvaluator extends inox.evaluators.RecursiveEvaluator {
   val program: Program
 
@@ -59,11 +61,6 @@ trait RecursiveEvaluator extends inox.evaluators.RecursiveEvaluator {
     case ArrayLength(array) => e(array) match {
       case FiniteArray(elems, _) => Int32Literal(elems.size)
       case LargeArray(_, _, s, _) => s
-    }
-
-    case FunctionInvocation(id, _, Seq(v)) if id.name == "GenericToString" => e(v) match {
-      case (l: Literal[_]) => StringLiteral(l.toString)
-      case _ => expr
     }
 
     case Error(tpe, msg) =>

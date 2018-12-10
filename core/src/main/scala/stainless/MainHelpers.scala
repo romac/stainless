@@ -63,7 +63,8 @@ trait MainHelpers extends inox.MainHelpers {
     extraction.utils.DebugSectionPositions,
     frontend.DebugSectionExtraction,
     frontend.DebugSectionFrontend,
-    utils.DebugSectionRegistry
+    utils.DebugSectionRegistry,
+    utils.DebugSectionImplicits
   )
 
   override protected def displayVersion(reporter: inox.Reporter): Unit = {

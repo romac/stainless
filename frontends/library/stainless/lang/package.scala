@@ -127,4 +127,7 @@ package object lang {
     scala.Predef.print(x)
   }
 
+  @library @keep
+  def show[A](a: A)(implicit show: Show[A]): String = show.show(a)
+
 }
