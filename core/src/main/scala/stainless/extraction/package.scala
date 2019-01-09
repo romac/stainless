@@ -32,6 +32,8 @@ package object extraction {
     "Sealing"                   -> "Seal every class and add mutable flags",
     "MethodLifting"             -> "Lift methods into dispatching functions",
     "FieldAccessors"            -> "Inline field accessors of concrete classes",
+    "ExceptionLifting"          -> "Lift exceptions into Either monad",
+    "EarlyReturn"               -> "Rewrite return statements into functional code",
     "AdtSpecialization"         -> "Specialize classes into ADTs (when possible)",
     "RefinementLifting"         -> "Lift simple refinements to contracts",
     "TypeEncoding"              -> "Encode non-ADT types",

@@ -14,9 +14,12 @@ package object throwing {
       classes: Map[Identifier, ClassDef]
     ) extends ClassSymbols
 
-    object printer extends Printer { val trees: throwing.trees.type = throwing.trees }
+    object printer extends Printer {
+      val trees: throwing.trees.type = throwing.trees
+    }
   }
 
   def extractor(implicit ctx: inox.Context) = 
-    utils.DebugPipeline("ExceptionLifting", ExceptionLifting(trees, oo.trees))
+    utils.DebugPipeline("ExceptionLifting", ExceptionLifting(trees)) andThen
+    utils.DebugPipeline("EarlyReturn", EarlyReturn(trees, oo.trees))
 }

@@ -803,6 +803,9 @@ trait CodeExtraction extends ASTExtractors {
     case Throw(ex) =>
       xt.Throw(extractTree(ex))
 
+    case Return(ex) =>
+      xt.Return(extractTree(ex))
+
     case ExAssertExpression(e, oerr, isStatic) =>
       def wrap(x: xt.Expr) = if (isStatic) xt.Annotated(x, Seq(xt.Ghost)).setPos(x) else x
       xt.Assert(wrap(extractTree(e)), oerr, xt.UnitLiteral().setPos(tr.pos))

@@ -6,8 +6,18 @@ package throwing
 
 trait Trees extends oo.Trees { self =>
 
-  protected def getExceptionType(implicit s: Symbols): Option[Type] =
-    s.lookup.get[ClassDef]("stainless.lang.Exception").map(cd => ClassType(cd.id, Seq()))
+  protected def getExceptionClass(implicit s: Symbols): Option[ClassDef] =
+    s.lookup.get[ClassDef]("stainless.lang.Exception")
+
+  protected def getExceptionType(implicit s: Symbols): Option[ClassType] =
+    getExceptionClass.map(_.typed.toType)
+
+  protected def getEitherClass(implicit s: Symbols): Option[ClassDef] =
+    s.lookup.get[ClassDef]("stainless.lang.Either")
+
+  protected def getEitherType(implicit s: Symbols): Option[ClassType] =
+    getEitherClass.map(_.typed.toType)
+
 
   /** Throwing clause of an [[ast.Expressions.Expr]]. Corresponds to the Stainless keyword *throwing*
     *
@@ -45,6 +55,15 @@ trait Trees extends oo.Trees { self =>
       ) => s.leastUpperBound(body.getType +: cases.map(_.rhs.getType))
 
       case _ => Untyped
+    }
+  }
+
+  /** Return keyword. Corresponds to Scala's *return ...* */
+  sealed case class Return(expr: Expr) extends Expr with CachingTyped {
+    override protected def computeType(implicit s: Symbols): Type = expr.getType match {
+      case Untyped => Untyped
+      case tpe => tpe
+      // case _ => UnitType()
     }
   }
 
@@ -96,6 +115,9 @@ trait Printer extends oo.Printer {
       if (fin.nonEmpty) p"""| finally {
                             |  ${fin.get}
                             |}"""
+
+    case Return(expr) =>
+      p"""return $expr"""
 
     case _ => super.ppBody(tree)
   }
@@ -198,6 +220,9 @@ trait TreeDeconstructor extends oo.TreeDeconstructor {
         val (nes, newFin) = if (fin.isEmpty) (rest, None) else (rest.init, rest.lastOption)
         t.Try(newBody, crecons(ids, vs, nes, tps), newFin)
       })
+
+    case s.Return(expr) =>
+      (Seq(), Seq(), Seq(expr), Seq(), Seq(), (_, _, es, _, _) => t.Return(es.head))
 
     case _ => super.deconstruct(e)
   }
