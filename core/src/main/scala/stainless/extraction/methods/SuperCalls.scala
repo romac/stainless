@@ -10,58 +10,55 @@ import stainless.ast.{Symbol, SymbolIdentifier}
 import stainless.ast.SymbolIdentifier.IdentifierOps
 
 /** This phase transforms super calls into concrete method calls.
- *
- *  It does so by duplicating every method that is being referenced in
- *  a super call, and rewriting the original method to call the duplicate.
- *
- *  This way it becomes possible to call a specific method in the class hierarchy,
- *  as one would otherwise always end up calling the dispatching method that will
- *  be introduced during method lifting.
- *
- *  For example, the following code:
- *
- * {{{
- * abstract class A {
- *   def bar: BigInt = 41
- * }
- *
- * abstract class B extends A
- *
- * abstract class C extends B {
- *   override def bar: BigInt = super.bar + 1
- * }
- *
- * case class D() extends C {
- *   override def bar: BigInt = super.bar * 10
- * }
- * }}}
- *
- * is tranformed into:
- *
- * {{{
- * abstract class A {
- *   def bar: BigInt = A$bar
- *
- *   def A$bar: BigInt = 41
- * }
- *
- * abstract class B extends A
- *
- * abstract class C extends B {
- *   override def bar: BigInt = C$bar
- *
- *   def C$bar: BigInt = A$bar + 1
- * }
- *
- * case class D() extends C {
- *   override def bar: BigInt = C$bar * 10
- * }
- * }}}
- */
-trait SuperCalls
-  extends oo.CachingPhase
-     with SimpleSorts
-     with oo.SimpleClasses { self =>
+  *
+  *  It does so by duplicating every method that is being referenced in
+  *  a super call, and rewriting the original method to call the duplicate.
+  *
+  *  This way it becomes possible to call a specific method in the class hierarchy,
+  *  as one would otherwise always end up calling the dispatching method that will
+  *  be introduced during method lifting.
+  *
+  *  For example, the following code:
+  *
+  * {{{
+  * abstract class A {
+  *   def bar: BigInt = 41
+  * }
+  *
+  * abstract class B extends A
+  *
+  * abstract class C extends B {
+  *   override def bar: BigInt = super.bar + 1
+  * }
+  *
+  * case class D() extends C {
+  *   override def bar: BigInt = super.bar * 10
+  * }
+  * }}}
+  *
+  * is tranformed into:
+  *
+  * {{{
+  * abstract class A {
+  *   def bar: BigInt = A$bar
+  *
+  *   def A$bar: BigInt = 41
+  * }
+  *
+  * abstract class B extends A
+  *
+  * abstract class C extends B {
+  *   override def bar: BigInt = C$bar
+  *
+  *   def C$bar: BigInt = A$bar + 1
+  * }
+  *
+  * case class D() extends C {
+  *   override def bar: BigInt = C$bar * 10
+  * }
+  * }}}
+  */
+trait SuperCalls extends oo.CachingPhase with SimpleSorts with oo.SimpleClasses { self =>
 
   val s: Trees
   val t: Trees
@@ -128,11 +125,12 @@ trait SuperCalls
     override def transform(e: s.Expr): t.Expr = e match {
       case s.MethodInvocation(sup @ s.Super(ct), id, tps, args) =>
         t.MethodInvocation(
-          t.This(transform(ct).asInstanceOf[t.ClassType]).copiedFrom(sup),
-          superID(id.unsafeToSymbolIdentifier),
-          tps map transform,
-          args map transform
-        ).copiedFrom(e)
+            t.This(transform(ct).asInstanceOf[t.ClassType]).copiedFrom(sup),
+            superID(id.unsafeToSymbolIdentifier),
+            tps map transform,
+            args map transform
+          )
+          .copiedFrom(e)
 
       case _ => super.transform(e)
     }
@@ -155,13 +153,20 @@ trait SuperCalls
       )
 
       val cd = symbols.getClass(fd.flags.collectFirst { case s.IsMethodOf(cid) => cid }.get)
-      val newFd = fd.copy(fullBody = s.exprOps.withBody(
-        fd.fullBody,
-        s.MethodInvocation(
-          s.This(s.ClassType(cd.id, cd.typeArgs).setPos(fd)).setPos(fd),
-          sid, fd.tparams.map(_.tp), fd.params.map(_.toVariable)
-        ).copiedFrom(fd)
-      )).copiedFrom(fd)
+      val newFd = fd
+        .copy(
+          fullBody = s.exprOps.withBody(
+            fd.fullBody,
+            s.MethodInvocation(
+                s.This(s.ClassType(cd.id, cd.typeArgs).setPos(fd)).setPos(fd),
+                sid,
+                fd.tparams.map(_.tp),
+                fd.params.map(_.toVariable)
+              )
+              .copiedFrom(fd)
+          )
+        )
+        .copiedFrom(fd)
 
       (context.transform(newFd), Some(context.transform(superFd)))
     } else {

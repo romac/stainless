@@ -48,11 +48,10 @@ trait Trees extends innerfuns.Trees with Definitions { self =>
   /** $encodingof `(while(cond) { ... }) invariant (pred)` */
   case class While(cond: Expr, body: Expr, pred: Option[Expr]) extends Expr with CachingTyped {
     protected def computeType(implicit s: Symbols): Type =
-      if (
-        s.isSubtypeOf(cond.getType, BooleanType()) &&
+      if (s.isSubtypeOf(cond.getType, BooleanType()) &&
         body.isTyped &&
-        pred.forall(p => s.isSubtypeOf(p.getType, BooleanType()))
-      ) UnitType() else Untyped
+        pred.forall(p => s.isSubtypeOf(p.getType, BooleanType()))) UnitType()
+      else Untyped
   }
 
   /** $encodingof `array(index) = value` */
@@ -118,7 +117,6 @@ trait Trees extends innerfuns.Trees with Definitions { self =>
     protected val trees: Trees.this.type = Trees.this
   } with ExprOps
 
-
   /* ========================================
    *               EXTRACTORS
    * ======================================== */
@@ -129,11 +127,14 @@ trait Trees extends innerfuns.Trees with Definitions { self =>
     case _ => super.extractFlag(name, args)
   }
 
-  override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-    case tree: Trees =>new TreeDeconstructor {
-      protected val s: self.type = self
-      protected val t: tree.type = tree
-    }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+  override def getDeconstructor(
+      that: inox.ast.Trees
+  ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+    case tree: Trees =>
+      new TreeDeconstructor {
+        protected val s: self.type = self
+        protected val t: tree.type = tree
+      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
     case _ => super.getDeconstructor(that)
   }
@@ -170,17 +171,20 @@ trait Printer extends innerfuns.Printer {
     case Old(e) =>
       p"old($e)"
 
-    case BoolBitwiseAnd(lhs, rhs) => optP {
-      p"$lhs & $rhs"
-    }
+    case BoolBitwiseAnd(lhs, rhs) =>
+      optP {
+        p"$lhs & $rhs"
+      }
 
-    case BoolBitwiseOr(lhs, rhs) => optP {
-      p"$lhs | $rhs"
-    }
+    case BoolBitwiseOr(lhs, rhs) =>
+      optP {
+        p"$lhs | $rhs"
+      }
 
-    case BoolBitwiseXor(lhs, rhs) => optP {
-      p"$lhs ^ $rhs"
-    }
+    case BoolBitwiseXor(lhs, rhs) =>
+      optP {
+        p"$lhs ^ $rhs"
+      }
 
     case _ => super.ppBody(tree)
   }
@@ -220,18 +224,46 @@ trait TreeDeconstructor extends innerfuns.TreeDeconstructor {
       (Seq(), Seq(), exprs :+ last, Seq(), Seq(), (_, _, es, _, _) => t.Block(es.init, es.last))
 
     case s.LetVar(vd, value, expr) =>
-      (Seq(), Seq(vd.toVariable), Seq(value, expr), Seq(), Seq(), (_, vs, es, _, _) => t.LetVar(vs.head.toVal, es(0), es(1)))
+      (
+        Seq(),
+        Seq(vd.toVariable),
+        Seq(value, expr),
+        Seq(),
+        Seq(),
+        (_, vs, es, _, _) => t.LetVar(vs.head.toVal, es(0), es(1))
+      )
 
     // @nv: we DON'T return `v` as a variable here as it should not be removed from the
     //      set of free variables in `e`!
     case s.Assignment(v, value) =>
-      (Seq(), Seq(), Seq(v, value), Seq(), Seq(), (_, _, es, _, _) => t.Assignment(es(0).asInstanceOf[t.Variable], es(1)))
+      (
+        Seq(),
+        Seq(),
+        Seq(v, value),
+        Seq(),
+        Seq(),
+        (_, _, es, _, _) => t.Assignment(es(0).asInstanceOf[t.Variable], es(1))
+      )
 
     case s.FieldAssignment(obj, selector, value) =>
-      (Seq(selector), Seq(), Seq(obj, value), Seq(), Seq(), (ids, _, es, _, _) => t.FieldAssignment(es(0), ids.head, es(1)))
+      (
+        Seq(selector),
+        Seq(),
+        Seq(obj, value),
+        Seq(),
+        Seq(),
+        (ids, _, es, _, _) => t.FieldAssignment(es(0), ids.head, es(1))
+      )
 
     case s.While(cond, body, pred) =>
-      (Seq(), Seq(), Seq(cond, body) ++ pred, Seq(), Seq(), (_, _, es, _, _) => t.While(es(0), es(1), es.drop(2).headOption))
+      (
+        Seq(),
+        Seq(),
+        Seq(cond, body) ++ pred,
+        Seq(),
+        Seq(),
+        (_, _, es, _, _) => t.While(es(0), es(1), es.drop(2).headOption)
+      )
 
     case s.ArrayUpdate(array, index, value) =>
       (Seq(), Seq(), Seq(array, index, value), Seq(), Seq(), (_, _, es, _, _) => t.ArrayUpdate(es(0), es(1), es(2)))
@@ -254,20 +286,21 @@ trait ExprOps extends innerfuns.ExprOps {
   protected val trees: Trees
   import trees._
 
-  def flattenBlocks(expr: Expr): Expr = postMap {
-    case Block(exprs, last) =>
-      val newExprs = (exprs.filter(_ != UnitLiteral()) :+ last).flatMap {
-        case Block(es, l) => es :+ l
-        case e => Seq(e)
-      }
+  def flattenBlocks(expr: Expr): Expr =
+    postMap {
+      case Block(exprs, last) =>
+        val newExprs = (exprs.filter(_ != UnitLiteral()) :+ last).flatMap {
+          case Block(es, l) => es :+ l
+          case e => Seq(e)
+        }
 
-      Some(newExprs match {
-        case Seq() => UnitLiteral()
-        case Seq(e) => e
-        case es => Block(es.init, es.last).setPos(Position.between(es.head.getPos, es.last.getPos))
-      })
-    case _ => None
-  } (expr)
+        Some(newExprs match {
+          case Seq() => UnitLiteral()
+          case Seq(e) => e
+          case es => Block(es.init, es.last).setPos(Position.between(es.head.getPos, es.last.getPos))
+        })
+      case _ => None
+    }(expr)
 
   /** Traverses [[expr]] top-down and _as soon as_ a visited expression occurs
     * in the [[subst]] map, replaces it by the corresponding image. The function

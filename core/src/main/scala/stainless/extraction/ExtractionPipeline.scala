@@ -36,8 +36,9 @@ trait ExtractionPipeline { self =>
 }
 
 object ExtractionPipeline {
-  def apply(transformer: DefinitionTransformer { val s: Trees; val t: ast.Trees })
-           (implicit ctx: inox.Context): ExtractionPipeline {
+  def apply(transformer: DefinitionTransformer { val s: Trees; val t: ast.Trees })(
+      implicit ctx: inox.Context
+  ): ExtractionPipeline {
     val s: transformer.s.type
     val t: transformer.t.type
   } = new ExtractionPipeline { self =>
@@ -46,16 +47,21 @@ object ExtractionPipeline {
     override val context = ctx
 
     override def extract(symbols: s.Symbols): t.Symbols =
-      symbols.transform(transformer.asInstanceOf[DefinitionTransformer {
-        val s: self.s.type
-        val t: self.t.type
-      }])
+      symbols.transform(
+        transformer.asInstanceOf[
+          DefinitionTransformer {
+            val s: self.s.type
+            val t: self.t.type
+          }
+        ]
+      )
 
     override def invalidate(id: Identifier): Unit = ()
   }
 
-  def apply(transformer: inox.transformers.SymbolTransformer { val s: Trees; val t: ast.Trees })
-           (implicit ctx: inox.Context): ExtractionPipeline {
+  def apply(transformer: inox.transformers.SymbolTransformer { val s: Trees; val t: ast.Trees })(
+      implicit ctx: inox.Context
+  ): ExtractionPipeline {
     val s: transformer.s.type
     val t: transformer.t.type
   } = new ExtractionPipeline {
@@ -110,7 +116,8 @@ trait SimpleSorts extends CachingPhase {
 }
 
 trait SimplyCachedSorts extends CachingPhase {
-  override protected final val sortCache: ExtractionCache[s.ADTSort, SortResult] = new SimpleCache[s.ADTSort, SortResult]
+  override protected final val sortCache: ExtractionCache[s.ADTSort, SortResult] =
+    new SimpleCache[s.ADTSort, SortResult]
 }
 
 trait IdentitySorts extends SimpleSorts with SimplyCachedSorts { self =>
@@ -124,11 +131,13 @@ trait IdentitySorts extends SimpleSorts with SimplyCachedSorts { self =>
 
 trait SimpleFunctions extends CachingPhase {
   override protected type FunctionResult = t.FunDef
-  override protected def registerFunctions(symbols: t.Symbols, functions: Seq[t.FunDef]): t.Symbols = symbols.withFunctions(functions)
+  override protected def registerFunctions(symbols: t.Symbols, functions: Seq[t.FunDef]): t.Symbols =
+    symbols.withFunctions(functions)
 }
 
 trait SimplyCachedFunctions extends CachingPhase {
-  override protected final val funCache: ExtractionCache[s.FunDef, FunctionResult] = new SimpleCache[s.FunDef, FunctionResult]
+  override protected final val funCache: ExtractionCache[s.FunDef, FunctionResult] =
+    new SimpleCache[s.FunDef, FunctionResult]
 }
 
 trait IdentityFunctions extends SimpleFunctions with SimplyCachedFunctions { self =>

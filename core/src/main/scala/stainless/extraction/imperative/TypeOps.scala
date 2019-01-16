@@ -7,4 +7,3 @@ package imperative
 trait TypeOps extends innerfuns.TypeOps {
   override protected val trees: Trees
 }
-

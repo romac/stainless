@@ -6,7 +6,7 @@ object StdIn3 {
   def abs: Int = {
     implicit val state = stainless.io.newState
     val n = StdIn.readInt
-    if(n < 0) -n else n
-  } ensuring(_ >= 0)
+    if (n < 0) -n else n
+  } ensuring (_ >= 0)
 
 }

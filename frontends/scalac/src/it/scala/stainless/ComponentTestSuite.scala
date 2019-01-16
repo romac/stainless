@@ -17,8 +17,8 @@ trait ComponentTestSuite extends inox.TestSuite with inox.ResourceUtils with Inp
 
   override protected def optionsString(options: inox.Options): String = {
     "solvr=" + options.findOptionOrDefault(inox.optSelectedSolvers).head + " " +
-    "lucky=" + options.findOptionOrDefault(inox.solvers.unrolling.optFeelingLucky) + " " +
-    "check=" + options.findOptionOrDefault(inox.solvers.optCheckModels)
+      "lucky=" + options.findOptionOrDefault(inox.solvers.unrolling.optFeelingLucky) + " " +
+      "check=" + options.findOptionOrDefault(inox.solvers.optCheckModels)
   }
 
   protected def filter(ctx: inox.Context, name: String): FilterStatus = Test
@@ -54,9 +54,9 @@ trait ComponentTestSuite extends inox.TestSuite with inox.ResourceUtils with Inp
             (defs & flags.collect { case run.trees.Derived(id) => id }.toSet).nonEmpty
 
           defs ++
-          exProgram.symbols.functions.values.filter(fd => derived(fd.flags)).map(_.id) ++
-          exProgram.symbols.sorts.values.filter(sort => derived(sort.flags)).map(_.id)
-        } (unit.allFunctions(program.symbols).toSet ++ unit.allClasses)
+            exProgram.symbols.functions.values.filter(fd => derived(fd.flags)).map(_.id) ++
+            exProgram.symbols.sorts.values.filter(sort => derived(sort.flags)).map(_.id)
+        }(unit.allFunctions(program.symbols).toSet ++ unit.allClasses)
 
         val funs = defs.filter(exProgram.symbols.functions contains _).toSeq
 
@@ -89,14 +89,17 @@ trait ComponentTestSuite extends inox.TestSuite with inox.ResourceUtils with Inp
 
         val run = component.run(extraction.pipeline)
 
-        val funs = inox.utils.fixpoint { (defs: Set[Identifier]) =>
-          def derived(flags: Seq[extractor.trees.Flag]): Boolean =
-            (defs & flags.collect { case extractor.trees.Derived(id) => id }.toSet).nonEmpty
+        val funs = inox.utils
+          .fixpoint { (defs: Set[Identifier]) =>
+            def derived(flags: Seq[extractor.trees.Flag]): Boolean =
+              (defs & flags.collect { case extractor.trees.Derived(id) => id }.toSet).nonEmpty
 
-          defs ++
-          exSymbols.functions.values.filter(fd => derived(fd.flags)).map(_.id) ++
-          exSymbols.sorts.values.filter(sort => derived(sort.flags)).map(_.id)
-        } (defs).toSeq.filter(exSymbols.functions contains _)
+            defs ++
+              exSymbols.functions.values.filter(fd => derived(fd.flags)).map(_.id) ++
+              exSymbols.sorts.values.filter(sort => derived(sort.flags)).map(_.id)
+          }(defs)
+          .toSeq
+          .filter(exSymbols.functions contains _)
 
         // We have to cast the extracted symbols type as we are using two different
         // run instances. However, the trees types are the same so this should be safe (tm).
@@ -111,4 +114,3 @@ trait ComponentTestSuite extends inox.TestSuite with inox.ResourceUtils with Inp
   }
 
 }
-

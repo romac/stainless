@@ -9,7 +9,7 @@ import dotty.tools.dotc.transform._
 import dotty.tools.dotc.core.Phases._
 import dotty.tools.dotc.core.Contexts._
 
-import frontend.{ Frontend, ThreadedFrontend, FrontendFactory, CallBack }
+import frontend.{Frontend, ThreadedFrontend, FrontendFactory, CallBack}
 
 class DottyCompiler(ctx: inox.Context, callback: CallBack, cache: SymbolsContext) extends Compiler {
   override def phases: List[List[Phase]] = List(
@@ -30,13 +30,12 @@ private class DottyDriver(args: Seq[String], compiler: DottyCompiler) extends Dr
   def run(): Unit = process(args.toArray)
 }
 
-
 object DottyCompiler {
 
   /** Complying with [[frontend]]'s interface */
   class Factory(
-    override val extraCompilerArguments: Seq[String],
-    override val libraryPaths: Seq[String]
+      override val extraCompilerArguments: Seq[String],
+      override val libraryPaths: Seq[String]
   ) extends FrontendFactory {
 
     override def apply(ctx: inox.Context, compilerArgs: Seq[String], callback: CallBack): Frontend =
@@ -64,4 +63,3 @@ object DottyCompiler {
   }
 
 }
-

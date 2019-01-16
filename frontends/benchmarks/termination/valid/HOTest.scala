@@ -6,8 +6,8 @@ import annotation._
 import math._
 
 /**
- * A collection of functions that use higher-order functions in various ways
- */
+  * A collection of functions that use higher-order functions in various ways
+  */
 object HOTest {
   def hoRecur(x: BigInt, f: BigInt => BigInt): BigInt = {
     require(x >= 0 && forall((x: BigInt) => f(x) < x && f(x) >= 0))
@@ -16,6 +16,5 @@ object HOTest {
     else
       hoRecur(f(x), f)
   }
-  
-  
+
 }

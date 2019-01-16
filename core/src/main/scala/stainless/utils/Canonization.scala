@@ -29,7 +29,7 @@ trait Canonization { self =>
 
     protected final def freshId(): Identifier = {
       localCounter = localCounter + 1
-      new Identifier("x",localCounter,localCounter)
+      new Identifier("x", localCounter, localCounter)
     }
 
     override def transform(id: Identifier): Identifier = {
@@ -90,10 +90,11 @@ trait Canonization { self =>
     // Maps an original identifier to a normalized identifier
     protected final val ids: mutable.Map[Identifier, Identifier] = mutable.Map.empty
 
-    final def registerId(id: Identifier): Identifier = ids.getOrElseUpdate(id, {
-      localCounter = localCounter + 1
-      new Identifier("x",localCounter,localCounter)
-    })
+    final def registerId(id: Identifier): Identifier =
+      ids.getOrElseUpdate(id, {
+        localCounter = localCounter + 1
+        new Identifier("x", localCounter, localCounter)
+      })
 
     override def transform(id: Identifier): Identifier = ids.getOrElse(id, id)
 
@@ -144,9 +145,7 @@ trait XlangCanonization extends Canonization {
   val trees: extraction.xlang.Trees
   import trees._
 
-  protected class RegisteringTransformer
-    extends super.RegisteringTransformer
-       with extraction.oo.TreeTransformer
+  protected class RegisteringTransformer extends super.RegisteringTransformer with extraction.oo.TreeTransformer
 
   def apply(cd: ClassDef): ClassDef = {
     val transformer = new RegisteringTransformer
@@ -155,24 +154,27 @@ trait XlangCanonization extends Canonization {
   }
 }
 
-
 object Canonization {
-  def apply(p: inox.Program { val trees: ast.Trees }): Canonization { val trees: p.trees.type } = new {
-    override val trees: p.trees.type = p.trees
-  } with Canonization
+  def apply(p: inox.Program { val trees: ast.Trees }): Canonization { val trees: p.trees.type } =
+    new {
+      override val trees: p.trees.type = p.trees
+    } with Canonization
 
-  def apply(tr: ast.Trees): Canonization { val trees: tr.type } = new {
-    override val trees: tr.type = tr
-  } with Canonization
+  def apply(tr: ast.Trees): Canonization { val trees: tr.type } =
+    new {
+      override val trees: tr.type = tr
+    } with Canonization
 }
 
 object XlangCanonization {
-  def apply(p: inox.Program { val trees: extraction.xlang.Trees }): XlangCanonization { val trees: p.trees.type } = new {
-    override val trees: p.trees.type = p.trees
-  } with XlangCanonization
+  def apply(p: inox.Program { val trees: extraction.xlang.Trees }): XlangCanonization { val trees: p.trees.type } =
+    new {
+      override val trees: p.trees.type = p.trees
+    } with XlangCanonization
 
-  def apply(tr: extraction.xlang.Trees): XlangCanonization { val trees: tr.type } = new {
-    override val trees: tr.type = tr
-  } with XlangCanonization
+  def apply(tr: extraction.xlang.Trees): XlangCanonization { val trees: tr.type } =
+    new {
+      override val trees: tr.type = tr
+    } with XlangCanonization
 
 }

@@ -28,21 +28,26 @@ object LambdaCalculus {
   i.e.
   (λx. x x)(λx. x x)
   This is the well-known "omega".
-  */
+   */
   // big step call-by-value looping_evaluation
-  def looping_eval(t: Term): Option[Term] = (t match {
-    case App(t1, t2) => looping_eval(t1) match {
-      case Some(Abs(x, body)) => looping_eval(t2) match {
-        case Some(v2) => looping_eval(subst(x, v2, body))
-        case None() => None[Term]()
+  def looping_eval(t: Term): Option[Term] =
+    (t match {
+      case App(t1, t2) =>
+        looping_eval(t1) match {
+          case Some(Abs(x, body)) =>
+            looping_eval(t2) match {
+              case Some(v2) => looping_eval(subst(x, v2, body))
+              case None() => None[Term]()
+            }
+          case _ => None[Term]() // stuck
+        }
+      case _ => Some(t) // Abs or Var, already a value
+    }) ensuring { res =>
+      res match {
+        case Some(t) => isValue(t)
+        case None() => true
       }
-      case _ => None[Term]() // stuck
     }
-    case _ => Some(t) // Abs or Var, already a value
-  }) ensuring { res => res match {
-    case Some(t) => isValue(t)
-    case None() => true
-  }}
 
   def isValue(t: Term): Boolean = t match {
     case Var(x) => true

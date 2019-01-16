@@ -10,9 +10,9 @@ object Existentials {
   def check1(y: BigInt, p: BigInt => Boolean) : Boolean = {
     p(y) == exists((y1:BigInt) => p(y1))
   }.holds
-  */
+   */
 
-  def check2(y: BigInt, p: BigInt => Boolean) : Boolean = {
-    p(y) ==> exists[BigInt]((y1:BigInt) => p(y1))
+  def check2(y: BigInt, p: BigInt => Boolean): Boolean = {
+    p(y) ==> exists[BigInt]((y1: BigInt) => p(y1))
   }.holds
 }

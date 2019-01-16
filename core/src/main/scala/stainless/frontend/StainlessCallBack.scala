@@ -5,25 +5,26 @@ package frontend
 
 import scala.language.existentials
 
-import extraction.xlang.{ TreeSanitizer, trees => xt }
-import utils.{ CheckFilter, DependenciesFinder, JsonUtils, Registry }
+import extraction.xlang.{TreeSanitizer, trees => xt}
+import utils.{CheckFilter, DependenciesFinder, JsonUtils, Registry}
 
-import scala.collection.mutable.{ ListBuffer, Map => MutableMap, Set => MutableSet }
+import scala.collection.mutable.{ListBuffer, Map => MutableMap, Set => MutableSet}
 
 import io.circe._
 import io.circe.syntax._
 
 import java.io.File
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 class StainlessCallBack(components: Seq[Component])(override implicit val context: inox.Context)
-  extends CallBack with CheckFilter { self =>
+    extends CallBack
+    with CheckFilter { self =>
 
   protected final override val trees = extraction.xlang.trees
   protected val pipeline: extraction.StainlessPipeline = extraction.pipeline
 
-  import context.{ options, reporter }
+  import context.{options, reporter}
 
   private[this] val runs = components.map(_.run(pipeline))
 
@@ -33,7 +34,6 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
   protected val cacheSubDirectory: String = "stainless"
 
   /******************* Public Interface: Override CallBack ***************************************/
-
   final override def beginExtractions(): Unit = {
     assert(tasks.isEmpty)
 
@@ -43,8 +43,12 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
     }
   }
 
-  final override def apply(file: String, unit: xt.UnitDef,
-                           classes: Seq[xt.ClassDef], functions: Seq[xt.FunDef]): Unit = {
+  final override def apply(
+      file: String,
+      unit: xt.UnitDef,
+      classes: Seq[xt.ClassDef],
+      functions: Seq[xt.FunDef]
+  ): Unit = {
     reporter.debug(s"Got a unit for $file: ${unit.id} with:")
     reporter.debug(s"\tfunctions -> [${functions.map { _.id }.sorted mkString ", "}]")
     reporter.debug(s"\tclasses   -> [${classes.map { _.id }.sorted mkString ", "}]")
@@ -76,19 +80,20 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
   }
 
   // Build the report
-  final override def join(): Unit = try {
-    val newReports = Await.result(Future.sequence(tasks), Duration.Inf)
-    val reports = (report +: newReports) filter { _ != null }
-    if (reports.nonEmpty) report = reports reduce { _ ~ _ }
-    tasks.clear()
+  final override def join(): Unit =
+    try {
+      val newReports = Await.result(Future.sequence(tasks), Duration.Inf)
+      val reports = (report +: newReports) filter { _ != null }
+      if (reports.nonEmpty) report = reports reduce { _ ~ _ }
+      tasks.clear()
 
-    // Save cache now that we have our report
-    saveCaches()
-  } catch {
-    case SomeFatalError(e) =>
-      stop()
-      throw e
-  }
+      // Save cache now that we have our report
+      saveCaches()
+    } catch {
+      case SomeFatalError(e) =>
+        stop()
+        throw e
+    }
 
   object SomeFatalError {
     def unapply(ex: Throwable): Option[Throwable] = ex match {
@@ -106,9 +111,12 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
     val name = "stainless"
 
     override def ~(other: Report): Report = Report(
-      (reports ++ other.reports).groupBy(_.run).map {
-        case (run, reports) => RunReport(run)(reports.map(_.report.asInstanceOf[run.component.Report]) reduce (_ ~ _))
-      }.toSeq
+      (reports ++ other.reports)
+        .groupBy(_.run)
+        .map {
+          case (run, reports) => RunReport(run)(reports.map(_.report.asInstanceOf[run.component.Report]) reduce (_ ~ _))
+        }
+        .toSeq
     )
 
     override lazy val annotatedRows = reports.flatMap(_.report.annotatedRows: Seq[RecordRow])
@@ -121,30 +129,31 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
     override lazy val stats: stainless.ReportStats = {
       val reportStats = reports.map(_.report.stats)
       ReportStats(
-        reportStats.map(_.total         ).sum,
-        reportStats.map(_.time          ).sum,
-        reportStats.map(_.valid         ).sum,
+        reportStats.map(_.total).sum,
+        reportStats.map(_.time).sum,
+        reportStats.map(_.valid).sum,
         reportStats.map(_.validFromCache).sum,
-        reportStats.map(_.invalid       ).sum,
-        reportStats.map(_.unknown       ).sum)
+        reportStats.map(_.invalid).sum,
+        reportStats.map(_.unknown).sum
+      )
     }
   }
 
   /** Parse a JSON value into a proper Report. We assume this doesn't fail. */
   protected def parseReportCache(json: Json): Report = json.as[Seq[(String, Json)]] match {
-    case Right(jsons) => Report(runs.flatMap { run =>
-      jsons.find(_._1 == run.component.name)
-        .map(p => RunReport(run)(run.parse(p._2)): RunReport)
-    })
+    case Right(jsons) =>
+      Report(runs.flatMap { run =>
+        jsons
+          .find(_._1 == run.component.name)
+          .map(p => RunReport(run)(run.parse(p._2)): RunReport)
+      })
     case Left(error) => throw error
   }
 
   // See assumption/requirements in [[CallBack]]
   final override def getReport: Option[Report] = Option(report)
 
-
   /******************* Internal State *************************************************************/
-
   private val tasks = ListBuffer[Future[Report]]()
   private var report: Report = _
 
@@ -165,9 +174,7 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
 
   private var firstCycle = true // used to trigger cache loading the first time.
 
-
   /******************* Internal Helpers ***********************************************************/
-
   private def getCacheFile(filename: String): Option[File] =
     utils.Caches.getCacheFile(context, optPersistentCache, cacheSubDirectory, filename)
 
@@ -206,7 +213,6 @@ class StainlessCallBack(components: Seq[Component])(override implicit val contex
     val json = report.emitJson
     JsonUtils.writeFile(caches.report, json)
   }
-
 
   private def processSymbols(symss: Iterable[xt.Symbols]): Unit = {
     val ignoreFlags = Set("library", "synthetic")

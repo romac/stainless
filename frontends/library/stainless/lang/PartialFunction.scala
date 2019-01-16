@@ -6,14 +6,14 @@ package lang
 import annotation._
 
 /**
- * Describe a partial function with precondition `pre`.
- *
- * Do not attempt to create it using the ~>'s companion object's apply method.
- * Instead, use `PartialFunction$.apply` defined beflow. (Private constructor
- * cannot be expressed in Stainless.)
- */
+  * Describe a partial function with precondition `pre`.
+  *
+  * Do not attempt to create it using the ~>'s companion object's apply method.
+  * Instead, use `PartialFunction$.apply` defined beflow. (Private constructor
+  * cannot be expressed in Stainless.)
+  */
 @library
-case class ~>[A, B] private[stainless](pre: A => Boolean, private val f: A => B) {
+case class ~>[A, B] private[stainless] (pre: A => Boolean, private val f: A => B) {
   def apply(a: A): B = {
     require(pre(a))
     f(a)
@@ -29,24 +29,25 @@ case class ~>>[A, B](private val f: A ~> B, post: B => Boolean) {
   def apply(a: A): B = {
     require(pre(a))
     f(a)
-  } ensuring(post)
+  } ensuring (post)
 }
 
 @library
 object PartialFunction {
+
   /**
-   * Construct an instance of ~> by extracting the precondition (if any) from
-   * the given lambda `f`. For example,
-   *
-   *   PartialFunction{ (x: A) => require(pre(x)); body(x) }
-   *
-   * is converted into
-   *
-   *    ~>(
-   *      { (x: A) => pre(x) },
-   *      { (x: A) => assume(pre(x)); body(x) }
-   *    )
-   */
+    * Construct an instance of ~> by extracting the precondition (if any) from
+    * the given lambda `f`. For example,
+    *
+    *   PartialFunction{ (x: A) => require(pre(x)); body(x) }
+    *
+    * is converted into
+    *
+    *    ~>(
+    *      { (x: A) => pre(x) },
+    *      { (x: A) => assume(pre(x)); body(x) }
+    *    )
+    */
   @extern
   def apply[A, B](f: A => B): A ~> B = {
     ~>(x => scala.util.Try(f(x)).isSuccess, f)
@@ -63,4 +64,3 @@ object PartialFunction {
   }
 
 }
-

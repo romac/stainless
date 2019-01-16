@@ -26,32 +26,35 @@ import scala.language.existentials
 package object extraction {
 
   val phases: Seq[(String, String)] = Seq(
-    "PartialFunctions"          -> "Lift partial function preconditions",
-    "Laws"                      -> "Rewrite laws as abstract functions with contracts",
-    "SuperCalls"                -> "Resolve super-function calls",
-    "Sealing"                   -> "Seal every class and add mutable flags",
-    "MethodLifting"             -> "Lift methods into dispatching functions",
-    "FieldAccessors"            -> "Inline field accessors of concrete classes",
-    "AdtSpecialization"         -> "Specialize classes into ADTs (when possible)",
-    "RefinementLifting"         -> "Lift simple refinements to contracts",
-    "TypeEncoding"              -> "Encode non-ADT types",
-    "AntiAliasing"              -> "Rewrite field and array mutations",
+    "PartialFunctions" -> "Lift partial function preconditions",
+    "Laws" -> "Rewrite laws as abstract functions with contracts",
+    "SuperCalls" -> "Resolve super-function calls",
+    "Sealing" -> "Seal every class and add mutable flags",
+    "MethodLifting" -> "Lift methods into dispatching functions",
+    "FieldAccessors" -> "Inline field accessors of concrete classes",
+    "AdtSpecialization" -> "Specialize classes into ADTs (when possible)",
+    "RefinementLifting" -> "Lift simple refinements to contracts",
+    "TypeEncoding" -> "Encode non-ADT types",
+    "AntiAliasing" -> "Rewrite field and array mutations",
     "ImperativeCodeElimination" -> "Eliminate while loops and assignments",
-    "ImperativeCleanup"         -> "Cleanup after imperative transformations",
-    "FunctionClosure"           -> "Lift inner functions",
-    "FunctionInlining"          -> "Transitively inline marked functions",
-    "PartialEvaluation"         -> "Partially evaluate marked function calls"
+    "ImperativeCleanup" -> "Cleanup after imperative transformations",
+    "FunctionClosure" -> "Lift inner functions",
+    "FunctionInlining" -> "Transitively inline marked functions",
+    "PartialEvaluation" -> "Partially evaluate marked function calls"
   )
 
   val phaseNames: Set[String] = phases.map(_._1).toSet
 
   /** Unifies all stainless tree definitions */
   trait Trees extends ast.Trees with termination.Trees { self =>
-    override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-      case tree: Trees => new TreeDeconstructor {
-        protected val s: self.type = self
-        protected val t: tree.type = tree
-      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+    override def getDeconstructor(
+        that: inox.ast.Trees
+    ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+      case tree: Trees =>
+        new TreeDeconstructor {
+          protected val s: self.type = self
+          protected val t: tree.type = tree
+        }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
       case _ => super.getDeconstructor(that)
     }
@@ -75,24 +78,24 @@ package object extraction {
 
   object trees extends Trees with inox.ast.SimpleSymbols {
     case class Symbols(
-      functions: Map[Identifier, FunDef],
-      sorts: Map[Identifier, ADTSort]
-    ) extends SimpleSymbols with AbstractSymbols
+        functions: Map[Identifier, FunDef],
+        sorts: Map[Identifier, ADTSort]
+    ) extends SimpleSymbols
+        with AbstractSymbols
 
     object printer extends Printer { val trees: extraction.trees.type = extraction.trees }
   }
 
-  case class MissformedStainlessCode(tree: inox.ast.Trees#Tree, msg: String)
-    extends Exception(msg)
+  case class MissformedStainlessCode(tree: inox.ast.Trees#Tree, msg: String) extends Exception(msg)
 
   def pipeline(implicit ctx: inox.Context): StainlessPipeline = {
-    xlang.extractor      andThen
-    methods.extractor    andThen
-    throwing.extractor   andThen
-    oo.extractor         andThen
-    imperative.extractor andThen
-    innerfuns.extractor  andThen
-    inlining.extractor
+    xlang.extractor andThen
+      methods.extractor andThen
+      throwing.extractor andThen
+      oo.extractor andThen
+      imperative.extractor andThen
+      innerfuns.extractor andThen
+      inlining.extractor
   }
 
   private[this] def completeSymbols(symbols: trees.Symbols)(to: ast.Trees): to.Symbols = {
@@ -120,37 +123,39 @@ package object extraction {
     new inox.SemanticsProvider {
       val trees: extraction.trees.type = extraction.trees
 
-      def getSemantics(p: inox.Program { val trees: extraction.trees.type }): p.Semantics = new inox.Semantics { self =>
-        val trees: p.trees.type = p.trees
-        val symbols: p.symbols.type = p.symbols
-        val program: Program { val trees: p.trees.type; val symbols: p.symbols.type } =
-          p.asInstanceOf[Program { val trees: p.trees.type; val symbols: p.symbols.type }]
+      def getSemantics(p: inox.Program { val trees: extraction.trees.type }): p.Semantics =
+        new inox.Semantics { self =>
+          val trees: p.trees.type = p.trees
+          val symbols: p.symbols.type = p.symbols
+          val program: Program { val trees: p.trees.type; val symbols: p.symbols.type } =
+            p.asInstanceOf[Program { val trees: p.trees.type; val symbols: p.symbols.type }]
 
-        private[this] val targetProgram = inox.Program(stainless.trees)(completeSymbols(symbols)(stainless.trees))
+          private[this] val targetProgram = inox.Program(stainless.trees)(completeSymbols(symbols)(stainless.trees))
 
-        private object encoder extends inox.transformers.ProgramTransformer {
-          override val sourceProgram: self.program.type = self.program
-          override val targetProgram = self.targetProgram
+          private object encoder extends inox.transformers.ProgramTransformer {
+            override val sourceProgram: self.program.type = self.program
+            override val targetProgram = self.targetProgram
 
-          override object encoder extends transformers.TreeTransformer {
-            val s: trees.type = trees
-            val t: stainless.trees.type = stainless.trees
+            override object encoder extends transformers.TreeTransformer {
+              val s: trees.type = trees
+              val t: stainless.trees.type = stainless.trees
+            }
+
+            override object decoder extends transformers.TreeTransformer {
+              val s: stainless.trees.type = stainless.trees
+              val t: trees.type = trees
+            }
           }
 
-          override object decoder extends transformers.TreeTransformer {
-            val s: stainless.trees.type = stainless.trees
-            val t: trees.type = trees
-          }
-        }
+          protected def createSolver(ctx: inox.Context): inox.solvers.SolverFactory {
+            val program: self.program.type
+            type S <: inox.solvers.combinators.TimeoutSolver { val program: self.program.type }
+          } =
+            solvers.SolverFactory.getFromSettings(self.program, ctx)(encoder)(self.asInstanceOf[self.program.Semantics])
 
-        protected def createSolver(ctx: inox.Context): inox.solvers.SolverFactory {
-          val program: self.program.type
-          type S <: inox.solvers.combinators.TimeoutSolver { val program: self.program.type }
-        } = solvers.SolverFactory.getFromSettings(self.program, ctx)(encoder)(self.asInstanceOf[self.program.Semantics])
-
-        protected def createEvaluator(ctx: inox.Context): inox.evaluators.DeterministicEvaluator {
-          val program: self.program.type
-        } = inox.evaluators.EncodingEvaluator(self.program)(encoder)(evaluators.Evaluator(encoder.targetProgram, ctx))
-      }.asInstanceOf[p.Semantics] // @nv: unfortunately required here...
+          protected def createEvaluator(ctx: inox.Context): inox.evaluators.DeterministicEvaluator {
+            val program: self.program.type
+          } = inox.evaluators.EncodingEvaluator(self.program)(encoder)(evaluators.Evaluator(encoder.targetProgram, ctx))
+        }.asInstanceOf[p.Semantics] // @nv: unfortunately required here...
     }
 }

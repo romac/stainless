@@ -1,6 +1,5 @@
 /* Copyright 2009-2018 EPFL, Lausanne */
 
-
 import stainless.lang._
 import stainless.annotation._
 import stainless.collection._
@@ -15,8 +14,8 @@ object LambdaEquality {
         case Nil() => true
         case Cons(x, xs) =>
           mapId(xs) &&
-          id(x) :: xs.map[A](id) == x :: xs &&
-          true
+            id(x) :: xs.map[A](id) == x :: xs &&
+            true
       }
     }
   }.holds

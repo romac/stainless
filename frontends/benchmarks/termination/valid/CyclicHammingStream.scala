@@ -1,23 +1,23 @@
-
 import stainless._
 import lang._
 import annotation._
 import collection._
 
 /**
- * An infinite list of hamming numbers (Brid & Wadler)
- */
+  * An infinite list of hamming numbers (Brid & Wadler)
+  */
 object MergeAndHammingNumbers {
+
   /**
-   *  An infinite integer stream
-   */
+    *  An infinite integer stream
+    */
   case class SCons(x: BigInt, tailFun: () => SCons) {
     lazy val tail = tailFun()
   }
 
   /**
-   * A generic lazy higher-order `map` function
-   */
+    * A generic lazy higher-order `map` function
+    */
   def map(f: BigInt => BigInt, xs: SCons): SCons = {
     xs match {
       case SCons(x, _) =>
@@ -26,18 +26,18 @@ object MergeAndHammingNumbers {
   }
 
   /**
-   * Computes minimum of three elements
-   */
+    * Computes minimum of three elements
+    */
   def min(x: BigInt, y: BigInt, z: BigInt) = {
-    if(x <= y)
-      if(x <= z) x else z
-    else
-      if(y <= z) y else z
+    if (x <= y)
+      if (x <= z) x else z
+    else if (y <= z) y
+    else z
   }
 
   /**
-   * A three way merge function
-   */
+    * A three way merge function
+    */
   def merge(a: SCons, b: SCons, c: SCons): SCons = {
     val m = min(a.x, b.x, c.x)
     SCons(m, () => {
@@ -56,17 +56,17 @@ object MergeAndHammingNumbers {
     }
   }
 
-   /**
-   * A stream of hamming numbers
-   */
+  /**
+    * A stream of hamming numbers
+    */
   val hamstream: SCons = SCons(1, () => {
     val hs = this.hamstream
     merge(map(2 * _, hs), map(3 * _, hs), map(5 * _, hs))
   })
 
   /**
-   * `nth` hamming number in O(n) time.
-   */
+    * `nth` hamming number in O(n) time.
+    */
   def nthHammingNumber(n: BigInt) = {
     require(n >= 0)
     nthElem(n, hamstream)

@@ -16,8 +16,8 @@ object Overrides {
     override def x(i: Int) = {
       require(i >= 0)
       if (i == 0) 0
-      else c + x(i-1)
-    } ensuring ( _ != c * i )
+      else c + x(i - 1)
+    } ensuring (_ != c * i)
   }
 
   case class D() extends B

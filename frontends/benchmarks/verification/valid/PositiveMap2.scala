@@ -1,6 +1,5 @@
 /* Copyright 2009-2018 EPFL, Lausanne */
 
-
 import stainless.lang._
 
 object PositiveMap2 {
@@ -20,7 +19,9 @@ object PositiveMap2 {
       case Cons(head, tail) => Cons(f(head), positiveMap_passing_1(f, tail))
       case Nil() => Nil()
     }
-  } ensuring { res => positive(res) }
+  } ensuring { res =>
+    positive(res)
+  }
 
   def positiveMap_passing_2(f: (BigInt) => BigInt, list: List): List = {
     require(forall((a: BigInt) => f(a) > -1))
@@ -28,7 +29,9 @@ object PositiveMap2 {
       case Cons(head, tail) => Cons(f(head), positiveMap_passing_2(f, tail))
       case Nil() => Nil()
     }
-  } ensuring { res => positive(res) }
+  } ensuring { res =>
+    positive(res)
+  }
 
 }
 

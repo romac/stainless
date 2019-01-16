@@ -38,4 +38,3 @@ trait SimplifierWithSolver extends inox.transformers.SimplifierWithPC { self =>
 
   override def initEnv = Env.empty
 }
-

@@ -9,8 +9,8 @@ object IndirectHO {
   def f(n: BigInt): () => Unit = {
     if (n > 0) {
       app(() => f(n - 1))
-    } else {
-      () => ()
+    } else { () =>
+      ()
     }
   }
 }

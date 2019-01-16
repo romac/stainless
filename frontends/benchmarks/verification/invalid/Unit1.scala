@@ -2,8 +2,9 @@
 
 object Unit1 {
 
-  def foo(u: Unit): Unit = ({
-    u
-  }) ensuring(res => false)
+  def foo(u: Unit): Unit =
+    ({
+      u
+    }) ensuring (res => false)
 
 }

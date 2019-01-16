@@ -13,4 +13,3 @@ trait TreeOps extends inox.ast.TreeOps { self: Trees =>
 
   trait SelfTreeTraverser extends transformers.TreeTraverser with super.SelfTreeTraverser
 }
-

@@ -11,11 +11,15 @@ trait FunctionInlining extends CachingPhase with IdentitySorts { self =>
 
   // The function inlining transformation depends on all (transitive) callees
   // that will require inlining.
-  override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]({(fd, symbols) => 
+  override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]({ (fd, symbols) =>
     FunctionKey(fd) + SetKey(
-      symbols.dependencies(fd.id)
+      symbols
+        .dependencies(fd.id)
         .flatMap(id => symbols.lookupFunction(id))
-        .filter(_.flags exists { case Inline | InlineOnce => true case _ => false })
+        .filter(_.flags exists {
+          case Inline | InlineOnce => true
+          case _ => false
+        })
     )
   })
 
@@ -94,10 +98,15 @@ trait FunctionInlining extends CachingPhase with IdentitySorts { self =>
     }
 
     if ((fd.flags contains Synthetic) && (fd.flags contains Inline)) None
-    else Some(identity.transform(fd.copy(
-      fullBody = new Inliner().transform(fd.fullBody),
-      flags = fd.flags filterNot (f => f == Inline || f == InlineOnce)
-    )))
+    else
+      Some(
+        identity.transform(
+          fd.copy(
+            fullBody = new Inliner().transform(fd.fullBody),
+            flags = fd.flags filterNot (f => f == Inline || f == InlineOnce)
+          )
+        )
+      )
   }
 
   override protected def extractSymbols(context: TransformerContext, symbols: s.Symbols): t.Symbols = {

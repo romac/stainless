@@ -4,7 +4,7 @@ object Countable {
   case class Countable[T](f: T => BigInt, g: BigInt => T) {
     require(
       forall((t: T) => g(f(t)) == t) &&
-      forall((h: BigInt) => f(g(h)) == h)
+        forall((h: BigInt) => f(g(h)) == h)
     )
   }
 

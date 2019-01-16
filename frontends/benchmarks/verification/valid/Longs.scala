@@ -23,13 +23,12 @@ object Longs {
   }
 
   /** This tests the slot allocation in CodeGen:
-   *  b should be at index a + 2.
-   *  The JVM will reject the `.class` if any function
-   *  if <static> is invalid; no need to call it.
-   */
+    *  b should be at index a + 2.
+    *  The JVM will reject the `.class` if any function
+    *  if <static> is invalid; no need to call it.
+    */
   def slots(a: Long, b: Int, c: Long): Long = {
     b
   }
 
 }
-

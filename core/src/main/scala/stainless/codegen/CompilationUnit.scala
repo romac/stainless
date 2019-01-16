@@ -48,7 +48,7 @@ trait CompilationUnit extends CodeGeneration {
 
     def evalToJVM(args: Seq[AnyRef], monitor: Monitor): AnyRef = {
       val allArgs = monitor +: args
-      meth.invoke(null, allArgs.toArray : _*)
+      meth.invoke(null, allArgs.toArray: _*)
     }
 
     def evalFromJVM(args: Seq[AnyRef], monitor: Monitor): Expr = {
@@ -73,14 +73,15 @@ trait CompilationUnit extends CodeGeneration {
   private[this] var runtimeTypeToIdMap = Map[Type, Int]()
   private[this] var runtimeIdToTypeMap = Map[Int, Type]()
   protected def getType(id: Int): Type = synchronized(runtimeIdToTypeMap(id))
-  protected def registerType(tpe: Type): Int = synchronized(runtimeTypeToIdMap.get(tpe) match {
-    case Some(id) => id
-    case None =>
-      val id = runtimeCounter.nextGlobal
-      runtimeTypeToIdMap += tpe -> id
-      runtimeIdToTypeMap += id -> tpe
-      id
-  })
+  protected def registerType(tpe: Type): Int =
+    synchronized(runtimeTypeToIdMap.get(tpe) match {
+      case Some(id) => id
+      case None =>
+        val id = runtimeCounter.nextGlobal
+        runtimeTypeToIdMap += tpe -> id
+        runtimeIdToTypeMap += id -> tpe
+        id
+    })
 
   private[this] var runtimeChooseMap = Map[Int, (Seq[ValDef], Seq[TypeParameter], Choose)]()
   protected def getChoose(id: Int): (Seq[ValDef], Seq[TypeParameter], Choose) = synchronized(runtimeChooseMap(id))
@@ -102,14 +103,16 @@ trait CompilationUnit extends CodeGeneration {
   private[this] val adtConstructors: MutableMap[ADTConstructor, Constructor[_]] = MutableMap.empty
 
   private[this] def adtConstructor(cons: ADTConstructor): Constructor[_] =
-    adtConstructors.getOrElseUpdate(cons, {
-      val cf = getClass(cons)
-      val klass = loader.loadClass(cf.className)
-      // This is a hack: we pick the constructor with the most arguments.
-      val conss = klass.getConstructors.sortBy(_.getParameterTypes.length)
-      assert(conss.nonEmpty)
-      conss.last
-    })
+    adtConstructors.getOrElseUpdate(
+      cons, {
+        val cf = getClass(cons)
+        val klass = loader.loadClass(cf.className)
+        // This is a hack: we pick the constructor with the most arguments.
+        val conss = klass.getConstructors.sortBy(_.getParameterTypes.length)
+        assert(conss.nonEmpty)
+        conss.last
+      }
+    )
 
   private[this] lazy val tupleConstructor: Constructor[_] = {
     val tc = loader.loadClass("stainless.codegen.runtime.Tuple")
@@ -125,7 +128,7 @@ trait CompilationUnit extends CodeGeneration {
     * reflection needs this anyway.
     */
   def valueToJVM(e: Expr)(implicit monitor: Monitor): AnyRef = e match {
-    case Int8Literal(v)  => java.lang.Byte.valueOf(v)
+    case Int8Literal(v) => java.lang.Byte.valueOf(v)
     case Int16Literal(v) => java.lang.Short.valueOf(v)
     case Int32Literal(v) => java.lang.Integer.valueOf(v)
     case Int64Literal(v) => java.lang.Long.valueOf(v)
@@ -160,9 +163,9 @@ trait CompilationUnit extends CodeGeneration {
       try {
         val tpeParam = if (tps.isEmpty) Seq() else Seq(tps.map(registerType).toArray)
         val jvmArgs = monitor +: (tpeParam ++ args.map(valueToJVM))
-        cons.newInstance(jvmArgs.toArray : _*).asInstanceOf[AnyRef]
+        cons.newInstance(jvmArgs.toArray: _*).asInstanceOf[AnyRef]
       } catch {
-        case e : java.lang.reflect.InvocationTargetException => throw e.getCause
+        case e: java.lang.reflect.InvocationTargetException => throw e.getCause
       }
 
     // For now, we only treat boolean arrays separately.
@@ -179,14 +182,14 @@ trait CompilationUnit extends CodeGeneration {
 
     case b @ FiniteBag(els, _) =>
       val b = new stainless.codegen.runtime.Bag()
-      for ((k,v) <- els) {
+      for ((k, v) <- els) {
         b.insert(valueToJVM(k), valueToJVM(v).asInstanceOf[stainless.codegen.runtime.BigInt])
       }
       b
 
     case m @ FiniteMap(els, dflt, _, _) =>
       val m = new stainless.codegen.runtime.Map(valueToJVM(dflt))
-      for ((k,v) <- els) {
+      for ((k, v) <- els) {
         m.insert(valueToJVM(k), valueToJVM(v))
       }
       m
@@ -197,17 +200,18 @@ trait CompilationUnit extends CodeGeneration {
         val (afName, closures, tparams, consSig) = compileLambda(l, Seq.empty)
         val depsMap = deps.map { case (v, dep, _) => v.id -> valueToJVM(dep) }.toMap
 
-        val args = closures.map { case (id, _) =>
-          if (id == monitorID) monitor
-          else if (id == tpsID) tparams.map(registerType).toArray
-          else depsMap(id)
+        val args = closures.map {
+          case (id, _) =>
+            if (id == monitorID) monitor
+            else if (id == tpsID) tparams.map(registerType).toArray
+            else depsMap(id)
         }
 
         val lc = loader.loadClass(afName)
         val conss = lc.getConstructors.sortBy(_.getParameterTypes.length)
         assert(conss.nonEmpty)
         val lambdaConstructor = conss.last
-        lambdaConstructor.newInstance(args.toArray : _*).asInstanceOf[AnyRef]
+        lambdaConstructor.newInstance(args.toArray: _*).asInstanceOf[AnyRef]
       } else {
         compileExpression(lambda, Seq.empty).evalToJVM(Seq.empty, monitor)
       }
@@ -244,7 +248,7 @@ trait CompilationUnit extends CodeGeneration {
         }
       } else {
         val arr = new runtime.BigArray(elems.size)
-        for ((e,i) <- elems.zipWithIndex) {
+        for ((e, i) <- elems.zipWithIndex) {
           arr.insert(i, valueToJVM(e))
         }
         arr
@@ -283,7 +287,7 @@ trait CompilationUnit extends CodeGeneration {
         }
       } else {
         val arr = new runtime.BigArray(size, valueToJVM(default))
-        for ((i,e) <- elems) {
+        for ((i, e) <- elems) {
           arr.insert(i, valueToJVM(e))
         }
         arr
@@ -295,10 +299,10 @@ trait CompilationUnit extends CodeGeneration {
 
   /** Translates JVM objects back to Stainless values of the appropriate type */
   def jvmToValue(e: AnyRef, tpe: Type): Expr = (e, tpe) match {
-    case (b: java.lang.Byte,    Int8Type())  => Int8Literal(b.toByte)
-    case (s: java.lang.Short,   Int16Type()) => Int16Literal(s.toShort)
+    case (b: java.lang.Byte, Int8Type()) => Int8Literal(b.toByte)
+    case (s: java.lang.Short, Int16Type()) => Int16Literal(s.toShort)
     case (i: java.lang.Integer, Int32Type()) => Int32Literal(i.toInt)
-    case (l: java.lang.Long,    Int64Type()) => Int64Literal(l.toLong)
+    case (l: java.lang.Long, Int64Type()) => Int64Literal(l.toLong)
     case (bv: runtime.BitVector, BVType(signed, size)) => BVLiteral(signed, BigInt(bv.toBigInteger), size)
 
     case (c: runtime.BigInt, IntegerType()) =>
@@ -329,13 +333,14 @@ trait CompilationUnit extends CodeGeneration {
           }
           ADT(cons.id, adt.tps, exFields)
         case _ =>
-          throw CompilationException("Unable to identify class "+cons.getClass.getName+" to descendant of "+adt)
+          throw CompilationException("Unable to identify class " + cons.getClass.getName + " to descendant of " + adt)
       }
 
     case (tpl: runtime.Tuple, tpe) =>
       val stpe = unwrapTupleType(tpe, tpl.getArity)
-      val elems = stpe.zipWithIndex.map { case (tpe, i) =>
-        jvmToValue(tpl.get(i), tpe)
+      val elems = stpe.zipWithIndex.map {
+        case (tpe, i) =>
+          jvmToValue(tpl.get(i), tpe)
       }
       tupleWrap(elems)
 
@@ -347,13 +352,15 @@ trait CompilationUnit extends CodeGeneration {
       FiniteSet(set.getElements.map(jvmToValue(_, b)).toSeq, b)
 
     case (bag: runtime.Bag, BagType(b)) =>
-      FiniteBag(bag.getElements.map { case (key, value) =>
-        (jvmToValue(key, b), jvmToValue(value, IntegerType()))
+      FiniteBag(bag.getElements.map {
+        case (key, value) =>
+          (jvmToValue(key, b), jvmToValue(value, IntegerType()))
       }.toSeq, b)
 
     case (map: runtime.Map, MapType(from, to)) =>
-      val pairs = map.getElements.map { case (key, value) =>
-        (jvmToValue(key, from), jvmToValue(value, to))
+      val pairs = map.getElements.map {
+        case (key, value) =>
+          (jvmToValue(key, from), jvmToValue(value, to))
       }.toSeq
       val default = jvmToValue(map.default, to)
       FiniteMap(pairs, default, from, to)
@@ -398,9 +405,13 @@ trait CompilationUnit extends CodeGeneration {
       FiniteArray(elems, base)
 
     case (ar: runtime.BigArray, ArrayType(base)) =>
-      val elems = ar.getElements.map { case (index: Int, value) =>
-        index -> jvmToValue(value, base)
-      }.toSeq.sortBy(_._1)
+      val elems = ar.getElements
+        .map {
+          case (index: Int, value) =>
+            index -> jvmToValue(value, base)
+        }
+        .toSeq
+        .sortBy(_._1)
       if (elems.size == ar.size) {
         FiniteArray(elems.map(_._2), base)
       } else {
@@ -409,9 +420,8 @@ trait CompilationUnit extends CodeGeneration {
       }
 
     case _ =>
-      throw CompilationException("Unsupported return value : " + e.getClass +" while expecting "+tpe)
+      throw CompilationException("Unsupported return value : " + e.getClass + " while expecting " + tpe)
   }
-
 
   def compileExpression(e: Expr, args: Seq[ValDef]): CompiledExpression = {
     if (e.getType == Untyped) {
@@ -420,13 +430,15 @@ trait CompilationUnit extends CodeGeneration {
 
     val id = exprCounter.nextGlobal
 
-    val cName = "Stainless$CodeGen$Expr$"+id
+    val cName = "Stainless$CodeGen$Expr$" + id
 
     val cf = new ClassFile(cName, None)
-    cf.setFlags((
-      CLASS_ACC_PUBLIC |
-      CLASS_ACC_FINAL
-    ).asInstanceOf[U2])
+    cf.setFlags(
+      (
+        CLASS_ACC_PUBLIC |
+          CLASS_ACC_FINAL
+      ).asInstanceOf[U2]
+    )
 
     cf.addDefaultConstructor
 
@@ -437,14 +449,16 @@ trait CompilationUnit extends CodeGeneration {
     val m = cf.addMethod(
       typeToJVM(e.getType),
       "eval",
-      realArgs : _*
+      realArgs: _*
     )
 
-    m.setFlags((
-      METHOD_ACC_PUBLIC |
-      METHOD_ACC_FINAL |
-      METHOD_ACC_STATIC
-    ).asInstanceOf[U2])
+    m.setFlags(
+      (
+        METHOD_ACC_PUBLIC |
+          METHOD_ACC_FINAL |
+          METHOD_ACC_STATIC
+      ).asInstanceOf[U2]
+    )
 
     val ch = m.codeHandler
 
@@ -480,6 +494,5 @@ trait CompilationUnit extends CodeGeneration {
   }
 }
 
-private [codegen] object exprCounter extends UniqueCounter[Unit]
-private [codegen] object forallCounter extends UniqueCounter[Unit]
-
+private[codegen] object exprCounter extends UniqueCounter[Unit]
+private[codegen] object forallCounter extends UniqueCounter[Unit]

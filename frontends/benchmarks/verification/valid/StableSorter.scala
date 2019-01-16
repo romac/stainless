@@ -12,16 +12,22 @@ object StableSorter {
       case Cons(hd, tl) if key(t) <= key(hd) => t :: l
       case Cons(hd, tl) => hd :: insert(t, tl, key)
     }
-  } ensuring { res => res.content == Set(t) ++ l.content && res.length == 1 + l.length }
+  } ensuring { res =>
+    res.content == Set(t) ++ l.content && res.length == 1 + l.length
+  }
 
   // Sorting a list preserves the content and preserves the length
-  def sort[T](l: List[T], key: T => BigInt): List[T] = { l match {
-    case Nil() => l
-    case Cons(hd, tl) => {
-      val tlSorted = sort(tl, key)
-      insert(hd, tlSorted, key)
+  def sort[T](l: List[T], key: T => BigInt): List[T] = {
+    l match {
+      case Nil() => l
+      case Cons(hd, tl) => {
+        val tlSorted = sort(tl, key)
+        insert(hd, tlSorted, key)
+      }
     }
-  }} ensuring { res => res.content == l.content && res.length == l.length }
+  } ensuring { res =>
+    res.content == l.content && res.length == l.length
+  }
 
   // To define stability, we first annotate the input list with the initial indices...
   def annotateList[T](l: List[T], n: BigInt): List[(T, BigInt)] = {
@@ -32,7 +38,9 @@ object StableSorter {
         hint((hd, n) :: tlAnn, trivProp2(annotateList(tl, n + 1), n))
       }
     }
-  } ensuring { res => l2AtLeast(res, n) }
+  } ensuring { res =>
+    l2AtLeast(res, n)
+  }
 
   // ... where:
   def l2AtLeast[T](l: List[(T, BigInt)], n: BigInt): Boolean = l match {
@@ -53,18 +61,15 @@ object StableSorter {
     case Cons((hd, hdIndex), tl) => isStableSortedAndAtLeast(tl, key, key(hd), hdIndex)
   }
 
-  def isStableSortedAndAtLeast[T](
-    l: List[(T, BigInt)],
-    key: T => BigInt,
-    x: BigInt,
-    minIndex: BigInt): Boolean = l match {
-    case Nil() => true
-    case Cons((hd, hdIndex), tl) => {
-      val hdSmall = x < key(hd) || x == key(hd) && minIndex <= hdIndex
-      val tlSorted = isStableSortedAndAtLeast(tl, key, key(hd), hdIndex)
-      hdSmall && tlSorted
+  def isStableSortedAndAtLeast[T](l: List[(T, BigInt)], key: T => BigInt, x: BigInt, minIndex: BigInt): Boolean =
+    l match {
+      case Nil() => true
+      case Cons((hd, hdIndex), tl) => {
+        val hdSmall = x < key(hd) || x == key(hd) && minIndex <= hdIndex
+        val tlSorted = isStableSortedAndAtLeast(tl, key, key(hd), hdIndex)
+        hdSmall && tlSorted
+      }
     }
-  }
 
   // The insertion sort we initially defined is stable:
   def sortStableProp[T](l: List[T], key: T => BigInt): Boolean = {

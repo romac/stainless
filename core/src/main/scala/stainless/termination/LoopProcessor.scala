@@ -36,7 +36,7 @@ trait LoopProcessor extends OrderingProcessor {
     val api = getAPI(withoutPosts)
 
     reporter.debug("- Running ChainBuilder")
-    val chains : Set[Chain] = problem.funSet.flatMap(fd => getChains(fd)._2)
+    val chains: Set[Chain] = problem.funSet.flatMap(fd => getChains(fd)._2)
 
     reporter.debug("- Searching for loops")
     val nonTerminating: MutableMap[FunDef, Result] = MutableMap.empty
@@ -53,7 +53,8 @@ trait LoopProcessor extends OrderingProcessor {
             case inox.solvers.SolverResponses.SatWithModel(model) =>
               val args = chain.fd.params.map(vd => model.vars(vd))
               val fi = chain.fd.typed.applied(args)
-              nonTerminating(chain.fd) = Broken(chain.fd,
+              nonTerminating(chain.fd) = Broken(
+                chain.fd,
                 if (chain.relations.exists(_.inLambda)) MaybeLoopsGivenInputs(fi)
                 else LoopsGivenInputs(fi)
               )

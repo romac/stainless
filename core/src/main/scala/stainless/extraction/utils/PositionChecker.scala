@@ -30,7 +30,7 @@ trait PositionChecker { self: DebugPipeline =>
         context.reporter.debug(
           NoPosition,
           s"After $name: Missing position for expression '$e' (of type ${e.getClass})." +
-          s"Last known position: $lastKnownPosition"
+            s"Last known position: $lastKnownPosition"
         )
       } else {
         lastKnownPosition = e.getPos
@@ -46,7 +46,7 @@ trait PositionChecker { self: DebugPipeline =>
         context.reporter.debug(
           NoPosition,
           s"After $name: Missing position for type '$tpe' (of type ${tpe.getClass})." +
-          s"Last known position: $lastKnownPosition"
+            s"Last known position: $lastKnownPosition"
         )
       } else {
         lastKnownPosition = tpe.getPos
@@ -56,4 +56,3 @@ trait PositionChecker { self: DebugPipeline =>
     }
   }
 }
-

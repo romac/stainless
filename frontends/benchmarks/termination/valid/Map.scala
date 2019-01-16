@@ -5,12 +5,12 @@ import stainless.collection._
 
 object Map {
 
-  def map[T,U](list: List[T], f: T => U): List[U] = list match {
+  def map[T, U](list: List[T], f: T => U): List[U] = list match {
     case Cons(x, xs) => Cons(f(x), map(xs, f))
     case Nil() => Nil()
   }
 
-  def compose[T,U,V](f: U => V, g: T => U): T => V = (x: T) => f(g(x))
+  def compose[T, U, V](f: U => V, g: T => U): T => V = (x: T) => f(g(x))
 
   def add(x: BigInt)(y: BigInt) = x + y
 

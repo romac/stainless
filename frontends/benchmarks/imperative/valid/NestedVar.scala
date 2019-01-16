@@ -7,13 +7,13 @@ object NestedVar {
     def rec(x: Int): Int = {
       var b = 3
       var c = 3
-      if(x > 0)
+      if (x > 0)
         b = 2
       else
         c = 2
-      c+b
+      c + b
     }
     rec(a)
-  } ensuring(_ == 5)
+  } ensuring (_ == 5)
 
 }

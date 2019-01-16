@@ -69,9 +69,10 @@ trait CICFA {
       case (k, v) => store.contains(k) && other.store(k).subsetOf(store(k))
     }
 
-    def join(other: AbsEnv): AbsEnv = AbsEnv((store.keySet ++ other.store.keys).map { k =>
-      k -> (store.getOrElse(k, Set.empty) ++ other.store.getOrElse(k, Set.empty))
-    }.toMap)
+    def join(other: AbsEnv): AbsEnv =
+      AbsEnv((store.keySet ++ other.store.keys).map { k =>
+        k -> (store.getOrElse(k, Set.empty) ++ other.store.getOrElse(k, Set.empty))
+      }.toMap)
 
     // this is a disjoint union, where only the new keys that
     // are found are added to the map (this likely to be efficient)
@@ -96,9 +97,10 @@ trait CICFA {
   case class Summary(in: AbsEnv, out: AbsEnv, ret: Set[AbsValue])
 
   private val cache: MutableMap[Identifier, Analysis] = MutableMap.empty
-  def analyze(id: Identifier): Analysis = cache.getOrElseUpdate(id, timers.termination.cfa.run {
-    new Analysis(id)
-  })
+  def analyze(id: Identifier): Analysis =
+    cache.getOrElseUpdate(id, timers.termination.cfa.run {
+      new Analysis(id)
+    })
 
   class Analysis(id: Identifier) {
     val fd = getFunction(id)
@@ -110,16 +112,23 @@ trait CICFA {
 
     // initialize summaries to identity function from bot to empty
     // for the current function, initialize it to External
-    private def getTabulation(fun: Function): Summary = tabulation.getOrElseUpdate(fun, {
-      Summary(fun match {
-        case n: NamedFunction =>
-          if (id == n.fd.id) AbsEnv(n.fd.fd.params.map(vd => vd.toVariable -> Set[AbsValue](External)).toMap)
-          else AbsEnv(n.fd.params.map(vd => vd.toVariable -> Set[AbsValue]()).toMap)
+    private def getTabulation(fun: Function): Summary =
+      tabulation.getOrElseUpdate(
+        fun, {
+          Summary(
+            fun match {
+              case n: NamedFunction =>
+                if (id == n.fd.id) AbsEnv(n.fd.fd.params.map(vd => vd.toVariable -> Set[AbsValue](External)).toMap)
+                else AbsEnv(n.fd.params.map(vd => vd.toVariable -> Set[AbsValue]()).toMap)
 
-        case l: LambdaFunction =>
-          AbsEnv(l.lambda.params.map(vd => vd.toVariable -> Set[AbsValue]()).toMap)
-      }, emptyEnv, Set())
-    })
+              case l: LambdaFunction =>
+                AbsEnv(l.lambda.params.map(vd => vd.toVariable -> Set[AbsValue]()).toMap)
+            },
+            emptyEnv,
+            Set()
+          )
+        }
+      )
 
     // a mapping from ADTs to argvars (used to represent arguments of each ADT creation by a fresh variable)
     private val objectsMap: MutableMap[Expr, AbsObj] = MutableMap.empty
@@ -141,7 +150,10 @@ trait CICFA {
     }
 
     private def passedLambdas(vals: Set[AbsValue], env: AbsEnv): Set[Lambda] = vals.flatMap {
-      case Closure(lam) => variablesOf(lam).flatMap { v => passedLambdas(env.store(v), env) }.toSet + lam
+      case Closure(lam) =>
+        variablesOf(lam).flatMap { v =>
+          passedLambdas(env.store(v), env)
+        }.toSet + lam
       case _ => Set[Lambda]()
     }
 
@@ -163,11 +175,12 @@ trait CICFA {
 
     private val creator: MutableMap[Lambda, Function] = MutableMap.empty
     private def createdBy(lambda: Function, fun: Function): Boolean = lambda match {
-      case f: LambdaFunction => creator.get(f.lambda) match {
-        case Some(`fun`) => true
-        case Some(f2: LambdaFunction) => createdBy(f2.lambda, fun)
-        case _ => false
-      }
+      case f: LambdaFunction =>
+        creator.get(f.lambda) match {
+          case Some(`fun`) => true
+          case Some(f2: LambdaFunction) => createdBy(f2.lambda, fun)
+          case _ => false
+        }
       case _ => false
     }
 
@@ -327,7 +340,7 @@ trait CICFA {
         (tval ++ eval, condesc join tesc join eesc)
 
       case MatchExpr(scrut, cases) =>
-        import Path.{ CloseBound, Condition }
+        import Path.{CloseBound, Condition}
         var resenv: AbsEnv = emptyEnv
         val absres = for (cse <- cases) yield {
           val patCond = conditionForPattern[Path](scrut, cse.pattern, includeBinders = true)
@@ -436,7 +449,7 @@ trait CICFA {
         case nl: Lambda => llams += nl
         case FunctionInvocation(id, _, _) => callees += id
         case _ =>
-      } (l.body)
+      }(l.body)
 
       callees.foreach { cid =>
         val fd = getFunction(cid)
@@ -444,7 +457,7 @@ trait CICFA {
           exprOps.postTraversal {
             case nl: Lambda => llams += nl
             case _ =>
-          } (tc.fullBody)
+          }(tc.fullBody)
         }
       }
 

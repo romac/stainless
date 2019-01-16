@@ -8,4 +8,3 @@ object BadPre1 {
     x + y
   } ensuring { _ > 0 }
 }
-

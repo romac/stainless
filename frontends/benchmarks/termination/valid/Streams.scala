@@ -36,28 +36,33 @@ object Streams {
       case _ => SNil()
     }
 
-    def scanLeft[U](z: U)(f: (U,T) => U): Stream[U] = SCons(z, () => this match {
-      case SCons(x, tfun) => tfun().scanLeft(f(z, x))(f)
-      case SNil() => SNil()
-    })
+    def scanLeft[U](z: U)(f: (U, T) => U): Stream[U] =
+      SCons(
+        z,
+        () =>
+          this match {
+            case SCons(x, tfun) => tfun().scanLeft(f(z, x))(f)
+            case SNil() => SNil()
+          }
+      )
 
     /* ---- non terminating ----
-     *
-     * def flatMap[U](f: T => Stream[U]): Stream[U] = this match {
-     *   case SCons(x, tfun) => f(x) ++ (tfun() flatMap f)
-     *   case SNil() => SNil()
-     * }
-     *
-     * def filter(p: T => Boolean): Stream[T] = this match {
-     *   case SCons(x, tfun) if p(x) => SCons(x, () => tfun() filter p)
-     *   case SCons(x, tfun) => tfun() filter p
-     *   case SNil() => SNil()
-     * }
-     */
+   *
+   * def flatMap[U](f: T => Stream[U]): Stream[U] = this match {
+   *   case SCons(x, tfun) => f(x) ++ (tfun() flatMap f)
+   *   case SNil() => SNil()
+   * }
+   *
+   * def filter(p: T => Boolean): Stream[T] = this match {
+   *   case SCons(x, tfun) if p(x) => SCons(x, () => tfun() filter p)
+   *   case SCons(x, tfun) => tfun() filter p
+   *   case SNil() => SNil()
+   * }
+   */
   }
 
   case class SCons[T](x: T, tailFun: () => Stream[T]) extends Stream[T]
   case class SNil[T]() extends Stream[T]
 
-  def natStream(x: BigInt): Stream[BigInt] = SCons(x, () => natStream(x+1))
+  def natStream(x: BigInt): Stream[BigInt] = SCons(x, () => natStream(x + 1))
 }

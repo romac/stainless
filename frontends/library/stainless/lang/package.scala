@@ -13,16 +13,16 @@ package object lang {
 
   @ignore
   implicit class BooleanDecorations(val underlying: Boolean) {
-    def holds : Boolean = {
+    def holds: Boolean = {
       underlying
-    } ensuring {
-      (res: Boolean) => res
+    } ensuring { (res: Boolean) =>
+      res
     }
 
     def holds(becauseOfThat: Boolean) = {
       underlying
-    } ensuring {
-      (res: Boolean) => becauseOfThat && res
+    } ensuring { (res: Boolean) =>
+      becauseOfThat && res
     }
 
     def ==>(that: => Boolean): Boolean = {
@@ -35,34 +35,46 @@ package object lang {
 
   @ignore
   implicit class Throwing[T](underlying: => T) {
-    def throwing(pred: Exception => Boolean): T = try {
-      underlying
-    } catch {
-      case e: Exception =>
-        assert(pred(e))
-        throw e
-    }
+    def throwing(pred: Exception => Boolean): T =
+      try {
+        underlying
+      } catch {
+        case e: Exception =>
+          assert(pred(e))
+          throw e
+      }
   }
 
   @inline @library def because(b: Boolean) = b
 
   @ignore def forall[A](p: A => Boolean): Boolean = sys.error("Can't execute quantified proposition")
-  @ignore def forall[A,B](p: (A,B) => Boolean): Boolean = sys.error("Can't execute quantified proposition")
-  @ignore def forall[A,B,C](p: (A,B,C) => Boolean): Boolean = sys.error("Can't execute quantified proposition")
-  @ignore def forall[A,B,C,D](p: (A,B,C,D) => Boolean): Boolean = sys.error("Can't execute quantified proposition")
-  @ignore def forall[A,B,C,D,E](p: (A,B,C,D,E) => Boolean): Boolean = sys.error("Can't execute quantified proposition")
+  @ignore def forall[A, B](p: (A, B) => Boolean): Boolean = sys.error("Can't execute quantified proposition")
+  @ignore def forall[A, B, C](p: (A, B, C) => Boolean): Boolean = sys.error("Can't execute quantified proposition")
+  @ignore def forall[A, B, C, D](p: (A, B, C, D) => Boolean): Boolean =
+    sys.error("Can't execute quantified proposition")
+  @ignore def forall[A, B, C, D, E](p: (A, B, C, D, E) => Boolean): Boolean =
+    sys.error("Can't execute quantified proposition")
 
   @ignore def choose[A](predicate: A => Boolean): A = sys.error("Can't execute non-deterministic choose")
-  @ignore def choose[A,B](predicate: (A,B) => Boolean): (A,B) = sys.error("Can't execute non-deterministic choose")
-  @ignore def choose[A,B,C](predicate: (A,B,C) => Boolean): (A,B,C) = sys.error("Can't execute non-deterministic choose")
-  @ignore def choose[A,B,C,D](predicate: (A,B,C,D) => Boolean): (A,B,C,D) = sys.error("Can't execute non-deterministic choose")
-  @ignore def choose[A,B,C,D,E](predicate: (A,B,C,D,E) => Boolean): (A,B,C,D,E) = sys.error("Can't execute non-deterministic choose")
+  @ignore def choose[A, B](predicate: (A, B) => Boolean): (A, B) = sys.error("Can't execute non-deterministic choose")
+  @ignore def choose[A, B, C](predicate: (A, B, C) => Boolean): (A, B, C) =
+    sys.error("Can't execute non-deterministic choose")
+  @ignore def choose[A, B, C, D](predicate: (A, B, C, D) => Boolean): (A, B, C, D) =
+    sys.error("Can't execute non-deterministic choose")
+  @ignore def choose[A, B, C, D, E](predicate: (A, B, C, D, E) => Boolean): (A, B, C, D, E) =
+    sys.error("Can't execute non-deterministic choose")
 
   @ignore def decreases(@ghost r1: BigInt): Unit = ()
   @ignore def decreases(@ghost r1: BigInt, @ghost r2: BigInt): Unit = ()
   @ignore def decreases(@ghost r1: BigInt, @ghost r2: BigInt, @ghost r3: BigInt): Unit = ()
   @ignore def decreases(@ghost r1: BigInt, @ghost r2: BigInt, @ghost r3: BigInt, @ghost r4: BigInt): Unit = ()
-  @ignore def decreases(@ghost r1: BigInt, @ghost r2: BigInt, @ghost r3: BigInt, @ghost r4: BigInt, @ghost r5: BigInt): Unit = ()
+  @ignore def decreases(
+      @ghost r1: BigInt,
+      @ghost r2: BigInt,
+      @ghost r3: BigInt,
+      @ghost r4: BigInt,
+      @ghost r5: BigInt
+  ): Unit = ()
 
   @ignore def decreases(@ghost r1: Int): Unit = ()
   @ignore def decreases(@ghost r1: Int, @ghost r2: Int): Unit = ()
@@ -93,8 +105,8 @@ package object lang {
     @ignore
     def computes(target: A) = {
       underlying
-    } ensuring {
-      res => res == target
+    } ensuring { res =>
+      res == target
     }
   }
 
@@ -114,7 +126,7 @@ package object lang {
     def apply(b: String): scala.math.BigInt = scala.math.BigInt(b)
 
     def unapply(b: scala.math.BigInt): scala.Option[Int] = {
-      if(b >= Integer.MIN_VALUE && b <= Integer.MAX_VALUE) {
+      if (b >= Integer.MIN_VALUE && b <= Integer.MAX_VALUE) {
         scala.Some(b.intValue())
       } else {
         scala.None

@@ -5,8 +5,8 @@ import stainless.lang._
 object ForallAssoc {
 
   def ex[A](x1: A, x2: A, x3: A, x4: A, x5: A, f: (A, A) => A) = {
-    require(forall {
-      (x: A, y: A, z: A) => f(x, f(y, z)) == f(f(x, y), z)
+    require(forall { (x: A, y: A, z: A) =>
+      f(x, f(y, z)) == f(f(x, y), z)
     })
 
     f(x1, f(x2, f(x3, f(x4, x5)))) == f(f(x1, f(x2, f(x3, x4))), x5)

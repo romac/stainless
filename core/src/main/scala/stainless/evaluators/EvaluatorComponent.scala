@@ -3,26 +3,26 @@
 package stainless
 package evaluators
 
-import inox.evaluators.EvaluationResults.{ EvaluatorError, RuntimeError, Successful }
+import inox.evaluators.EvaluationResults.{EvaluatorError, RuntimeError, Successful}
 
 import io.circe._
 
 import scala.concurrent.Future
-import scala.util.{ Success, Failure }
+import scala.util.{Success, Failure}
 
 import scala.language.existentials
 
 object DebugSectionEvaluator extends inox.DebugSection("eval")
 
 /**
- * Evaluator Component
- *
- * Provides facilities to evaluate parameterless functions. It provides the
- * user with two results: the function's body value and whether or not, using
- * this value, the postcondition (if any) holds.
- *
- * Timeout is handled using --max-calls=<N>.
- */
+  * Evaluator Component
+  *
+  * Provides facilities to evaluate parameterless functions. It provides the
+  * user with two results: the function's body value and whether or not, using
+  * this value, the postcondition (if any) holds.
+  *
+  * Timeout is handled using --max-calls=<N>.
+  */
 object EvaluatorComponent extends Component { self =>
   override val name = "eval"
   override val description = "Evaluation of parameterless functions"
@@ -53,8 +53,8 @@ object EvaluatorRun {
   case class Result(fd: FunDef, status: FunctionStatus, time: Long)
 }
 
-class EvaluatorRun(override val pipeline: extraction.StainlessPipeline)
-                  (override implicit val context: inox.Context) extends {
+class EvaluatorRun(override val pipeline: extraction.StainlessPipeline)(override implicit val context: inox.Context)
+    extends {
   override val component = EvaluatorComponent
   override val trees: stainless.trees.type = stainless.trees
 } with ComponentRun {
@@ -178,4 +178,3 @@ class EvaluatorRun(override val pipeline: extraction.StainlessPipeline)
     })
   }
 }
-

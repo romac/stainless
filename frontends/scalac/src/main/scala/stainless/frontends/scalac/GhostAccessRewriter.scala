@@ -23,10 +23,10 @@ trait GhostAccessRewriter extends Transform {
   class GhostRewriteTransformer extends Transformer {
 
     /**
-     * Is this symbol @ghost, or enclosed inside a ghost definition?
-     *
-     * Note: We exclude constructors from being ghost because we can't remove them anyway
-     */
+      * Is this symbol @ghost, or enclosed inside a ghost definition?
+      *
+      * Note: We exclude constructors from being ghost because we can't remove them anyway
+      */
     private def effectivelyGhost(sym: Symbol): Boolean =
       (!sym.isConstructor &&
         sym.ownersIterator.exists(_.hasAnnotation(ghostAnnotation)))
@@ -58,16 +58,18 @@ trait GhostAccessRewriter extends Transform {
 
         // if the function has a repeated parameter the lengths of the two lists don't match
         // so we fill params up to the argument list length with the last parameter
-        val symParams = if (symParams0.nonEmpty && definitions.isRepeated(symParams0.last))
-          symParams0 ++ List.fill(args.length - symParams0.length)(symParams0.last)
-        else
-          symParams0
-
-        val args1 = for ((param, arg) <- symParams.zip(args)) yield
-          if (param.hasAnnotation(ghostAnnotation))
-            gen.mkZero(param.tpe)
+        val symParams =
+          if (symParams0.nonEmpty && definitions.isRepeated(symParams0.last))
+            symParams0 ++ List.fill(args.length - symParams0.length)(symParams0.last)
           else
-            transform(arg)
+            symParams0
+
+        val args1 = for ((param, arg) <- symParams.zip(args))
+          yield
+            if (param.hasAnnotation(ghostAnnotation))
+              gen.mkZero(param.tpe)
+            else
+              transform(arg)
 
         treeCopy.Apply(tree, fun1, args1)
 

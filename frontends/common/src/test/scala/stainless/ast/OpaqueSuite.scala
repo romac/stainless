@@ -8,8 +8,7 @@ import scala.language.existentials
 
 class OpaqueSuite extends FunSuite with InputUtils {
 
-  val sources = List(
-    """|import stainless.annotation._
+  val sources = List("""|import stainless.annotation._
        |object Opaque {
        |  @opaque
        |  def test(i: BigInt): BigInt = {
@@ -31,7 +30,7 @@ class OpaqueSuite extends FunSuite with InputUtils {
     assert(!exprOps.exists {
       case Plus(_, _) => true
       case _ => false
-    } (fd.fullBody))
+    }(fd.fullBody))
   }
 
   test("Opaque functions lose body information") {

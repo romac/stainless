@@ -15,7 +15,11 @@ trait Trees extends ast.Trees { self =>
   case class Decreases(measure: Expr, body: Expr) extends Expr with CachingTyped {
     protected def computeType(implicit s: Symbols): Type = measure.getType match {
       case IntegerType() | BVType(_, _) => body.getType
-      case TupleType(tps) if tps.forall { case IntegerType() | BVType(_, _) => true case _ => false } => body.getType
+      case TupleType(tps) if tps.forall {
+            case IntegerType() | BVType(_, _) => true
+            case _ => false
+          } =>
+        body.getType
       case _ => Untyped
     }
   }
@@ -28,11 +32,14 @@ trait Trees extends ast.Trees { self =>
    *              EXTRACTORS
    * ======================================== */
 
-  override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-    case tree: Trees => new TreeDeconstructor {
-      protected val s: self.type = self
-      protected val t: tree.type = tree
-    }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+  override def getDeconstructor(
+      that: inox.ast.Trees
+  ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+    case tree: Trees =>
+      new TreeDeconstructor {
+        protected val s: self.type = self
+        protected val t: tree.type = tree
+      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
     case _ => super.getDeconstructor(that)
   }
@@ -123,11 +130,11 @@ trait ExprOps extends ast.ExprOps {
   }
 
   override def withoutSpecs(e: Expr): Option[Expr] = e match {
-    case Decreases(_, b)                          => Option(b).filterNot(_.isInstanceOf[NoTree])
-    case Require(_, Decreases(_, b))              => Option(b).filterNot(_.isInstanceOf[NoTree])
+    case Decreases(_, b) => Option(b).filterNot(_.isInstanceOf[NoTree])
+    case Require(_, Decreases(_, b)) => Option(b).filterNot(_.isInstanceOf[NoTree])
     case Ensuring(Require(_, Decreases(_, b)), _) => Option(b).filterNot(_.isInstanceOf[NoTree])
-    case Ensuring(Decreases(_, b), _)             => Option(b).filterNot(_.isInstanceOf[NoTree])
-    case _                                        => super.withoutSpecs(e)
+    case Ensuring(Decreases(_, b), _) => Option(b).filterNot(_.isInstanceOf[NoTree])
+    case _ => super.withoutSpecs(e)
   }
 
   /** Returns the measure associated to an expression wrapped in an Option */
@@ -135,12 +142,12 @@ trait ExprOps extends ast.ExprOps {
     // @nv: we allow lets to wrap decreases (and other contracts) to facilitate
     //      certain program transformations (eg. FunctionClosure) and avoid
     //      repeating the let chains in each contract and body
-    case Let(i, e, b)                             => measureOf(b).map(Let(i, e, _).copiedFrom(expr))
-    case Decreases(m, _)                          => Some(m)
-    case Require(_, Decreases(m, _))              => Some(m)
+    case Let(i, e, b) => measureOf(b).map(Let(i, e, _).copiedFrom(expr))
+    case Decreases(m, _) => Some(m)
+    case Require(_, Decreases(m, _)) => Some(m)
     case Ensuring(Require(_, Decreases(m, _)), _) => Some(m)
-    case Ensuring(Decreases(m, _), _)             => Some(m)
-    case _                                        => None
+    case Ensuring(Decreases(m, _), _) => Some(m)
+    case _ => None
   }
 
   def withMeasure(expr: Expr, meas: Option[Expr]): Expr = (meas, expr) match {

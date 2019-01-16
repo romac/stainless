@@ -1,4 +1,3 @@
-
 def commonSettings = Seq(
   version := "0.1",
   scalaVersion := sys.props("scala.version")

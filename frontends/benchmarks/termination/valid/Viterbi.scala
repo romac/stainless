@@ -7,59 +7,65 @@ import math._
 import collection._
 
 /**
- * Implementation of the Viterbi algorithm
- * Wiki - https://en.wikipedia.org/wiki/Viterbi_algorithm
- * The probabilities are in logarithms.
- */
+  * Implementation of the Viterbi algorithm
+  * Wiki - https://en.wikipedia.org/wiki/Viterbi_algorithm
+  * The probabilities are in logarithms.
+  */
 object Viterbi {
 
   @extern
   var xstring = Array[BigInt]()
   @extern
   var ystring = Array[BigInt]()
+
   /**
-   * Observation space, O
-   */
+    * Observation space, O
+    */
   @extern
   def O(i: BigInt) = {
     xstring(i.toInt)
   }
+
   /**
-   * State space, S
-   */
+    * State space, S
+    */
   @extern
   def S(i: BigInt) = {
     xstring(i.toInt)
   }
+
   /**
-   * Let K be the size of the state space. Then the transition matrix
-   * A of size K * K such that A_{ij} stores the transition probability
-   * of transiting from state s_i to state s_j
-   */
+    * Let K be the size of the state space. Then the transition matrix
+    * A of size K * K such that A_{ij} stores the transition probability
+    * of transiting from state s_i to state s_j
+    */
   @extern
   def A(i: BigInt, j: BigInt) = {
     xstring(i.toInt)
   }
+
   /**
-   * Let N be the size of the observation space. Emission matrix B of
-   * size K * N such that B_{ij} stores the probability of observing o_j
-   * from state s_i
-   */
+    * Let N be the size of the observation space. Emission matrix B of
+    * size K * N such that B_{ij} stores the probability of observing o_j
+    * from state s_i
+    */
   @extern
   def B(i: BigInt, j: BigInt) = {
     xstring(i.toInt)
   }
+
   /**
-   * An array of initial probabilities C of size K such that C_i stores
-   * the probability that x_1 == s_i
-   */
+    * An array of initial probabilities C of size K such that C_i stores
+    * the probability that x_1 == s_i
+    */
   @extern
   def C(i: BigInt) = {
     xstring(i.toInt)
   }
+
   /**
-   * Generated observations, Y
-   */
+    * Generated observations, Y
+    */
   @extern
   def Y(i: BigInt) = {
     xstring(i.toInt)
@@ -90,10 +96,10 @@ object Viterbi {
     require(i >= 0 && j >= 0 && K >= i)
     decreases(abs(K - i))
     if (i == K) {
-      val x =  viterbi(i, j, K)
+      val x = viterbi(i, j, K)
       Cons(x, Nil[BigInt]())
     } else {
-      val x =  viterbi(i, j, K)
+      val x = viterbi(i, j, K)
       val tail = fillColumn(i + 1, j, K)
       Cons(x, tail)
     }

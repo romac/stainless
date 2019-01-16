@@ -6,10 +6,10 @@ import java.math.BigInteger
 
 object BigInt {
   lazy val ZERO = new BigInt(BigInteger.ZERO)
-  lazy val ONE  = new BigInt(BigInteger.ONE)
+  lazy val ONE = new BigInt(BigInteger.ONE)
 }
 
-final class BigInt private(private val underlying: BigInteger) {
+final class BigInt private (private val underlying: BigInteger) {
   def this(value: String) = this(new BigInteger(value))
   def this(value: Int) = this(new BigInteger(value.toString))
 

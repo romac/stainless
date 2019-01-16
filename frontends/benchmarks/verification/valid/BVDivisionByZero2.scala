@@ -10,5 +10,5 @@ object BVDivisionByZero2 {
     require(y != 0)
     x / y
   }
-  
+
 }

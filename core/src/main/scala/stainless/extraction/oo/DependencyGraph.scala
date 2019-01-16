@@ -74,7 +74,9 @@ trait DependencyGraph extends ast.DependencyGraph {
     for (cd <- symbols.classes.values) {
       cd.flags
         .collectFirst { case HasADTInvariant(id) => id }
-        .foreach { inv => g += SimpleEdge(cd.id, inv) }
+        .foreach { inv =>
+          g += SimpleEdge(cd.id, inv)
+        }
 
       for (p <- cd.parents) {
         g += SimpleEdge(cd.id, p.id)

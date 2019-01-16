@@ -3,7 +3,7 @@
 import stainless.annotation._
 import stainless.lang._
 
-object NotEquals { 
+object NotEquals {
 
   // Represents n/d
   case class Q(n: BigInt, d: BigInt)

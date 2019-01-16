@@ -22,49 +22,52 @@ trait TypeOps extends inox.ast.TypeOps {
 
     case LiteralPattern(ob, lit) =>
       ob.forall(vd => isSubtypeOf(vd.getType, in)) &&
-      isSubtypeOf(lit.getType, in)
+        isSubtypeOf(lit.getType, in)
 
-    case ADTPattern(ob, id, tps, subs) => in.getType match {
-      case ADTType(sort, tps2) =>
-        tps.map(_.getType) == tps2 &&
-        ob.forall(vd => isSubtypeOf(vd.getType, in)) &&
-        lookupConstructor(id).exists { cons =>
-          cons.sort == sort &&
-          cons.fields.size == subs.size &&
-          lookupSort(sort).exists(sort => sort.tparams.size == tps.size) &&
-          (cons.typed(tps).fields zip subs).forall { case (vd, sub) => patternIsTyped(vd.getType, sub) }
-        }
-      case _ => false
-    }
+    case ADTPattern(ob, id, tps, subs) =>
+      in.getType match {
+        case ADTType(sort, tps2) =>
+          tps.map(_.getType) == tps2 &&
+            ob.forall(vd => isSubtypeOf(vd.getType, in)) &&
+            lookupConstructor(id).exists { cons =>
+              cons.sort == sort &&
+              cons.fields.size == subs.size &&
+              lookupSort(sort).exists(sort => sort.tparams.size == tps.size) &&
+              (cons.typed(tps).fields zip subs).forall { case (vd, sub) => patternIsTyped(vd.getType, sub) }
+            }
+        case _ => false
+      }
 
-    case TuplePattern(ob, subs) => in match {
-      case TupleType(tps) =>
-        tps.size == subs.size &&
-        ob.forall(vd => isSubtypeOf(vd.getType, in)) && 
-        ((tps zip subs) forall (patternIsTyped(_, _)).tupled)
-      case _ => false
-    }
+    case TuplePattern(ob, subs) =>
+      in match {
+        case TupleType(tps) =>
+          tps.size == subs.size &&
+            ob.forall(vd => isSubtypeOf(vd.getType, in)) &&
+            ((tps zip subs) forall (patternIsTyped(_, _)).tupled)
+        case _ => false
+      }
 
     case up @ UnapplyPattern(ob, recs, id, tps, subs) =>
       ob.forall(vd => isSubtypeOf(vd.getType, in)) &&
-      lookupFunction(id).exists(_.tparams.size == tps.size) && {
+        lookupFunction(id).exists(_.tparams.size == tps.size) && {
         val unapp = up.getFunction
         unapp.params.size >= 1 &&
         ob.forall(vd => isSubtypeOf(unapp.params.last.getType, vd.getType))
         (recs zip unapp.params.init).forall { case (r, vd) => isSubtypeOf(r.getType, vd.getType) } &&
         unapp.flags
           .collectFirst { case IsUnapply(isEmpty, get) => (isEmpty, get) }
-          .exists { case (isEmpty, get) =>
-            unapplyAccessorResultType(isEmpty, unapp.returnType).exists(isSubtypeOf(_, BooleanType())) &&
-            unapplyAccessorResultType(get, unapp.returnType).exists {
-              case TupleType(tps) =>
-                tps.size == subs.size &&
-                ((tps zip subs) forall (patternIsTyped(_, _)).tupled)
-              case tpe if subs.size == 1 =>
-                patternIsTyped(tpe, subs.head)
-              case UnitType() if subs.isEmpty => true
-              case _ => false
-            }
+          .exists {
+            case (isEmpty, get) =>
+              unapplyAccessorResultType(isEmpty, unapp.returnType).exists(isSubtypeOf(_, BooleanType())) &&
+                unapplyAccessorResultType(get, unapp.returnType).exists {
+                  case TupleType(tps) =>
+                    tps.size == subs.size &&
+                      ((tps zip subs) forall (patternIsTyped(_, _)).tupled)
+                  case tpe if subs.size == 1 =>
+                    patternIsTyped(tpe, subs.head)
+                  case UnitType() if subs.isEmpty => true
+                  case _ => false
+                }
           }
       }
   }

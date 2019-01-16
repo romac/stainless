@@ -25,8 +25,8 @@ trait ChainBuilder extends RelationBuilder { self: Strengthener with OrderingRel
 
     override def hashCode: Int = identifier.hashCode()
 
-    lazy val fd  : FunDef      = relations.head.fd
-    lazy val fds : Set[FunDef] = relations.map(_.fd).toSet
+    lazy val fd: FunDef = relations.head.fd
+    lazy val fds: Set[FunDef] = relations.map(_.fd).toSet
 
     lazy val size: Int = relations.size
 
@@ -35,13 +35,16 @@ trait ChainBuilder extends RelationBuilder { self: Strengthener with OrderingRel
       (bigRel.path, bigRel.call.args)
     }
 
-    lazy val cycles : Seq[List[Relation]] = relations.indices.map { index =>
+    lazy val cycles: Seq[List[Relation]] = relations.indices.map { index =>
       val (start, end) = relations.splitAt(index)
       end ++ start
     }
 
     def compose(that: Chain): Set[Chain] = {
-      val map = relations.zipWithIndex.map(p => p._1.call.tfd.fd -> ((p._2 + 1) % relations.size)).groupBy(_._1).mapValues(_.map(_._2))
+      val map = relations.zipWithIndex
+        .map(p => p._1.call.tfd.fd -> ((p._2 + 1) % relations.size))
+        .groupBy(_._1)
+        .mapValues(_.map(_._2))
       val tmap = that.relations.zipWithIndex.map(p => p._1.fd -> p._2).groupBy(_._1).mapValues(_.map(_._2))
       val keys = map.keys.toSet & tmap.keys.toSet
 
@@ -56,19 +59,18 @@ trait ChainBuilder extends RelationBuilder { self: Strengthener with OrderingRel
     }
   }
 
-
   protected type ChainSignature = (FunDef, Set[RelationSignature])
 
   protected def funDefChainSignature(funDef: FunDef): ChainSignature = {
     funDef -> (transitiveCallees(funDef) + funDef).map(funDefRelationSignature)
   }
 
-  private val chainCache : MutableMap[FunDef, (Set[FunDef], Set[Chain], ChainSignature)] = MutableMap.empty
+  private val chainCache: MutableMap[FunDef, (Set[FunDef], Set[Chain], ChainSignature)] = MutableMap.empty
 
   def getChains(funDef: FunDef): (Set[FunDef], Set[Chain]) = chainCache.get(funDef) match {
     case Some((subloop, chains, signature)) if signature == funDefChainSignature(funDef) => subloop -> chains
     case _ => {
-      def chains(seen: Set[FunDef], chain: List[Relation]) : (Set[FunDef], Set[Chain]) = {
+      def chains(seen: Set[FunDef], chain: List[Relation]): (Set[FunDef], Set[Chain]) = {
         val Relation(_, _, FunctionInvocation(id, _, _), _) :: _ = chain
         val fd = getFunction(id)
 

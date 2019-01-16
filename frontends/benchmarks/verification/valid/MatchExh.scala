@@ -4,7 +4,7 @@ import stainless.lang._
 import stainless.collection._
 
 object MatchExh {
-  
+
   def exh1(i: Int) = i match {
     case 1 => 2
     case 0 => 2

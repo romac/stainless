@@ -37,12 +37,15 @@ trait Trees extends oo.Trees { self =>
   /** Try-catch-finally block. Corresponds to Scala's *try { ... } catch { ... } finally { ... }* */
   sealed case class Try(body: Expr, cases: Seq[MatchCase], finallizer: Option[Expr]) extends Expr with CachingTyped {
     override protected def computeType(implicit s: Symbols): Type = getExceptionType match {
-      case Some(tpe) if (
-        cases.forall { case MatchCase(pat, guard, rhs) =>
-          s.patternIsTyped(tpe, pat) &&
-          guard.forall(g => s.isSubtypeOf(g.getType, BooleanType()))
-        } && finallizer.forall(_.isTyped)
-      ) => s.leastUpperBound(body.getType +: cases.map(_.rhs.getType))
+      case Some(tpe)
+          if (
+            cases.forall {
+              case MatchCase(pat, guard, rhs) =>
+                s.patternIsTyped(tpe, pat) &&
+                  guard.forall(g => s.isSubtypeOf(g.getType, BooleanType()))
+            } && finallizer.forall(_.isTyped)
+          ) =>
+        s.leastUpperBound(body.getType +: cases.map(_.rhs.getType))
 
       case _ => Untyped
     }
@@ -52,11 +55,14 @@ trait Trees extends oo.Trees { self =>
     protected val trees: self.type = self
   } with ExprOps
 
-  override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-    case tree: Trees => new TreeDeconstructor {
-      protected val s: self.type = self
-      protected val t: tree.type = tree
-    }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+  override def getDeconstructor(
+      that: inox.ast.Trees
+  ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+    case tree: Trees =>
+      new TreeDeconstructor {
+        protected val s: self.type = self
+        protected val t: tree.type = tree
+      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
     case _ => super.getDeconstructor(that)
   }
@@ -146,9 +152,9 @@ trait ExprOps extends oo.ExprOps {
   }
 
   def throwingOf(expr: Expr): Option[Lambda] = expr match {
-    case Let(i, e, b)      => throwingOf(b).map(l => l.copy(body = Let(i, e, l.body).copiedFrom(expr)).copiedFrom(l))
+    case Let(i, e, b) => throwingOf(b).map(l => l.copy(body = Let(i, e, l.body).copiedFrom(expr)).copiedFrom(l))
     case Throwing(b, pred) => Some(pred)
-    case _                 => None
+    case _ => None
   }
 
   override def postconditionOf(expr: Expr): Option[Lambda] = expr match {
@@ -158,19 +164,20 @@ trait ExprOps extends oo.ExprOps {
 
   def withThrowing(expr: Expr, oie: Option[Lambda]): Expr =
     (oie.filterNot(_.body == BooleanLiteral(true)), expr) match {
-      case (Some(npred), Throwing(b, pred))          => Throwing(b, npred).copiedFrom(expr)
+      case (Some(npred), Throwing(b, pred)) => Throwing(b, npred).copiedFrom(expr)
       case (Some(npred), Let(i, e, b)) if hasSpec(b) => wrapSpec(i, e, withThrowing(b, oie)).copiedFrom(expr)
-      case (Some(npred), b)                          => Throwing(b, npred).copiedFrom(expr)
-      case (None, Throwing(b, p))                    => b
-      case (None, Let(i, e, b)) if hasSpec(b)        => wrapSpec(i, e, withThrowing(b, oie)).copiedFrom(expr)
-      case (None, b)                                 => b
+      case (Some(npred), b) => Throwing(b, npred).copiedFrom(expr)
+      case (None, Throwing(b, p)) => b
+      case (None, Let(i, e, b)) if hasSpec(b) => wrapSpec(i, e, withThrowing(b, oie)).copiedFrom(expr)
+      case (None, b) => b
     }
 
   override def withPostcondition(expr: Expr, oie: Option[Lambda]): Expr =
     (oie.filterNot(_.body == BooleanLiteral(true)), expr) match {
-      case (Some(npost), Throwing(en @ Ensuring(b, _), pred)) => Throwing(Ensuring(b, npost).copiedFrom(en), pred).copiedFrom(expr)
-      case (None, Throwing(Ensuring(b, _), pred))             => Throwing(b, pred).copiedFrom(expr)
-      case _                                                  => super.withPostcondition(expr, oie)
+      case (Some(npost), Throwing(en @ Ensuring(b, _), pred)) =>
+        Throwing(Ensuring(b, npost).copiedFrom(en), pred).copiedFrom(expr)
+      case (None, Throwing(Ensuring(b, _), pred)) => Throwing(b, pred).copiedFrom(expr)
+      case _ => super.withPostcondition(expr, oie)
     }
 
   override def deconstructSpecs(e: Expr)(implicit s: Symbols): (Seq[Specification], Option[Expr]) = {

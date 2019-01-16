@@ -15,7 +15,6 @@ class TupleExtractionSuite extends FunSuite with InputUtils {
        |  def bar = (1, 2, 3, 4, 5)
        |
        |} """.stripMargin,
-
     """|object Tup6 {
        |
        |  def foo(t: (Int, Int, Byte, BigInt, String, Array[String])) = t._5
@@ -23,7 +22,6 @@ class TupleExtractionSuite extends FunSuite with InputUtils {
        |  def bar = (1, 2, 3, 4, 5, 6)
        |
        |} """.stripMargin,
-
     """|object Tup22 {
        |
        |  def foo(t: (Int, Int, Byte, BigInt, String, Array[String],
@@ -53,10 +51,11 @@ class TupleExtractionSuite extends FunSuite with InputUtils {
     }
 
     funDef("Tup5.foo").params match {
-      case Seq(p) => p.tpe match {
-        case TupleType(bases) if bases.size == 5 => // ok
-        case tpe => fail(s"Expected tuple of 5 elements, got '$tpe'")
-      }
+      case Seq(p) =>
+        p.tpe match {
+          case TupleType(bases) if bases.size == 5 => // ok
+          case tpe => fail(s"Expected tuple of 5 elements, got '$tpe'")
+        }
       case params => fail(s"Expected one tuple of 5 elements, got '$params'")
     }
 
@@ -73,10 +72,11 @@ class TupleExtractionSuite extends FunSuite with InputUtils {
     }
 
     funDef("Tup6.foo").params match {
-      case Seq(p) => p.tpe match {
-        case TupleType(bases) if bases.size == 6 => // ok
-        case tpe => fail(s"Expected tuple of 6 elements, got '$tpe'")
-      }
+      case Seq(p) =>
+        p.tpe match {
+          case TupleType(bases) if bases.size == 6 => // ok
+          case tpe => fail(s"Expected tuple of 6 elements, got '$tpe'")
+        }
       case params => fail(s"Expected one tuple of 6 elements, got '$params'")
     }
 
@@ -92,10 +92,11 @@ class TupleExtractionSuite extends FunSuite with InputUtils {
     }
 
     funDef("Tup22.foo").params match {
-      case Seq(p) => p.tpe match {
-        case TupleType(bases) if bases.size == 22 => // ok
-        case tpe => fail(s"Expected tuple of 22 elements, got '$tpe'")
-      }
+      case Seq(p) =>
+        p.tpe match {
+          case TupleType(bases) if bases.size == 22 => // ok
+          case tpe => fail(s"Expected tuple of 22 elements, got '$tpe'")
+        }
       case params => fail(s"Expected one tuple of 22 elements, got '$params'")
     }
 
@@ -106,4 +107,3 @@ class TupleExtractionSuite extends FunSuite with InputUtils {
   }
 
 }
-

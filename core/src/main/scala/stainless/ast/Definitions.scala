@@ -31,12 +31,8 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
 
   type Symbols >: Null <: AbstractSymbols
 
-  trait AbstractSymbols
-    extends super.AbstractSymbols
-       with TypeOps
-       with SymbolOps
-       with CallGraph
-       with DependencyGraph { self0: Symbols =>
+  trait AbstractSymbols extends super.AbstractSymbols with TypeOps with SymbolOps with CallGraph with DependencyGraph {
+    self0: Symbols =>
 
     private[this] val bodyCache: MutableMap[TypedFunDef, Option[Expr]] = MutableMap.empty
     @inline def getBody(fd: FunDef): Option[Expr] = getBody(fd.typed)
@@ -54,18 +50,22 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
       postCache.getOrElseUpdate(tfd, exprOps.postconditionOf(tfd.fullBody))
 
     protected class Lookup {
-      protected def find[T](name: String, map: Map[Identifier, T]): Option[T] = map.find(_._1 match {
-        case SymbolIdentifier(`name`) => true
-        case _ => false
-      }).map(_._2)
+      protected def find[T](name: String, map: Map[Identifier, T]): Option[T] =
+        map
+          .find(_._1 match {
+            case SymbolIdentifier(`name`) => true
+            case _ => false
+          })
+          .map(_._2)
 
-      def get[T <: Definition : ClassTag](name: String): Option[T] = ({
-        if (classTag[ADTSort].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) find(name, sorts)
-        else if (classTag[FunDef].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) find(name, functions)
-        else None
-      }).asInstanceOf[Option[T]]
+      def get[T <: Definition: ClassTag](name: String): Option[T] =
+        ({
+          if (classTag[ADTSort].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) find(name, sorts)
+          else if (classTag[FunDef].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) find(name, functions)
+          else None
+        }).asInstanceOf[Option[T]]
 
-      def apply[T <: Definition : ClassTag](name: String): T = get[T](name).getOrElse {
+      def apply[T <: Definition: ClassTag](name: String): T = get[T](name).getOrElse {
         if (classTag[ADTSort].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) {
           throw ADTLookupException(FreshIdentifier(name))
         } else if (classTag[FunDef].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) {
@@ -94,13 +94,13 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
     final def isParameterless = fd.params.isEmpty && fd.tparams.isEmpty
 
     /**
-     * Get the source of this function
-     *
-     * i.e. either its identifier or the identifier of its (recursively) outer function.
-     *
-     * NOTE no need to actually recurse here as [[Derived]] already
-     *      holds the requested data.
-     */
+      * Get the source of this function
+      *
+      * i.e. either its identifier or the identifier of its (recursively) outer function.
+      *
+      * NOTE no need to actually recurse here as [[Derived]] already
+      *      holds the requested data.
+      */
     final def source: Identifier =
       fd.flags collectFirst { case Derived(id) => id } getOrElse fd.id
   }
@@ -120,6 +120,6 @@ trait Definitions extends inox.ast.Definitions { self: Trees =>
   }
 
   implicit class StainlessLookup(val p: Program { val trees: self.type }) {
-    def lookup[T <: Definition : ClassTag](name: String): T = p.symbols.lookup[T](name)
+    def lookup[T <: Definition: ClassTag](name: String): T = p.symbols.lookup[T](name)
   }
 }

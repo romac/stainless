@@ -14,4 +14,3 @@ abstract class Monitor {
 
   def onForallInvocation(id: Int, tps: Array[Int], args: Array[AnyRef]): Boolean
 }
-

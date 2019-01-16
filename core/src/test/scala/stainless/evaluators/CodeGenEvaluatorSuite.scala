@@ -26,4 +26,3 @@ class CodeGenEvaluatorSuite extends EvaluatorSuite {
     EncodingEvaluator(program)(lifter)(CodeGenEvaluator(lifter.targetProgram, ctx))
   }
 }
-

@@ -8,16 +8,16 @@ object Nested8 {
     require(a > 0)
 
     def bar(b: BigInt): BigInt = {
-      if(a < b) {
+      if (a < b) {
         def rec(c: BigInt): BigInt = {
           require(c > 0)
           c + b
-        } ensuring(_ > 0)
+        } ensuring (_ > 0)
         rec(2)
       } else 3
     }
     bar(1)
-  } ensuring(_ > 0)
+  } ensuring (_ > 0)
 
   /*
   def partitioned(a: Map[Int, Int], size: Int, l1: Int, u1: Int, l2: Int, u2: Int): Boolean = {
@@ -40,6 +40,6 @@ object Nested8 {
       isPartitionned
     }
   }
-  */
+ */
 
 }

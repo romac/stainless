@@ -8,31 +8,36 @@ import dotty.tools.dotc.core.Symbols._
 import dotty.tools.dotc.core.Contexts._
 import stainless.ast.SymbolIdentifier
 
-import scala.collection.mutable.{ Map => MutableMap }
+import scala.collection.mutable.{Map => MutableMap}
 
 class SymbolsContext {
 
   /** Get the identifier associated with the given [[sym]], creating a new one if needed. */
   def fetch(sym: Symbol)(implicit ctx: Context): SymbolIdentifier = synchronized {
-    s2i.getOrElseUpdate(getPath(sym), {
-      val overrides = sym.allOverriddenSymbols
-      val top = if (overrides.nonEmpty) overrides.toSeq.last else sym
-      val symbol = s2s.getOrElseUpdate(top, {
-        val name: String =
-          if (sym is TypeParam) {
-            sym.showName
-          } else {
-            sym.fullName.toString.trim.split("\\.")
-              .filter(_ != "package$")
-              .map(name => if (name.endsWith("$")) name.init else name)
-              .mkString(".")
+    s2i.getOrElseUpdate(
+      getPath(sym), {
+        val overrides = sym.allOverriddenSymbols
+        val top = if (overrides.nonEmpty) overrides.toSeq.last else sym
+        val symbol = s2s.getOrElseUpdate(
+          top, {
+            val name: String =
+              if (sym is TypeParam) {
+                sym.showName
+              } else {
+                sym.fullName.toString.trim
+                  .split("\\.")
+                  .filter(_ != "package$")
+                  .map(name => if (name.endsWith("$")) name.init else name)
+                  .mkString(".")
+              }
+
+            ast.Symbol(name)
           }
+        )
 
-        ast.Symbol(name)
-      })
-
-      SymbolIdentifier(symbol)
-    })
+        SymbolIdentifier(symbol)
+      }
+    )
   }
 
   def fetchParam(sym: Symbol)(implicit ctx: Context): SymbolIdentifier = synchronized {
@@ -62,5 +67,3 @@ class SymbolsContext {
   /** Mapping for getter identifiers. */
   private val params = MutableMap[SymbolIdentifier, SymbolIdentifier]()
 }
-
-

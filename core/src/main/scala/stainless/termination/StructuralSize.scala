@@ -25,14 +25,17 @@ trait StructuralSize { self: SolverProvider =>
    *
    * def integerAbs(x: BigInt): BigInt = if (x >= 0) x else -x
    */
-  val integerAbs: FunDef = mkFunDef(FreshIdentifier("integerAbs"))()(_ => (
-    Seq("x" :: IntegerType()), IntegerType(), { case Seq(x) =>
-      if_ (x >= E(BigInt(0))) {
-        x
-      } else_ {
-        -x
-      }
-    }))
+  val integerAbs: FunDef = mkFunDef(FreshIdentifier("integerAbs"))()(
+    _ =>
+      (Seq("x" :: IntegerType()), IntegerType(), {
+        case Seq(x) =>
+          if_(x >= E(BigInt(0))) {
+            x
+          } else_ {
+            -x
+          }
+      })
+  )
   functions += integerAbs
 
   private val bvCache: MutableMap[BVType, FunDef] = MutableMap.empty
@@ -44,19 +47,23 @@ trait StructuralSize { self: SolverProvider =>
    *
    * def bvAbs(x: BV): BV = if (x >= 0) -x else x
    */
-  def bvAbs(tpe: BVType): FunDef = bvCache.getOrElseUpdate(tpe, {
-    val fd = mkFunDef(FreshIdentifier("bvAbs" + tpe.size))()(_ => (
-      Seq("x" :: tpe), tpe, { case Seq(x) =>
-        if_ (x >= E(0)) {
-          -x
-        } else_ {
-          x
-        }
-      }))
-    functions += fd
-    clearSolvers()
-    fd
-  })
+  def bvAbs(tpe: BVType): FunDef =
+    bvCache.getOrElseUpdate(tpe, {
+      val fd = mkFunDef(FreshIdentifier("bvAbs" + tpe.size))()(
+        _ =>
+          (Seq("x" :: tpe), tpe, {
+            case Seq(x) =>
+              if_(x >= E(0)) {
+                -x
+              } else_ {
+                x
+              }
+          })
+      )
+      functions += fd
+      clearSolvers()
+      fd
+    })
 
   private val bv2IntegerCache: MutableMap[BVType, FunDef] = MutableMap.empty
 
@@ -74,26 +81,35 @@ trait StructuralSize { self: SolverProvider =>
    *   1 + bvAbs2Integer(-(x + 1)) // avoids -Integer.MIN_VALUE overflow
    * }) ensuring (_ >= 0)
    */
-  def bvAbs2Integer(tpe: BVType): FunDef = bv2IntegerCache.getOrElseUpdate(tpe, {
-    val funID = FreshIdentifier("bvAbs2Integer$" + tpe.size)
-    val zero = BVLiteral(true, 0, tpe.size)
-    val one = BVLiteral(true, 1, tpe.size)
-    val fd = mkFunDef(funID)()(_ => (
-      Seq("x" :: tpe), IntegerType(), { case Seq(x) =>
-        Ensuring(if_ (x === zero) {
-          E(BigInt(0))
-        } else_ {
-          if_ (x > zero) {
-            E(BigInt(1)) + E(funID)(x - one)
-          } else_ {
-            E(BigInt(1)) + E(funID)(-(x + one))
-          }
-        }, \("res" :: IntegerType())(res => res >= E(BigInt(0))))
-      }))
-    functions += fd
-    clearSolvers()
-    fd
-  })
+  def bvAbs2Integer(tpe: BVType): FunDef =
+    bv2IntegerCache.getOrElseUpdate(
+      tpe, {
+        val funID = FreshIdentifier("bvAbs2Integer$" + tpe.size)
+        val zero = BVLiteral(true, 0, tpe.size)
+        val one = BVLiteral(true, 1, tpe.size)
+        val fd = mkFunDef(funID)()(
+          _ =>
+            (Seq("x" :: tpe), IntegerType(), {
+              case Seq(x) =>
+                Ensuring(
+                  if_(x === zero) {
+                    E(BigInt(0))
+                  } else_ {
+                    if_(x > zero) {
+                      E(BigInt(1)) + E(funID)(x - one)
+                    } else_ {
+                      E(BigInt(1)) + E(funID)(-(x + one))
+                    }
+                  },
+                  \("res" :: IntegerType())(res => res >= E(BigInt(0)))
+                )
+            })
+        )
+        functions += fd
+        clearSolvers()
+        fd
+      }
+    )
 
   private val fullCache: MutableMap[Type, Identifier] = MutableMap.empty
 
@@ -121,13 +137,19 @@ trait StructuralSize { self: SolverProvider =>
             sort.tparams,
             Seq(v.toVal),
             IntegerType(),
-            Ensuring(MatchExpr(v, sort.typed(tparams).constructors.map { cons =>
-              val arguments = cons.fields.map(_.freshen)
-              val argumentPatterns = arguments.map(vd => WildcardPattern(Some(vd)))
-              val base: Expr = if (cons.fields.nonEmpty) IntegerLiteral(1) else IntegerLiteral(0)
-              val rhs = arguments.map(vd => fullSize(vd.toVariable)).foldLeft(base)(_ + _)
-              MatchCase(ADTPattern(None, cons.id, cons.tps, argumentPatterns), None, rhs)
-            }), \("res" :: IntegerType())(res => res >= E(BigInt(0)))).copiedFrom(expr),
+            Ensuring(
+              MatchExpr(
+                v,
+                sort.typed(tparams).constructors.map { cons =>
+                  val arguments = cons.fields.map(_.freshen)
+                  val argumentPatterns = arguments.map(vd => WildcardPattern(Some(vd)))
+                  val base: Expr = if (cons.fields.nonEmpty) IntegerLiteral(1) else IntegerLiteral(0)
+                  val rhs = arguments.map(vd => fullSize(vd.toVariable)).foldLeft(base)(_ + _)
+                  MatchCase(ADTPattern(None, cons.id, cons.tps, argumentPatterns), None, rhs)
+                }
+              ),
+              \("res" :: IntegerType())(res => res >= E(BigInt(0)))
+            ).copiedFrom(expr),
             Seq.empty
           )
           clearSolvers()
@@ -137,9 +159,12 @@ trait StructuralSize { self: SolverProvider =>
 
       FunctionInvocation(fid, adt.tps, Seq(expr))
 
-    case TupleType(argTypes) => argTypes.zipWithIndex.map({
-      case (_, index) => fullSize(tupleSelect(expr, index + 1, true))
-    }).foldLeft[Expr](IntegerLiteral(0))(_ + _)
+    case TupleType(argTypes) =>
+      argTypes.zipWithIndex
+        .map({
+          case (_, index) => fullSize(tupleSelect(expr, index + 1, true))
+        })
+        .foldLeft[Expr](IntegerLiteral(0))(_ + _)
 
     case IntegerType() =>
       FunctionInvocation(integerAbs.id, Seq(), Seq(expr))
@@ -163,10 +188,14 @@ trait StructuralSize { self: SolverProvider =>
 
   def flatTypesPowerset(tpe: Type): Set[Expr => Expr] = {
     def powerSetToFunSet(l: TraversableOnce[Expr => Expr]): Set[Expr => Expr] = {
-      l.toSet.subsets.filter(_.nonEmpty).map{
-        (reconss: Set[Expr => Expr]) => (e : Expr) =>
-          tupleWrap(reconss.toSeq map { f => f(e) })
-      }.toSet
+      l.toSet.subsets
+        .filter(_.nonEmpty)
+        .map { (reconss: Set[Expr => Expr]) => (e: Expr) =>
+          tupleWrap(reconss.toSeq map { f =>
+            f(e)
+          })
+        }
+        .toSet
     }
 
     powerSetToFunSet(flatTypes(tpe))
@@ -175,12 +204,12 @@ trait StructuralSize { self: SolverProvider =>
   def flatTypes(tpe: Type): Set[Expr => Expr] = {
     def rec(tpe: Type): Set[Expr => Expr] = tpe match {
       case ContainerType(fields) =>
-        fields.flatMap {
-          vd => rec(vd.tpe).map(recons => (e: Expr) => recons(adtSelector(e, vd.id)))
+        fields.flatMap { vd =>
+          rec(vd.tpe).map(recons => (e: Expr) => recons(adtSelector(e, vd.id)))
         }.toSet
       case TupleType(tpes) =>
-        tpes.indices.flatMap {
-          index => rec(tpes(index)).map(recons => (e: Expr) => recons(tupleSelect(e, index + 1, true)))
+        tpes.indices.flatMap { index =>
+          rec(tpes(index)).map(recons => (e: Expr) => recons(tupleSelect(e, index + 1, true)))
         }.toSet
       case _ => Set((e: Expr) => e)
     }
@@ -194,10 +223,14 @@ trait StructuralSize { self: SolverProvider =>
     val sameSizeExprs = for ((arg1, arg2) <- s1 zip s2) yield Equals(sizeOfOneExpr(arg1), sizeOfOneExpr(arg2))
 
     val lessBecauseLessAtFirstDifferentPos =
-      orJoin(for (firstDifferent <- 0 until scala.math.min(s1.length, s2.length)) yield and(
-          andJoin(sameSizeExprs.take(firstDifferent)),
-          LessThan(sizeOfOneExpr(s1(firstDifferent)), sizeOfOneExpr(s2(firstDifferent)))
-      ))
+      orJoin(
+        for (firstDifferent <- 0 until scala.math.min(s1.length, s2.length))
+          yield
+            and(
+              andJoin(sameSizeExprs.take(firstDifferent)),
+              LessThan(sizeOfOneExpr(s1(firstDifferent)), sizeOfOneExpr(s2(firstDifferent)))
+            )
+      )
 
     if (s1.length > s2.length || (s1.length == s2.length && !strict)) {
       or(andJoin(sameSizeExprs), lessBecauseLessAtFirstDifferentPos)

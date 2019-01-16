@@ -8,7 +8,7 @@ object Formulas {
   case class And(lhs: Expr, rhs: Expr) extends Expr
   case class Or(lhs: Expr, rhs: Expr) extends Expr
   case class Implies(lhs: Expr, rhs: Expr) extends Expr
-  case class Not(e : Expr) extends Expr
+  case class Not(e: Expr) extends Expr
   case class BoolLiteral(i: BigInt) extends Expr
 
   def exists(e: Expr, f: Expr => Boolean): Boolean = {

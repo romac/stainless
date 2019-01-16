@@ -30,10 +30,12 @@ class LibrarySuite extends FunSpec with InputUtils {
       val funs = exProgram.symbols.functions.values.filterNot(_.flags contains Unchecked).map(_.id).toSeq
       val analysis = Await.result(run.apply(funs, exProgram.symbols), Duration.Inf)
       val report = analysis.toReport
-      assert(report.totalConditions == report.totalValid,
+      assert(
+        report.totalConditions == report.totalValid,
         "Only " + report.totalValid + " valid out of " + report.totalConditions + "\n" +
-        "Invalids are:\n" + analysis.vrs.filter(_._2.isInvalid).mkString("\n") + "\n" +
-        "Unknowns are:\n" + analysis.vrs.filter(_._2.isInconclusive).mkString("\n"))
+          "Invalids are:\n" + analysis.vrs.filter(_._2.isInvalid).mkString("\n") + "\n" +
+          "Unknowns are:\n" + analysis.vrs.filter(_._2.isInconclusive).mkString("\n")
+      )
     }
 
     it("should terminate") {
@@ -49,7 +51,7 @@ class LibrarySuite extends FunSpec with InputUtils {
       assert(
         analysis.results forall { case (_, (g, _)) => g.isGuaranteed },
         "Library functions couldn't be shown terminating:\n" +
-        (analysis.results collect { case (fd, (g, _)) if !g.isGuaranteed => fd.id.name -> g } mkString "\n")
+          (analysis.results collect { case (fd, (g, _)) if !g.isGuaranteed => fd.id.name -> g } mkString "\n")
       )
     }
   }

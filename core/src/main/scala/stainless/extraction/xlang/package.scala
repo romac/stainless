@@ -9,10 +9,11 @@ package object xlang {
 
   object trees extends xlang.Trees with oo.ClassSymbols {
     case class Symbols(
-      functions: Map[Identifier, FunDef],
-      sorts: Map[Identifier, ADTSort],
-      classes: Map[Identifier, ClassDef]
-    ) extends ClassSymbols with AbstractSymbols
+        functions: Map[Identifier, FunDef],
+        sorts: Map[Identifier, ADTSort],
+        classes: Map[Identifier, ClassDef]
+    ) extends ClassSymbols
+        with AbstractSymbols
 
     object printer extends Printer { val trees: xlang.trees.type = xlang.trees }
   }
@@ -41,7 +42,10 @@ package object xlang {
       }
 
       override protected def extractFunction(transformer: TransformerContext, fd: s.FunDef): t.FunDef =
-        transformer.transform(fd.copy(flags = fd.flags.filter { case s.Ignore => false case _ => true }))
+        transformer.transform(fd.copy(flags = fd.flags.filter {
+          case s.Ignore => false
+          case _ => true
+        }))
 
       override protected def extractSort(transformer: TransformerContext, sort: s.ADTSort): t.ADTSort =
         transformer.transform(sort.copy(flags = sort.flags filterNot (_ == s.Ignore)))

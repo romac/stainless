@@ -33,10 +33,10 @@ import stainless.annotation._
 object StdIn {
 
   /**
-   * Reads the next signed decimal integer
-   *
-   * TODO to support other integer bases, one has to use SCNi32 in C.
-   */
+    * Reads the next signed decimal integer
+    *
+    * TODO to support other integer bases, one has to use SCNi32 in C.
+    */
   @library
   def readInt(implicit state: State): Int = {
     state.seed += 1
@@ -97,7 +97,7 @@ object StdIn {
     def skipSpaces(): Int = {
       val x = in.read()
       if (isSpace(x)) skipSpaces()
-      else            x
+      else x
     }
 
     // Safely wrap the addition of the accumulator with a digit character
@@ -108,7 +108,7 @@ object StdIn {
       val r = acc * 10 + x
 
       if (r >= 0) r
-      else        Int.MaxValue
+      else Int.MaxValue
     } // ensuring { res => res >= 0 && res <= Int.MaxInt }
 
     // Read as many digit as possible, and after each digit we mark
@@ -120,19 +120,19 @@ object StdIn {
       val c = in.read()
 
       if (isDigit(c)) readDecInt(safeAdd(acc, c), true)
-      else if (mark)  success(acc) // at least one digit was processed
-      else            fail(-2) // no digit was processed
+      else if (mark) success(acc) // at least one digit was processed
+      else fail(-2) // no digit was processed
     }
 
     val first = skipSpaces()
     first match {
-      case EOF             => fail(-1)
-      case '-'             => - readDecInt(0, false)
-      case '+'             =>   readDecInt(0, false)
-      case c if isDigit(c) =>   readDecInt(c - '0', true)
-      case _               => fail(-3)
+      case EOF => fail(-1)
+      case '-' => -readDecInt(0, false)
+      case '+' => readDecInt(0, false)
+      case c if isDigit(c) => readDecInt(c - '0', true)
+      case _ => fail(-3)
     }
-  } ensuring((x: Int) => true)
+  } ensuring ((x: Int) => true)
 
   @library
   def readBigInt(implicit state: State): BigInt = {
@@ -144,7 +144,7 @@ object StdIn {
   @extern
   private def nativeReadBigInt(seed: BigInt): BigInt = {
     BigInt(scala.io.StdIn.readInt)
-  } ensuring((x: BigInt) => true)
+  } ensuring ((x: BigInt) => true)
 
   @library
   def readBoolean(implicit state: State): Boolean = {
@@ -156,6 +156,6 @@ object StdIn {
   @extern
   private def nativeReadBoolean(seed: BigInt): Boolean = {
     scala.io.StdIn.readBoolean
-  } ensuring((x: Boolean) => true)
+  } ensuring ((x: Boolean) => true)
 
 }

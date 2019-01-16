@@ -2,8 +2,9 @@
 
 object Unit1 {
 
-  def foo(): Unit = ({
-    ()
-  }) ensuring(r => true)
+  def foo(): Unit =
+    ({
+      ()
+    }) ensuring (r => true)
 
 }

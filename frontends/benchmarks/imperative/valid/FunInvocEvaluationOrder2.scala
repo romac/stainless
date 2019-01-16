@@ -12,8 +12,8 @@ object FunInvocEvaluationOrder2 {
       x + y
     }
 
-    nested({a += 10; a}, {a *= 2; a})
+    nested({ a += 10; a }, { a *= 2; a })
 
-  } ensuring(_ == 30)
+  } ensuring (_ == 30)
 
 }

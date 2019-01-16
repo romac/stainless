@@ -18,16 +18,16 @@ object BinomialHeap {
   case class NilL() extends List
 
   sealed abstract class OptionalTree
-  case class Some(t : TreeNode) extends OptionalTree
+  case class Some(t: TreeNode) extends OptionalTree
   case class None() extends OptionalTree
 
   /* Lower or Equal than for Element structure */
-  private def leq(a: Element, b: Element) : Boolean = {
+  private def leq(a: Element, b: Element): Boolean = {
     a match {
       case Element(a1) => {
         b match {
           case Element(a2) => {
-            if(a1 <= a2) true
+            if (a1 <= a2) true
             else false
           }
         }
@@ -37,17 +37,17 @@ object BinomialHeap {
 
   /* isEmpty function of the Binomial Heap */
   def isEmpty(t: BinomialHeap) = t match {
-    case ConsHeap(_,_) => false
+    case ConsHeap(_, _) => false
     case _ => true
   }
 
   /* Helper function to determine rank of a TreeNode */
-  def rank(t: TreeNode) : BigInt = t.rank /*t match {
+  def rank(t: TreeNode): BigInt = t.rank /*t match {
     case TreeNode(r, _, _) => r
   }*/
 
   /* Helper function to get the root element of a TreeNode */
-  def root(t: TreeNode) : Element = t.elem /*t match {
+  def root(t: TreeNode): Element = t.elem /*t match {
     case TreeNode(_, e, _) => e
   }*/
 
@@ -60,23 +60,23 @@ object BinomialHeap {
     }
   }
 
-  def treeNum(h: BinomialHeap) : BigInt = {
+  def treeNum(h: BinomialHeap): BigInt = {
     h match {
-      case ConsHeap(head, tail) =>  1 + treeNum(tail)
+      case ConsHeap(head, tail) => 1 + treeNum(tail)
       case _ => BigInt(0)
     }
-  } ensuring(_ >= 0)
+  } ensuring (_ >= 0)
 
   /* Insert a tree into a binomial heap. The tree should be correct in relation to the heap */
-  def insTree(t: TreeNode, h: BinomialHeap) : BinomialHeap = {
+  def insTree(t: TreeNode, h: BinomialHeap): BinomialHeap = {
     h match {
-      case ConsHeap(head, tail) =>  {
+      case ConsHeap(head, tail) => {
         if (rank(t) < rank(head)) {
           ConsHeap(t, h)
         } else if (rank(t) > rank(head)) {
-          ConsHeap(head, insTree(t,tail))
+          ConsHeap(head, insTree(t, tail))
         } else {
-          insTree(link(t,head), tail)
+          insTree(link(t, head), tail)
         }
       }
       case _ => ConsHeap(t, NilHeap())
@@ -166,21 +166,21 @@ object BinomialHeap {
 	  }
   } ensuring(res => true && tmpl((a,b) => steps <= a*treeNum(h) + b))*/
 
-  def minTreeChildren(h: BinomialHeap) : BigInt = {
+  def minTreeChildren(h: BinomialHeap): BigInt = {
     val (min, _) = removeMinTree(h)
     min match {
-      case Some(TreeNode(_,_,ch)) => treeNum(ch)
+      case Some(TreeNode(_, _, ch)) => treeNum(ch)
       case _ => 0
-	  }
+    }
   }
 
   // Discard the minimum element of the extracted min tree and put its children back into the heap
-  def deleteMin(h: BinomialHeap) : BinomialHeap = {
-	  val (min, ts2) = removeMinTree(h)
-	  min match {
-		case Some(TreeNode(_,_,ts1)) => merge(ts1, ts2)
-		case _ => h
-	  }
+  def deleteMin(h: BinomialHeap): BinomialHeap = {
+    val (min, ts2) = removeMinTree(h)
+    min match {
+      case Some(TreeNode(_, _, ts1)) => merge(ts1, ts2)
+      case _ => h
+    }
   } //ensuring(_ => steps <= ? * minTreeChildren(h) + ? * treeNum(h) + ?)
 
 }

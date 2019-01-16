@@ -9,8 +9,8 @@ object NestedFunState9 {
       x
     }
 
-    c = c+8
+    c = c + 8
     foo(c)
 
-  } ensuring(_ == 8)
+  } ensuring (_ == 8)
 }

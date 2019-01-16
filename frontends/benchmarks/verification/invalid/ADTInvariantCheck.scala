@@ -29,4 +29,3 @@ object ADTInvariantCheck {
   def barOk2: Bar = Bar(12, None())
 
 }
-

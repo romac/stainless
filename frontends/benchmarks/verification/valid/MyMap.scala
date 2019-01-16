@@ -7,7 +7,7 @@ object MyMap {
   def map1(): Int = {
     val m = Map(1 -> 2, 2 -> 3, 3 -> 4)
     m(2)
-  } ensuring(_ == 3)
+  } ensuring (_ == 3)
 
   // Empty maps are not well supported in CVC4, because of lack of quantifiers
   //def map2(): Boolean = {

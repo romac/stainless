@@ -3,7 +3,7 @@
 import stainless.lang._
 
 object PositiveMap2 {
-  
+
   abstract class List
   case class Cons(head: BigInt, tail: List) extends List
   case class Nil() extends List
@@ -19,7 +19,9 @@ object PositiveMap2 {
       case Cons(head, tail) => Cons(f(head), positiveMap_failling_1(f, tail))
       case Nil() => Nil()
     }
-  } ensuring { res => positive(res) }
+  } ensuring { res =>
+    positive(res)
+  }
 }
 
 // vim: set ts=4 sw=4 et:

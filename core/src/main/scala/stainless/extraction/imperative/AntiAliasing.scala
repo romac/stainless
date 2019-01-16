@@ -6,25 +6,19 @@ package imperative
 
 import inox._
 
-trait AntiAliasing
-  extends CachingPhase
-     with SimpleSorts
-     with EffectsAnalyzer
-     with EffectsChecker
-     with GhostChecker { self =>
+trait AntiAliasing extends CachingPhase with SimpleSorts with EffectsAnalyzer with EffectsChecker with GhostChecker {
+  self =>
   import s._
 
   // Function rewriting depends on the effects analysis which relies on all dependencies
   // of the function, so we use a dependency cache here.
-  override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]((fd, context) => 
-    getDependencyKey(fd.id)(context.symbols)
-  )
+  override protected final val funCache =
+    new ExtractionCache[s.FunDef, FunctionResult]((fd, context) => getDependencyKey(fd.id)(context.symbols))
 
   // Function types are rewritten by the transformer depending on the result of the
   // effects analysis, so we again use a dependency cache here.
-  override protected final val sortCache = new ExtractionCache[s.ADTSort, SortResult]((sort, context) => 
-    getDependencyKey(sort.id)(context.symbols)
-  )
+  override protected final val sortCache =
+    new ExtractionCache[s.ADTSort, SortResult]((sort, context) => getDependencyKey(sort.id)(context.symbols))
 
   override protected type FunctionResult = Option[FunDef]
   override protected def registerFunctions(symbols: t.Symbols, functions: Seq[Option[t.FunDef]]): t.Symbols =
@@ -125,8 +119,8 @@ trait AntiAliasing
           //         in the ImperativeTransformation phase.
           val finalBody: Expr = Tuple(explicitBody +: freshLocals.map(_.toVariable)).copiedFrom(body)
 
-          freshLocals.zip(aliasedParams).foldLeft(finalBody) {
-            (bd, vp) => LetVar(vp._1, vp._2.toVariable, bd).copiedFrom(body)
+          freshLocals.zip(aliasedParams).foldLeft(finalBody) { (bd, vp) =>
+            LetVar(vp._1, vp._2.toVariable, bd).copiedFrom(body)
           }
         }
 
@@ -135,9 +129,10 @@ trait AntiAliasing
             val newRes = ValDef(res.id.freshen, newFd.returnType).copiedFrom(res)
             val newBody = exprOps.replaceSingle(
               aliasedParams.map(vd => (Old(vd.toVariable), vd.toVariable): (Expr, Expr)).toMap ++
-              aliasedParams.zipWithIndex.map { case (vd, i) =>
-                (vd.toVariable, TupleSelect(newRes.toVariable, i+2).copiedFrom(vd)): (Expr, Expr)
-              }.toMap + (res.toVariable -> TupleSelect(newRes.toVariable, 1).copiedFrom(res)),
+                aliasedParams.zipWithIndex.map {
+                  case (vd, i) =>
+                    (vd.toVariable, TupleSelect(newRes.toVariable, i + 2).copiedFrom(vd)): (Expr, Expr)
+                }.toMap + (res.toVariable -> TupleSelect(newRes.toVariable, 1).copiedFrom(res)),
               makeSideEffectsExplicit(postBody, fd, env)
             )
 
@@ -153,9 +148,9 @@ trait AntiAliasing
     //We turn all local val of mutable objects into vars and explicit side effects
     //using assignments. We also make sure that no aliasing is being done.
     def makeSideEffectsExplicit(
-      body: Expr,
-      originalFd: FunAbstraction,
-      env: Environment
+        body: Expr,
+        originalFd: FunAbstraction,
+        env: Environment
     ): Expr = {
 
       object transformer extends inox.transformers.Transformer {
@@ -163,14 +158,22 @@ trait AntiAliasing
         override val t: self.t.type = self.t
         override type Env = Environment
 
-        def mapApplication(formalArgs: Seq[ValDef], args: Seq[Expr], nfi: Expr, nfiType: Type, fiEffects: Set[Effect], env: Env): Expr = {
+        def mapApplication(
+            formalArgs: Seq[ValDef],
+            args: Seq[Expr],
+            nfi: Expr,
+            nfiType: Type,
+            fiEffects: Set[Effect],
+            env: Env
+        ): Expr = {
           if (fiEffects.exists(e => formalArgs contains e.receiver.toVal)) {
             val localEffects = (formalArgs zip args)
               .map { case (vd, arg) => (fiEffects.filter(_.receiver == vd.toVariable), arg) }
               .filter { case (effects, _) => effects.nonEmpty }
-              .map { case (effects, arg) =>
-                val rArg = exprOps.replaceFromSymbols(env.rewritings, arg)
-                effects map (e => (e, e on rArg))
+              .map {
+                case (effects, arg) =>
+                  val rArg = exprOps.replaceFromSymbols(env.rewritings, arg)
+                  effects map (e => (e, e on rArg))
               }
 
             for ((_, effects) <- localEffects.flatMap(_.flatMap(_._2)).groupBy(_.receiver)) {
@@ -227,7 +230,8 @@ trait AntiAliasing
                 if (cond == BooleanLiteral(true)) assignment
                 else IfExpr(cond, assignment, UnitLiteral().setPos(pos)).setPos(pos)
               },
-              TupleSelect(freshRes.toVariable, 1))
+              TupleSelect(freshRes.toVariable, 1)
+            )
 
             if (isMutableType(nfiType)) {
               LetVar(freshRes, nfi, transform(extractResults, env withBinding freshRes))
@@ -239,153 +243,169 @@ trait AntiAliasing
           }
         }
 
-        override def transform(e: Expr, env: Env): Expr = (e match {
-          case l @ Let(vd, e, b) if isMutableType(vd.tpe) =>
-            val newExpr = transform(e, env)
-            getKnownEffect(newExpr) match {
-              case Some(_) =>
-                val newBody = transform(b, env withRewritings Map(vd -> newExpr))
-                Let(vd, newExpr, newBody).copiedFrom(l)
+        override def transform(e: Expr, env: Env): Expr =
+          (e match {
+            case l @ Let(vd, e, b) if isMutableType(vd.tpe) =>
+              val newExpr = transform(e, env)
+              getKnownEffect(newExpr) match {
+                case Some(_) =>
+                  val newBody = transform(b, env withRewritings Map(vd -> newExpr))
+                  Let(vd, newExpr, newBody).copiedFrom(l)
 
-              case None =>
-                val newBody = transform(b, env withBinding vd)
-                LetVar(vd, newExpr, newBody).copiedFrom(l)
-            }
-
-          case l @ LetVar(vd, e, b) if isMutableType(vd.tpe) =>
-            val newExpr = transform(e, env)
-            val newBody = transform(b, env withBinding vd)
-            LetVar(vd, newExpr, newBody).copiedFrom(l)
-
-          case m @ MatchExpr(scrut, cses) if isMutableType(scrut.getType) =>
-            if (effects(scrut).nonEmpty) {
-              def liftEffects(e: Expr): (Seq[(ValDef, Expr)], Expr) = e match {
-                case ArraySelect(e, i) if effects(i).nonEmpty =>
-                  val (eBindings, eLift) = liftEffects(e)
-                  val vd = ValDef(FreshIdentifier("index", true), Int32Type().copiedFrom(i)).copiedFrom(i)
-                  (eBindings :+ (vd -> i), ArraySelect(eLift, vd.toVariable).copiedFrom(e))
-                case _ if effects(e).nonEmpty =>
-                  throw MissformedStainlessCode(m, "Unexpected effects in match scrutinee")
-                case _ => (Seq.empty, e)
+                case None =>
+                  val newBody = transform(b, env withBinding vd)
+                  LetVar(vd, newExpr, newBody).copiedFrom(l)
               }
 
-              val (bindings, newScrut) = liftEffects(scrut)
-              val newMatch = bindings.foldRight(MatchExpr(newScrut, cses).copiedFrom(m): Expr) {
-                case ((vd, e), b) => Let(vd, e, b).copiedFrom(m)
+            case l @ LetVar(vd, e, b) if isMutableType(vd.tpe) =>
+              val newExpr = transform(e, env)
+              val newBody = transform(b, env withBinding vd)
+              LetVar(vd, newExpr, newBody).copiedFrom(l)
+
+            case m @ MatchExpr(scrut, cses) if isMutableType(scrut.getType) =>
+              if (effects(scrut).nonEmpty) {
+                def liftEffects(e: Expr): (Seq[(ValDef, Expr)], Expr) = e match {
+                  case ArraySelect(e, i) if effects(i).nonEmpty =>
+                    val (eBindings, eLift) = liftEffects(e)
+                    val vd = ValDef(FreshIdentifier("index", true), Int32Type().copiedFrom(i)).copiedFrom(i)
+                    (eBindings :+ (vd -> i), ArraySelect(eLift, vd.toVariable).copiedFrom(e))
+                  case _ if effects(e).nonEmpty =>
+                    throw MissformedStainlessCode(m, "Unexpected effects in match scrutinee")
+                  case _ => (Seq.empty, e)
+                }
+
+                val (bindings, newScrut) = liftEffects(scrut)
+                val newMatch = bindings.foldRight(MatchExpr(newScrut, cses).copiedFrom(m): Expr) {
+                  case ((vd, e), b) => Let(vd, e, b).copiedFrom(m)
+                }
+                transform(newMatch, env)
+              } else {
+                val newScrut = transform(scrut, env)
+                val newCases = cses.map {
+                  case mc @ MatchCase(pattern, guard, rhs) =>
+                    val newRewritings = mapForPattern(newScrut, pattern)
+                    val newGuard = guard.map(transform(_, env withRewritings newRewritings))
+                    val newRhs = transform(rhs, env withRewritings newRewritings)
+                    MatchCase(pattern, newGuard, newRhs).copiedFrom(mc)
+                }
+                MatchExpr(newScrut, newCases).copiedFrom(m)
               }
-              transform(newMatch, env)
-            } else {
-              val newScrut = transform(scrut, env)
-              val newCases = cses.map { case mc @ MatchCase(pattern, guard, rhs) =>
-                val newRewritings = mapForPattern(newScrut, pattern)
-                val newGuard = guard.map(transform(_, env withRewritings newRewritings))
-                val newRhs = transform(rhs, env withRewritings newRewritings)
-                MatchCase(pattern, newGuard, newRhs).copiedFrom(mc)
+
+            case up @ ArrayUpdate(a, i, v) =>
+              val ra = exprOps.replaceFromSymbols(env.rewritings, a)
+              val effect = getExactEffect(ra)
+              if (env.bindings contains effect.receiver.toVal) {
+                val applied = applyEffect(effect + ArrayAccessor(i), v)
+                transform(Assignment(effect.receiver, applied).copiedFrom(up), env)
+              } else {
+                throw MissformedStainlessCode(up, "Unsupported form of array update")
               }
-              MatchExpr(newScrut, newCases).copiedFrom(m)
-            }
 
-          case up @ ArrayUpdate(a, i, v) =>
-            val ra = exprOps.replaceFromSymbols(env.rewritings, a)
-            val effect = getExactEffect(ra)
-            if (env.bindings contains effect.receiver.toVal) {
-              val applied = applyEffect(effect + ArrayAccessor(i), v)
-              transform(Assignment(effect.receiver, applied).copiedFrom(up), env)
-            } else {
-              throw MissformedStainlessCode(up, "Unsupported form of array update")
-            }
-
-          case as @ FieldAssignment(o, id, v) =>
-            val so = exprOps.replaceFromSymbols(env.rewritings, o)
-            val effect = getExactEffect(so)
-            if (env.bindings contains effect.receiver.toVal) {
-              val applied = applyEffect(effect + FieldAccessor(id), v)
-              transform(Assignment(effect.receiver, applied).copiedFrom(as), env)
-            } else {
-              throw MissformedStainlessCode(as, "Unsupported form of field assignment")
-            }
-
-          //we need to replace local fundef by the new updated fun defs.
-          case l @ LetRec(fds, body) =>
-            val nfds = fds.map(fd => updateFunction(Inner(fd), env withLocals fds).toLocal)
-            LetRec(nfds, transform(body, env withLocals fds)).copiedFrom(l)
-
-          case e @ Ensuring(body, l @ Lambda(params, post)) =>
-            Ensuring(transform(body, env), Lambda(params, transform(post, env)).copiedFrom(l)).copiedFrom(e)
-
-          case l @ Lambda(params, body) =>
-            val ft @ FunctionType(_, _) = l.getType
-            val ownEffects = functionTypeEffects(ft)
-            val aliasedParams: Seq[ValDef] = params.zipWithIndex.flatMap {
-              case (vd, i) if ownEffects.contains(i) => Some(vd)
-              case _ => None
-            }
-
-            if (aliasedParams.isEmpty) {
-              Lambda(params, transform(body, env)).copiedFrom(l)
-            } else {
-              val freshLocals = aliasedParams.map(v => v.freshen)
-              val rewritingMap = aliasedParams.zip(freshLocals).map(p => p._1.toVariable -> p._2.toVariable).toMap
-              val freshBody = exprOps.replaceFromSymbols(rewritingMap, body)
-
-              //WARNING: only works if side effects in Tuples are extracted from left to right,
-              //         in the ImperativeTransformation phase.
-              val finalBody: Expr = Tuple(freshBody +: freshLocals.map(_.toVariable))
-
-              val wrappedBody: Expr = freshLocals.zip(aliasedParams).foldLeft(finalBody) {
-                (bd, vp) => LetVar(vp._1, vp._2.toVariable, bd).copiedFrom(bd)
+            case as @ FieldAssignment(o, id, v) =>
+              val so = exprOps.replaceFromSymbols(env.rewritings, o)
+              val effect = getExactEffect(so)
+              if (env.bindings contains effect.receiver.toVal) {
+                val applied = applyEffect(effect + FieldAccessor(id), v)
+                transform(Assignment(effect.receiver, applied).copiedFrom(as), env)
+              } else {
+                throw MissformedStainlessCode(as, "Unsupported form of field assignment")
               }
-              Lambda(params, transform(wrappedBody, env)).copiedFrom(l)
-            }
 
-          case fi @ FunctionInvocation(id, tps, args) =>
-            val fd = Outer(fi.tfd.fd)
-            val vis: Set[Variable] = varsInScope(fd)
+            //we need to replace local fundef by the new updated fun defs.
+            case l @ LetRec(fds, body) =>
+              val nfds = fds.map(fd => updateFunction(Inner(fd), env withLocals fds).toLocal)
+              LetRec(nfds, transform(body, env withLocals fds)).copiedFrom(l)
 
-            args.find { case v: Variable => vis.contains(v) case _ => false }
-              .foreach(aliasedArg => throw FatalError("Illegal passing of aliased parameter: " + aliasedArg))
+            case e @ Ensuring(body, l @ Lambda(params, post)) =>
+              Ensuring(transform(body, env), Lambda(params, transform(post, env)).copiedFrom(l)).copiedFrom(e)
 
-            val nfi = FunctionInvocation(
-              id, tps, args.map(arg => transform(exprOps.replaceFromSymbols(env.rewritings, arg), env))
-            ).copiedFrom(fi)
+            case l @ Lambda(params, body) =>
+              val ft @ FunctionType(_, _) = l.getType
+              val ownEffects = functionTypeEffects(ft)
+              val aliasedParams: Seq[ValDef] = params.zipWithIndex.flatMap {
+                case (vd, i) if ownEffects.contains(i) => Some(vd)
+                case _ => None
+              }
 
-            mapApplication(fd.params, args, nfi, fi.tfd.instantiate(analysis.getReturnType(fd)), effects(fd), env)
+              if (aliasedParams.isEmpty) {
+                Lambda(params, transform(body, env)).copiedFrom(l)
+              } else {
+                val freshLocals = aliasedParams.map(v => v.freshen)
+                val rewritingMap = aliasedParams.zip(freshLocals).map(p => p._1.toVariable -> p._2.toVariable).toMap
+                val freshBody = exprOps.replaceFromSymbols(rewritingMap, body)
 
-          case alr @ ApplyLetRec(id, tparams, tpe, tps, args) =>
-            val fd = Inner(env.locals(id))
-            val vis: Set[Variable] = varsInScope(fd)
+                //WARNING: only works if side effects in Tuples are extracted from left to right,
+                //         in the ImperativeTransformation phase.
+                val finalBody: Expr = Tuple(freshBody +: freshLocals.map(_.toVariable))
 
-            args.find { case v: Variable => vis.contains(v) case _ => false }
-              .foreach(aliasedArg => throw FatalError("Illegal passing of aliased parameter: " + aliasedArg))
+                val wrappedBody: Expr = freshLocals.zip(aliasedParams).foldLeft(finalBody) { (bd, vp) =>
+                  LetVar(vp._1, vp._2.toVariable, bd).copiedFrom(bd)
+                }
+                Lambda(params, transform(wrappedBody, env)).copiedFrom(l)
+              }
 
-            val nfi = ApplyLetRec(
-              id, tparams,
-              FunctionType(fd.params.map(_.getType), analysis.getReturnType(fd)).copiedFrom(tpe), tps,
-              args.map(arg => transform(exprOps.replaceFromSymbols(env.rewritings, arg), env))
-            ).copiedFrom(alr)
+            case fi @ FunctionInvocation(id, tps, args) =>
+              val fd = Outer(fi.tfd.fd)
+              val vis: Set[Variable] = varsInScope(fd)
 
-            val resultType = typeOps.instantiateType(analysis.getReturnType(fd), (tparams zip tps).toMap)
-            mapApplication(fd.params, args, nfi, resultType, effects(fd), env)
+              args
+                .find {
+                  case v: Variable => vis.contains(v)
+                  case _ => false
+                }
+                .foreach(aliasedArg => throw FatalError("Illegal passing of aliased parameter: " + aliasedArg))
 
-          case app @ Application(callee, args) =>
-            val ft @ FunctionType(from, to) = callee.getType
-            val ftEffects = functionTypeEffects(ft)
-            if (ftEffects.nonEmpty) {
-              val nfi = Application(
-                transform(callee, env),
+              val nfi = FunctionInvocation(
+                id,
+                tps,
                 args.map(arg => transform(exprOps.replaceFromSymbols(env.rewritings, arg), env))
-              ).copiedFrom(app)
+              ).copiedFrom(fi)
 
-              val params = from.map(tpe => ValDef.fresh("x", tpe))
-              val appEffects = params.zipWithIndex.collect { case (vd, i) if ftEffects(i) => Effect(vd.toVariable, Target(Seq())) }
-              val to = makeFunctionTypeExplicit(ft).asInstanceOf[FunctionType].to
-              mapApplication(params, args, nfi, to, appEffects.toSet, env)
-            } else {
-              Application(transform(callee, env), args.map(transform(_, env))).copiedFrom(app)
-            }
+              mapApplication(fd.params, args, nfi, fi.tfd.instantiate(analysis.getReturnType(fd)), effects(fd), env)
 
-          case Operator(es, recons) => recons(es.map(transform(_, env)))
-        }).copiedFrom(e)
+            case alr @ ApplyLetRec(id, tparams, tpe, tps, args) =>
+              val fd = Inner(env.locals(id))
+              val vis: Set[Variable] = varsInScope(fd)
+
+              args
+                .find {
+                  case v: Variable => vis.contains(v)
+                  case _ => false
+                }
+                .foreach(aliasedArg => throw FatalError("Illegal passing of aliased parameter: " + aliasedArg))
+
+              val nfi = ApplyLetRec(
+                id,
+                tparams,
+                FunctionType(fd.params.map(_.getType), analysis.getReturnType(fd)).copiedFrom(tpe),
+                tps,
+                args.map(arg => transform(exprOps.replaceFromSymbols(env.rewritings, arg), env))
+              ).copiedFrom(alr)
+
+              val resultType = typeOps.instantiateType(analysis.getReturnType(fd), (tparams zip tps).toMap)
+              mapApplication(fd.params, args, nfi, resultType, effects(fd), env)
+
+            case app @ Application(callee, args) =>
+              val ft @ FunctionType(from, to) = callee.getType
+              val ftEffects = functionTypeEffects(ft)
+              if (ftEffects.nonEmpty) {
+                val nfi = Application(
+                  transform(callee, env),
+                  args.map(arg => transform(exprOps.replaceFromSymbols(env.rewritings, arg), env))
+                ).copiedFrom(app)
+
+                val params = from.map(tpe => ValDef.fresh("x", tpe))
+                val appEffects = params.zipWithIndex.collect {
+                  case (vd, i) if ftEffects(i) => Effect(vd.toVariable, Target(Seq()))
+                }
+                val to = makeFunctionTypeExplicit(ft).asInstanceOf[FunctionType].to
+                mapApplication(params, args, nfi, to, appEffects.toSet, env)
+              } else {
+                Application(transform(callee, env), args.map(transform(_, env))).copiedFrom(app)
+              }
+
+            case Operator(es, recons) => recons(es.map(transform(_, env)))
+          }).copiedFrom(e)
       }
 
       transformer.transform(body, env)
@@ -407,15 +427,21 @@ trait AntiAliasing
         case FieldAccessor(id) :: fs =>
           val adt @ ADTType(_, tps) = receiver.getType
           val tcons = adt.getSort.constructors.find(_.fields.exists(_.id == id)).get
-          val r = rec(Annotated(ADTSelector(receiver, id).copiedFrom(newValue), Seq(Unchecked)).copiedFrom(newValue), fs)
+          val r =
+            rec(Annotated(ADTSelector(receiver, id).copiedFrom(newValue), Seq(Unchecked)).copiedFrom(newValue), fs)
 
-          ADT(tcons.id, tps, tcons.definition.fields.map { vd =>
-            if (vd.id == id) r
-            else Annotated(ADTSelector(receiver, vd.id).copiedFrom(receiver), Seq(Unchecked)).copiedFrom(receiver)
-          }).copiedFrom(newValue)
+          ADT(
+            tcons.id,
+            tps,
+            tcons.definition.fields.map { vd =>
+              if (vd.id == id) r
+              else Annotated(ADTSelector(receiver, vd.id).copiedFrom(receiver), Seq(Unchecked)).copiedFrom(receiver)
+            }
+          ).copiedFrom(newValue)
 
         case ArrayAccessor(index) :: fs =>
-          val r = rec(Annotated(ArraySelect(receiver, index).copiedFrom(newValue), Seq(Unchecked)).copiedFrom(newValue), fs)
+          val r =
+            rec(Annotated(ArraySelect(receiver, index).copiedFrom(newValue), Seq(Unchecked)).copiedFrom(newValue), fs)
           ArrayUpdated(receiver, index, r).copiedFrom(newValue)
 
         case Nil => newValue

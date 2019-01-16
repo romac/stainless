@@ -3,7 +3,7 @@
 import stainless.lang._
 import stainless.annotation._
 
-object PropositionalLogic { 
+object PropositionalLogic {
 
   sealed abstract class Formula
   case class And(lhs: Formula, rhs: Formula) extends Formula
@@ -12,15 +12,16 @@ object PropositionalLogic {
   case class Not(f: Formula) extends Formula
   case class Literal(id: BigInt) extends Formula
 
-  def simplify(f: Formula): Formula = (f match {
-    case Implies(lhs, rhs) => Or(Not(simplify(lhs)), simplify(rhs))
-    case _ => f
-  }) ensuring(isSimplified(_))
+  def simplify(f: Formula): Formula =
+    (f match {
+      case Implies(lhs, rhs) => Or(Not(simplify(lhs)), simplify(rhs))
+      case _ => f
+    }) ensuring (isSimplified(_))
 
   def isSimplified(f: Formula): Boolean = f match {
     case And(lhs, rhs) => isSimplified(lhs) && isSimplified(rhs)
     case Or(lhs, rhs) => isSimplified(lhs) && isSimplified(rhs)
-    case Implies(_,_) => false
+    case Implies(_, _) => false
     case Not(f) => isSimplified(f)
     case Literal(_) => true
   }
@@ -34,13 +35,12 @@ object PropositionalLogic {
     case Literal(_) => true
   }
 
-
   // @induct
   // def wrongCommutative(f: Formula) : Boolean = {
   //   nnf(simplify(f)) == simplify(nnf(f))
   // }.holds
 
- def simplifyBreaksNNF(f: Formula) : Boolean = {
+  def simplifyBreaksNNF(f: Formula): Boolean = {
     require(isNNF(f))
     isNNF(simplify(f))
   }.holds

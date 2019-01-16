@@ -6,11 +6,12 @@ package methods
 
 import scala.language.existentials
 
-trait FieldAccessors extends oo.CachingPhase
-  with SimpleSorts
-  with oo.SimpleClasses
-  with SimplyCachedSorts
-  with oo.SimplyCachedClasses { self =>
+trait FieldAccessors
+    extends oo.CachingPhase
+    with SimpleSorts
+    with oo.SimpleClasses
+    with SimplyCachedSorts
+    with oo.SimplyCachedClasses { self =>
 
   val s: Trees
   val t: oo.Trees
@@ -27,8 +28,7 @@ trait FieldAccessors extends oo.CachingPhase
     override def transform(e: s.Expr): t.Expr = e match {
       case FunctionInvocation(id, tps, args) if isConcreteAccessor(symbols.getFunction(id)) =>
         val tfd = symbols.getFunction(id, tps)
-        transform(s.exprOps.freshenLocals(
-          s.exprOps.replaceFromSymbols((tfd.params zip args).toMap, tfd.fullBody)))
+        transform(s.exprOps.freshenLocals(s.exprOps.replaceFromSymbols((tfd.params zip args).toMap, tfd.fullBody)))
       case other => super.transform(other)
     }
 
@@ -43,11 +43,13 @@ trait FieldAccessors extends oo.CachingPhase
   override protected type FunctionResult = Option[t.FunDef]
 
   // The transformation depends on all (transitive) accessors that will be inlined
-  override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]({
-    (fd, ctx) => FunctionKey(fd) + SetKey(ctx.symbols.dependencies(fd.id)
-      .flatMap(id => ctx.symbols.lookupFunction(id))
-      .filter(isConcreteAccessor)
-      .map(_.id)
+  override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]({ (fd, ctx) =>
+    FunctionKey(fd) + SetKey(
+      ctx.symbols
+        .dependencies(fd.id)
+        .flatMap(id => ctx.symbols.lookupFunction(id))
+        .filter(isConcreteAccessor)
+        .map(_.id)
     )(ctx.symbols)
   })
 

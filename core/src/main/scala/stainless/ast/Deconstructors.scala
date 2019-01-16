@@ -8,10 +8,12 @@ trait TreeDeconstructor extends inox.ast.TreeDeconstructor {
   protected val t: Trees
 
   /** Rebuild a pattern from the given set of identifiers, variables, expressions, types and subpatterns */
-  protected type PatternBuilder = (Seq[Identifier], Seq[t.Variable], Seq[t.Expr], Seq[t.Type], Seq[t.Pattern]) => t.Pattern
+  protected type PatternBuilder =
+    (Seq[Identifier], Seq[t.Variable], Seq[t.Expr], Seq[t.Type], Seq[t.Pattern]) => t.Pattern
 
   /** Extracted subtrees from a pattern as well as a "builder" */
-  protected type DeconstructedPattern = (Seq[Identifier], Seq[s.Variable], Seq[s.Expr], Seq[s.Type], Seq[s.Pattern], PatternBuilder)
+  protected type DeconstructedPattern =
+    (Seq[Identifier], Seq[s.Variable], Seq[s.Expr], Seq[s.Type], Seq[s.Pattern], PatternBuilder)
 
   def deconstruct(pattern: s.Pattern): DeconstructedPattern = pattern match {
     case s.WildcardPattern(binder) =>
@@ -44,8 +46,11 @@ trait TreeDeconstructor extends inox.ast.TreeDeconstructor {
 
   protected def deconstructCases(cases: Seq[s.MatchCase]): DeconstructedCases = {
     def rec(p: s.Pattern): (
-      Seq[Identifier], Seq[s.Variable], Seq[s.Expr], Seq[s.Type],
-      (Seq[Identifier], Seq[t.Variable], Seq[t.Expr], Seq[t.Type]) => t.Pattern
+        Seq[Identifier],
+        Seq[s.Variable],
+        Seq[s.Expr],
+        Seq[s.Type],
+        (Seq[Identifier], Seq[t.Variable], Seq[t.Expr], Seq[t.Type]) => t.Pattern
     ) = {
       val (ids, vs, es, tps, pats, recons) = deconstruct(p)
       val prec = pats.map(pat => rec(pat))
@@ -192,11 +197,14 @@ trait TreeDeconstructor extends inox.ast.TreeDeconstructor {
 
 trait Deconstructors extends inox.ast.Deconstructors { self: Trees =>
 
-  override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-    case tree: Trees => new TreeDeconstructor {
-      protected val s: self.type = self
-      protected val t: tree.type = tree
-    }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+  override def getDeconstructor(
+      that: inox.ast.Trees
+  ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+    case tree: Trees =>
+      new TreeDeconstructor {
+        protected val s: self.type = self
+        protected val t: tree.type = tree
+      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
     case _ => super.getDeconstructor(that)
   }

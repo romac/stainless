@@ -12,18 +12,19 @@ object NNFSimple {
   case class Not(f: Formula) extends Formula
   case class Literal(id: BigInt) extends Formula
 
-  def simplify(f: Formula): Formula = (f match {
-    case And(lhs, rhs) => And(simplify(lhs), simplify(rhs))
-    case Or(lhs, rhs) => Or(simplify(lhs), simplify(rhs))
-    case Implies(lhs, rhs) => Or(Not(simplify(lhs)), simplify(rhs))
-    case Not(f) => Not(simplify(f))
-    case Literal(_) => f
-  }) ensuring(isSimplified(_))
+  def simplify(f: Formula): Formula =
+    (f match {
+      case And(lhs, rhs) => And(simplify(lhs), simplify(rhs))
+      case Or(lhs, rhs) => Or(simplify(lhs), simplify(rhs))
+      case Implies(lhs, rhs) => Or(Not(simplify(lhs)), simplify(rhs))
+      case Not(f) => Not(simplify(f))
+      case Literal(_) => f
+    }) ensuring (isSimplified(_))
 
   def isSimplified(f: Formula): Boolean = f match {
     case And(lhs, rhs) => isSimplified(lhs) && isSimplified(rhs)
     case Or(lhs, rhs) => isSimplified(lhs) && isSimplified(rhs)
-    case Implies(_,_) => false
+    case Implies(_, _) => false
     case Not(f) => isSimplified(f)
     case Literal(_) => true
   }
@@ -43,8 +44,8 @@ object NNFSimple {
     case Literal(_) => true
   }
 
-  def evalLit(id : BigInt) : Boolean = (id == 42) // could be any function
-  def eval(f: Formula) : Boolean = f match {
+  def evalLit(id: BigInt): Boolean = (id == 42) // could be any function
+  def eval(f: Formula): Boolean = f match {
     case And(lhs, rhs) => eval(lhs) && eval(rhs)
     case Or(lhs, rhs) => eval(lhs) || eval(rhs)
     case Implies(lhs, rhs) => !eval(lhs) || eval(rhs)
@@ -53,7 +54,7 @@ object NNFSimple {
   }
 
   @induct
-  def simplifySemantics(f: Formula) : Boolean = {
+  def simplifySemantics(f: Formula): Boolean = {
     eval(f) == eval(simplify(f))
   } holds
 
@@ -69,7 +70,7 @@ object NNFSimple {
   }
 
   @induct
-  def simplifyIsStable(f: Formula) : Boolean = {
+  def simplifyIsStable(f: Formula): Boolean = {
     require(isSimplified(f))
     simplify(f) == f
   } holds

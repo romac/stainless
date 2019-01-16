@@ -4,7 +4,7 @@ package stainless
 
 import utils.JsonUtils
 
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 import java.io.File
 
@@ -22,33 +22,46 @@ trait MainHelpers extends inox.MainHelpers {
   case object Verification extends Category
   case object Termination extends Category
 
-  override protected def getOptions = super.getOptions - inox.solvers.optAssumeChecked ++ Map(
-    optFunctions -> Description(General, "Only consider functions f1,f2,..."),
-    extraction.utils.optDebugObjects -> Description(General, "Only print debug output for functions/adts named o1,o2,..."),
-    extraction.utils.optDebugPhases -> Description(General, {
-      "Only print debug output for phases p1,p2,...\nAvailable: " +
-      extraction.phases.map { case (name, desc) => f"\n  $name%-26s : $desc" }.mkString("")
-    }),
-    evaluators.optCodeGen -> Description(Evaluators, "Use code generating evaluator"),
-    codegen.optInstrumentFields -> Description(Evaluators, "Instrument ADT field access during code generation"),
-    codegen.optSmallArrays -> Description(Evaluators, "Assume all arrays fit into memory during code generation"),
-    verification.optFailEarly -> Description(Verification, "Halt verification as soon as a check fails (invalid or unknown)"),
-    verification.optFailInvalid -> Description(Verification, "Halt verification as soon as a check is invalid"),
-    verification.optVCCache -> Description(Verification, "Enable caching of verification conditions"),
-    verification.optStrictArithmetic -> Description(Verification, "Check arithmetic operations for unintended behaviour and overflows"),
-    inox.optTimeout -> Description(General, "Set a timeout n (in sec) such that\n" +
-      "  - verification: each proof attempt takes at most n seconds\n" +
-      "  - termination: each solver call takes at most n / 100 seconds"),
-    termination.optIgnorePosts -> Description(Termination, "Ignore existing postconditions during strengthening"),
-    optJson -> Description(General, "Output verification and termination reports to a JSON file"),
-    optWatch -> Description(General, "Re-run stainless upon file changes"),
-    optCompact -> Description(General, "Print only invalid elements of summaries"),
-    frontend.optPersistentCache -> Description(General, "Enable caching of program extraction & analysis"),
-    utils.Caches.optCacheDir -> Description(General, "Specify the directory in which cache files should be stored")
-  ) ++ MainHelpers.components.map { component =>
-    val option = inox.FlagOptionDef(component.name, default = false)
-    option -> Description(Pipelines, component.description)
-  }
+  override protected def getOptions =
+    super.getOptions - inox.solvers.optAssumeChecked ++ Map(
+      optFunctions -> Description(General, "Only consider functions f1,f2,..."),
+      extraction.utils.optDebugObjects -> Description(
+        General,
+        "Only print debug output for functions/adts named o1,o2,..."
+      ),
+      extraction.utils.optDebugPhases -> Description(General, {
+        "Only print debug output for phases p1,p2,...\nAvailable: " +
+          extraction.phases.map { case (name, desc) => f"\n  $name%-26s : $desc" }.mkString("")
+      }),
+      evaluators.optCodeGen -> Description(Evaluators, "Use code generating evaluator"),
+      codegen.optInstrumentFields -> Description(Evaluators, "Instrument ADT field access during code generation"),
+      codegen.optSmallArrays -> Description(Evaluators, "Assume all arrays fit into memory during code generation"),
+      verification.optFailEarly -> Description(
+        Verification,
+        "Halt verification as soon as a check fails (invalid or unknown)"
+      ),
+      verification.optFailInvalid -> Description(Verification, "Halt verification as soon as a check is invalid"),
+      verification.optVCCache -> Description(Verification, "Enable caching of verification conditions"),
+      verification.optStrictArithmetic -> Description(
+        Verification,
+        "Check arithmetic operations for unintended behaviour and overflows"
+      ),
+      inox.optTimeout -> Description(
+        General,
+        "Set a timeout n (in sec) such that\n" +
+          "  - verification: each proof attempt takes at most n seconds\n" +
+          "  - termination: each solver call takes at most n / 100 seconds"
+      ),
+      termination.optIgnorePosts -> Description(Termination, "Ignore existing postconditions during strengthening"),
+      optJson -> Description(General, "Output verification and termination reports to a JSON file"),
+      optWatch -> Description(General, "Re-run stainless upon file changes"),
+      optCompact -> Description(General, "Print only invalid elements of summaries"),
+      frontend.optPersistentCache -> Description(General, "Enable caching of program extraction & analysis"),
+      utils.Caches.optCacheDir -> Description(General, "Specify the directory in which cache files should be stored")
+    ) ++ MainHelpers.components.map { component =>
+      val option = inox.FlagOptionDef(component.name, default = false)
+      option -> Description(Pipelines, component.description)
+    }
 
   override protected def getCategories: Seq[Category] = Pipelines +: super.getCategories.filterNot(_ == Pipelines)
 
@@ -73,10 +86,11 @@ trait MainHelpers extends inox.MainHelpers {
   override protected def getName: String = "stainless"
 
   override protected def displayUsage(reporter: inox.Reporter) = {
-    reporter.info("Usage: " +
-      Console.BOLD + getName + Console.RESET +
-      " [" + Console.UNDERLINED + "OPTION" + Console.RESET + "]... " +
-      Console.UNDERLINED + "FILE(S)" + Console.RESET + "..."
+    reporter.info(
+      "Usage: " +
+        Console.BOLD + getName + Console.RESET +
+        " [" + Console.UNDERLINED + "OPTION" + Console.RESET + "]... " +
+        Console.UNDERLINED + "FILE(S)" + Console.RESET + "..."
     )
   }
 
@@ -87,81 +101,85 @@ trait MainHelpers extends inox.MainHelpers {
 
   // TODO add (optional) customisation points for CallBacks to access intermediate reports(?)
 
-  def main(args: Array[String]): Unit = try {
-    val ctx = setup(args)
-    import ctx.{ reporter, timers }
+  def main(args: Array[String]): Unit =
+    try {
+      val ctx = setup(args)
+      import ctx.{reporter, timers}
 
-    if (!useParallelism) {
-      reporter.warning(s"Parallelism is disabled.")
-    }
-
-    val compilerArgs = args.toList filterNot { _.startsWith("--") }
-    def newCompiler() = frontend.build(ctx, compilerArgs, factory)
-    var compiler = newCompiler()
-
-    // For each cycle, passively wait until the compiler has finished
-    // & print summary of reports for each component
-    def baseRunCycle(): Unit = timers.cycle.run {
-      compiler.run()
-      compiler.join()
-
-      compiler.getReport foreach { _.emit(ctx) }
-    }
-
-    def watchRunCycle() = try {
-      baseRunCycle()
-    } catch {
-      case e: Throwable =>
-        reporter.debug(e)(frontend.DebugSectionFrontend)
-        reporter.error(e.getMessage)
-        compiler = newCompiler()
-    }
-
-    def regularRunCycle() = try {
-      baseRunCycle()
-    } catch {
-      case e: inox.FatalError => throw e
-      case e: Throwable => reporter.internalError(e)
-    }
-
-    val watchMode = isWatchModeOn(ctx)
-    if (watchMode) {
-      val files: Set[File] = compiler.sources.toSet map {
-        file: String => new File(file).getAbsoluteFile
+      if (!useParallelism) {
+        reporter.warning(s"Parallelism is disabled.")
       }
-      val watcher = new utils.FileWatcher(ctx, files, action = watchRunCycle)
 
-      watchRunCycle() // first run
-      watcher.run()   // subsequent runs on changes
-    } else {
-      regularRunCycle()
+      val compilerArgs = args.toList filterNot { _.startsWith("--") }
+      def newCompiler() = frontend.build(ctx, compilerArgs, factory)
+      var compiler = newCompiler()
+
+      // For each cycle, passively wait until the compiler has finished
+      // & print summary of reports for each component
+      def baseRunCycle(): Unit = timers.cycle.run {
+        compiler.run()
+        compiler.join()
+
+        compiler.getReport foreach { _.emit(ctx) }
+      }
+
+      def watchRunCycle() =
+        try {
+          baseRunCycle()
+        } catch {
+          case e: Throwable =>
+            reporter.debug(e)(frontend.DebugSectionFrontend)
+            reporter.error(e.getMessage)
+            compiler = newCompiler()
+        }
+
+      def regularRunCycle() =
+        try {
+          baseRunCycle()
+        } catch {
+          case e: inox.FatalError => throw e
+          case e: Throwable => reporter.internalError(e)
+        }
+
+      val watchMode = isWatchModeOn(ctx)
+      if (watchMode) {
+        val files: Set[File] = compiler.sources.toSet map { file: String =>
+          new File(file).getAbsoluteFile
+        }
+        val watcher = new utils.FileWatcher(ctx, files, action = watchRunCycle)
+
+        watchRunCycle() // first run
+        watcher.run() // subsequent runs on changes
+      } else {
+        regularRunCycle()
+      }
+
+      // Export final results to JSON if asked to.
+      ctx.options.findOption(optJson) foreach { file =>
+        val output = if (file.isEmpty) optJson.default else file
+        reporter.info(s"Printing JSON summary to $output")
+        exportJson(compiler.getReport, output)
+      }
+
+      reporter.whenDebug(inox.utils.DebugSectionTimers) { debug =>
+        timers.outputTable(debug)
+      }
+
+      // Shutdown the pool for a clean exit.
+      reporter.info("Shutting down executor service.")
+      stainless.shutdown()
+
+      val success = compiler.getReport.exists(_.isSuccess)
+      System.exit(if (success) 0 else 1)
+    } catch {
+      case _: inox.FatalError => System.exit(2)
     }
-
-    // Export final results to JSON if asked to.
-    ctx.options.findOption(optJson) foreach { file =>
-      val output = if (file.isEmpty) optJson.default else file
-      reporter.info(s"Printing JSON summary to $output")
-      exportJson(compiler.getReport, output)
-    }
-
-    reporter.whenDebug(inox.utils.DebugSectionTimers) { debug =>
-      timers.outputTable(debug)
-    }
-
-    // Shutdown the pool for a clean exit.
-    reporter.info("Shutting down executor service.")
-    stainless.shutdown()
-
-    val success = compiler.getReport.exists(_.isSuccess)
-    System.exit(if (success) 0 else 1)
-  } catch {
-    case _: inox.FatalError => System.exit(2)
-  }
 
   /** Exports the reports to the given file in JSON format. */
   private def exportJson(report: Option[AbstractReport[_]], file: String): Unit = {
-    val json = Json.fromFields(report map { r => (r.name -> r.emitJson) })
+    val json = Json.fromFields(report map { r =>
+      (r.name -> r.emitJson)
+    })
     JsonUtils.writeFile(new File(file), json)
   }
 }
-

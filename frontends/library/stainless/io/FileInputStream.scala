@@ -15,8 +15,8 @@ import stainless.lang.Option
 object FileInputStream {
 
   /**
-   * Open a new stream to read from `filename`, if it exists.
-   */
+    * Open a new stream to read from `filename`, if it exists.
+    */
   @extern
   def open(filename: String)(implicit state: State): FileInputStream = {
     state.seed += 1
@@ -41,10 +41,10 @@ object FileInputStream {
 case class FileInputStream(var filename: Option[String], var consumed: BigInt) {
 
   /**
-   * Close the stream; return `true` on success.
-   *
-   * NOTE The stream must not be used afterward, even on failure.
-   */
+    * Close the stream; return `true` on success.
+    *
+    * NOTE The stream must not be used afterward, even on failure.
+    */
   def close(implicit state: State): Boolean = {
     state.seed += 1
 
@@ -53,10 +53,10 @@ case class FileInputStream(var filename: Option[String], var consumed: BigInt) {
   }
 
   /**
-   * Test whether the stream is opened or not.
-   *
-   * NOTE This is a requirement for all write operations.
-   */
+    * Test whether the stream is opened or not.
+    *
+    * NOTE This is a requirement for all write operations.
+    */
   // We assume the stream to be opened if and only if the filename is defined.
   def isOpen: Boolean = {
     filename.isDefined
@@ -135,7 +135,7 @@ case class FileInputStream(var filename: Option[String], var consumed: BigInt) {
     def skipSpaces(): Int = {
       val x = read()
       if (isSpace(x)) skipSpaces()
-      else            x
+      else x
     }
 
     // Safely wrap the addition of the accumulator with a digit character
@@ -146,7 +146,7 @@ case class FileInputStream(var filename: Option[String], var consumed: BigInt) {
       val r = acc * 10 + x
 
       if (r >= 0) r
-      else        Int.MaxValue
+      else Int.MaxValue
     } // ensuring { res => res >= 0 && res <= Int.MaxInt }
 
     // Read as many digit as possible, and after each digit we mark
@@ -158,20 +158,18 @@ case class FileInputStream(var filename: Option[String], var consumed: BigInt) {
       val c = read()
 
       if (isDigit(c)) readDecInt(safeAdd(acc, c), true)
-      else if (mark)  success(acc) // at least one digit was processed
-      else            fail(-2) // no digit was processed
+      else if (mark) success(acc) // at least one digit was processed
+      else fail(-2) // no digit was processed
     }
 
     val first = skipSpaces()
     first match {
-      case EOF             => fail(-1)
-      case '-'             => - readDecInt(0, false)
-      case '+'             =>   readDecInt(0, false)
-      case c if isDigit(c) =>   readDecInt(c - '0', true)
-      case _               => fail(-3)
+      case EOF => fail(-1)
+      case '-' => -readDecInt(0, false)
+      case '+' => readDecInt(0, false)
+      case c if isDigit(c) => readDecInt(c - '0', true)
+      case _ => fail(-3)
     }
-  } ensuring((x: Int) => true)
-
+  } ensuring ((x: Int) => true)
 
 }
-

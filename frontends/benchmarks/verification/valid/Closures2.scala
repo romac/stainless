@@ -26,7 +26,7 @@ object Closures2 {
     val s3 = diff(s1, s2)
     s3(2) && !s3(1) && !s3(3)
   }.holds
-  */
+   */
 
   def test3(): Boolean = {
     val s1 = set123()

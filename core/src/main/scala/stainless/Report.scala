@@ -29,23 +29,23 @@ object Level extends Enumeration {
 }
 
 case class RecordRow(
-  id: Identifier,
-  pos: Position,
-  level: Level.Type,
-  extra: Seq[String],
-  time: Long
+    id: Identifier,
+    pos: Position,
+    level: Level.Type,
+    extra: Seq[String],
+    time: Long
 )
 
 /**
- * Text version of [[AbstractAnalysis]] that holds the basic information a user might be interested in.
- *
- * Provide facilities for I/O serialisation (through a JSON interface), generating a human-readable view
- * of the results (through an ASCCI table) and the ability to maintain an up-to-date view of the results
- * by means of concatenation of reports and invalidation of some part of the report itself.
- *
- * [[SelfType]] is used for typechecking purposes: it should denote the subclass itself. E.g.:
- * class SpecificReport extends AbstractReport[SpecificReport] { /* ... */ }
- */
+  * Text version of [[AbstractAnalysis]] that holds the basic information a user might be interested in.
+  *
+  * Provide facilities for I/O serialisation (through a JSON interface), generating a human-readable view
+  * of the results (through an ASCCI table) and the ability to maintain an up-to-date view of the results
+  * by means of concatenation of reports and invalidation of some part of the report itself.
+  *
+  * [[SelfType]] is used for typechecking purposes: it should denote the subclass itself. E.g.:
+  * class SpecificReport extends AbstractReport[SpecificReport] { /* ... */ }
+  */
 trait AbstractReport[SelfType <: AbstractReport[SelfType]] { self: SelfType =>
   val name: String // The same name as the [[AbstractAnalysis]] this report was derived from.
 
@@ -80,7 +80,10 @@ trait AbstractReport[SelfType <: AbstractReport[SelfType]] { self: SelfType =>
       RecordRow(id, pos, level, extra, time) <- annotatedRows.sortBy(r => r.id -> r.pos)(ordering)
       if full || level != Level.Normal
       contents = (id.name +: extra) ++ Seq(pos.fullString, f"${time / 1000d}%3.3f")
-    } yield Row(contents map { str => Cell(withColor(str, level)) })
+    } yield
+      Row(contents map { str =>
+        Cell(withColor(str, level))
+      })
   }
 
   private def withColor(str: String, level: Level): String = withColor(str, colorOf(level))
@@ -99,10 +102,10 @@ trait AbstractReport[SelfType <: AbstractReport[SelfType]] { self: SelfType =>
 
     val footer =
       f"total: ${stats.total}%-4d " +
-      f"valid: ${stats.valid}%-4d (${stats.validFromCache} from cache) " +
-      f"invalid: ${stats.invalid}%-4d " +
-      f"unknown: ${stats.unknown}%-4d " +
-      f"time: ${stats.time/1000d}%7.3f"
+        f"valid: ${stats.valid}%-4d (${stats.validFromCache} from cache) " +
+        f"invalid: ${stats.invalid}%-4d " +
+        f"unknown: ${stats.unknown}%-4d " +
+        f"time: ${stats.time / 1000d}%7.3f"
 
     var t = Table(withColor(s"$name summary", color))
     t ++= rows
@@ -114,9 +117,10 @@ trait AbstractReport[SelfType <: AbstractReport[SelfType]] { self: SelfType =>
 }
 
 // Provide all the logic for typical Report.
-trait BuildableAbstractReport[Record <: AbstractReportHelper.Record,
-                              SelfType <: BuildableAbstractReport[Record, SelfType]]
-  extends AbstractReport[SelfType] { self: SelfType =>
+trait BuildableAbstractReport[Record <: AbstractReportHelper.Record, SelfType <: BuildableAbstractReport[
+  Record,
+  SelfType
+]] extends AbstractReport[SelfType] { self: SelfType =>
 
   protected implicit val encoder: Encoder[Record]
 
@@ -143,17 +147,17 @@ object AbstractReportHelper {
   trait Record { val derivedFrom: Identifier }
 
   /**
-   * Keep records which are derived from one of the given identifiers.
-   */
+    * Keep records which are derived from one of the given identifiers.
+    */
   def filter[R <: Record](records: Seq[R], ids: Set[Identifier]): Seq[R] =
     records filter { ids contains _.derivedFrom }
 
   /**
-   * Merge two sets of records [[R]] into one, keeping only the latest information.
-   *
-   * Obselete records for a source X are removed from [[prevs]]
-   * and replaced by the ones in [[news]] (if it contains some records for X).
-   */
+    * Merge two sets of records [[R]] into one, keeping only the latest information.
+    *
+    * Obselete records for a source X are removed from [[prevs]]
+    * and replaced by the ones in [[news]] (if it contains some records for X).
+    */
   def merge[R <: Record](prevs: Seq[R], newSources: Set[Identifier], news: Seq[R]): Seq[R] = {
     def buildMapping(subs: Seq[R]): Map[Identifier, Seq[R]] = subs groupBy { _.derivedFrom }
 
@@ -173,4 +177,3 @@ class NoReport extends AbstractReport[NoReport] { // can't do this CRTP with obj
   override def filter(ids: Set[Identifier]) = this
   override def ~(other: NoReport) = this
 }
-

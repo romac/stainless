@@ -6,7 +6,7 @@ package termination
 import io.circe._
 
 import scala.concurrent.Future
-import scala.util.{ Success, Failure }
+import scala.util.{Success, Failure}
 
 object TerminationComponent extends Component {
   override val name = "termination"
@@ -33,14 +33,23 @@ object TerminationComponent extends Component {
             }
 
             t.Assert(
-              t.andJoin(es.map(e => t.GreaterEquals(e, e.getType(syms) match {
-                case s.BVType(signed, size) => t.BVLiteral(signed, 0, size)
-                case s.IntegerType() => t.IntegerLiteral(0)
-                case _ => throw inox.FatalError("Unexpected measure type for " + e)
-              }))),
-              Some("Measure not guaranteed positive"),
-              transform(body)
-            ).copiedFrom(e)
+                t.andJoin(
+                  es.map(
+                    e =>
+                      t.GreaterEquals(
+                        e,
+                        e.getType(syms) match {
+                          case s.BVType(signed, size) => t.BVLiteral(signed, 0, size)
+                          case s.IntegerType() => t.IntegerLiteral(0)
+                          case _ => throw inox.FatalError("Unexpected measure type for " + e)
+                        }
+                      )
+                  )
+                ),
+                Some("Measure not guaranteed positive"),
+                transform(body)
+              )
+              .copiedFrom(e)
 
           case _ => super.transform(e)
         }
@@ -53,8 +62,8 @@ object TerminationComponent extends Component {
   }
 }
 
-class TerminationRun(override val pipeline: extraction.StainlessPipeline)
-                    (override implicit val context: inox.Context) extends {
+class TerminationRun(override val pipeline: extraction.StainlessPipeline)(override implicit val context: inox.Context)
+    extends {
   override val component = TerminationComponent
   override val trees: termination.trees.type = termination.trees
 } with ComponentRun {
@@ -86,4 +95,3 @@ class TerminationRun(override val pipeline: extraction.StainlessPipeline)
     })
   }
 }
-

@@ -2,18 +2,18 @@
 
 package stainless.utils
 
-import java.io.{ File, PrintWriter }
-import java.nio.file.{ FileSystems, Path, StandardWatchEventKinds }
+import java.io.{File, PrintWriter}
+import java.nio.file.{FileSystems, Path, StandardWatchEventKinds}
 import java.util.concurrent.TimeUnit
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.{ Map => MutableMap }
+import scala.collection.mutable.{Map => MutableMap}
 
 /**
- * Facility to run an [[action]] whenever any of the given [[files]] are updated.
- *
- * The [[files]] should refer to absolute paths.
- */
+  * Facility to run an [[action]] whenever any of the given [[files]] are updated.
+  *
+  * The [[files]] should refer to absolute paths.
+  */
 class FileWatcher(ctx: inox.Context, files: Set[File], action: () => Unit) {
 
   def run(): Unit = {
@@ -22,7 +22,9 @@ class FileWatcher(ctx: inox.Context, files: Set[File], action: () => Unit) {
     // track of the modification time because we sometimes receive several events
     // for the same file...)
     val watcher = FileSystems.getDefault.newWatchService()
-    val times = MutableMap[File, Long]() ++ (files map { f => f -> f.lastModified })
+    val times = MutableMap[File, Long]() ++ (files map { f =>
+      f -> f.lastModified
+    })
     val dirs: Set[Path] = files map { _.getParentFile.toPath }
     dirs foreach { _.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY) }
 
@@ -78,4 +80,3 @@ class FileWatcher(ctx: inox.Context, files: Set[File], action: () => Unit) {
   }
 
 }
-

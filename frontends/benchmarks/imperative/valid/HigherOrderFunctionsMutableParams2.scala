@@ -11,12 +11,11 @@ object HigherOrderFunctionsMutableParams2 {
     a.x
   }
 
-
   def test(): BigInt = {
     val a = A(0)
     app(fImpl, a)
     app(fImpl, a)
     app(fImpl, a)
-  } ensuring(_ == 3)
+  } ensuring (_ == 3)
 
 }

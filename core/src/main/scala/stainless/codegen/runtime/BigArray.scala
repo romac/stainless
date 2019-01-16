@@ -36,9 +36,10 @@ final class BigArray(private val underlying: MutableMap[Int, AnyRef], val size: 
 
   override def hashCode: Int = {
     61 * underlying.hashCode +
-    31 * size.hashCode +
-    (if (default == null) 5 else default.hashCode)
+      31 * size.hashCode +
+      (if (default == null) 5 else default.hashCode)
   }
 
-  override def toString: String = underlying.mkString("Array(", ", ", ") (of size " + size + " with default " + default + ")")
+  override def toString: String =
+    underlying.mkString("Array(", ", ", ") (of size " + size + " with default " + default + ")")
 }

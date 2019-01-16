@@ -5,64 +5,68 @@ import stainless.annotation._
 
 object AmortizedQueue {
   sealed abstract class List
-  case class Cons(head : Int, tail : List) extends List
+  case class Cons(head: Int, tail: List) extends List
   case class Nil() extends List
 
   sealed abstract class AbsQueue
-  case class Queue(front : List, rear : List) extends AbsQueue
+  case class Queue(front: List, rear: List) extends AbsQueue
 
-  def size(list : List) : BigInt = (list match {
-    case Nil() => BigInt(0)
-    case Cons(_, xs) => 1 + size(xs)
-  }) ensuring(_ >= 0)
+  def size(list: List): BigInt =
+    (list match {
+      case Nil() => BigInt(0)
+      case Cons(_, xs) => 1 + size(xs)
+    }) ensuring (_ >= 0)
 
-  def content(l: List) : Set[Int] = l match {
+  def content(l: List): Set[Int] = l match {
     case Nil() => Set.empty[Int]
     case Cons(x, xs) => Set(x) ++ content(xs)
   }
-  
-  def asList(queue : AbsQueue) : List = queue match {
+
+  def asList(queue: AbsQueue): List = queue match {
     case Queue(front, rear) => concat(front, reverse(rear))
   }
 
-  def concat(l1 : List, l2 : List) : List = (l1 match {
-    case Nil() => l2
-    case Cons(x,xs) => Cons(x, concat(xs, l2))
-  }) ensuring (res => size(res) == size(l1) + size(l2) && content(res) == content(l1) ++ content(l2))
+  def concat(l1: List, l2: List): List =
+    (l1 match {
+      case Nil() => l2
+      case Cons(x, xs) => Cons(x, concat(xs, l2))
+    }) ensuring (res => size(res) == size(l1) + size(l2) && content(res) == content(l1) ++ content(l2))
 
-  def isAmortized(queue : AbsQueue) : Boolean = queue match {
+  def isAmortized(queue: AbsQueue): Boolean = queue match {
     case Queue(front, rear) => size(front) >= size(rear)
   }
 
-  def isEmpty(queue : AbsQueue) : Boolean = queue match {
+  def isEmpty(queue: AbsQueue): Boolean = queue match {
     case Queue(Nil(), Nil()) => true
     case _ => false
   }
 
-  def reverse(l : List) : List = (l match {
-    case Nil() => Nil()
-    case Cons(x, xs) => concat(reverse(xs), Cons(x, Nil()))
-  }) ensuring (content(_) == content(l))
+  def reverse(l: List): List =
+    (l match {
+      case Nil() => Nil()
+      case Cons(x, xs) => concat(reverse(xs), Cons(x, Nil()))
+    }) ensuring (content(_) == content(l))
 
-  def amortizedQueue(front : List, rear : List) : AbsQueue = {
+  def amortizedQueue(front: List, rear: List): AbsQueue = {
     if (size(rear) <= size(front))
       Queue(front, rear)
     else
       Queue(concat(front, reverse(rear)), Nil())
-  } ensuring(isAmortized(_))
+  } ensuring (isAmortized(_))
 
-  def enqueue(queue : AbsQueue, elem : Int) : AbsQueue = (queue match {
-    case Queue(front, rear) => amortizedQueue(front, Cons(elem, rear))
-  }) ensuring(isAmortized(_))
+  def enqueue(queue: AbsQueue, elem: Int): AbsQueue =
+    (queue match {
+      case Queue(front, rear) => amortizedQueue(front, Cons(elem, rear))
+    }) ensuring (isAmortized(_))
 
-  def tail(queue : AbsQueue) : AbsQueue = {
+  def tail(queue: AbsQueue): AbsQueue = {
     require(isAmortized(queue) && !isEmpty(queue))
     queue match {
       case Queue(Cons(f, fs), rear) => amortizedQueue(fs, rear)
     }
   } ensuring (isAmortized(_))
 
-  def front(queue : AbsQueue) : Int = {
+  def front(queue: AbsQueue): Int = {
     require(isAmortized(queue) && !isEmpty(queue))
     queue match {
       case Queue(Cons(f, _), _) => f
@@ -80,7 +84,7 @@ object AmortizedQueue {
   // }.holds
 
   @induct
-  def propFront(queue : AbsQueue, list : List, elem : Int) : Boolean = {
+  def propFront(queue: AbsQueue, list: List, elem: Int): Boolean = {
     require(!isEmpty(queue) && isAmortized(queue))
     if (asList(queue) == list) {
       list match {
@@ -91,7 +95,7 @@ object AmortizedQueue {
   }.holds
 
   @induct
-  def propTail(rear : List, front : List, list : List, elem : Int) : Boolean = {
+  def propTail(rear: List, front: List, list: List, elem: Int): Boolean = {
     require(!isEmpty(Queue(front, rear)) && isAmortized(Queue(front, rear)))
     if (asList(Queue(front, rear)) == list) {
       list match {
@@ -101,14 +105,14 @@ object AmortizedQueue {
       true
   } //.holds
 
-  def enqueueAndFront(queue : AbsQueue, elem : Int) : Boolean = {
+  def enqueueAndFront(queue: AbsQueue, elem: Int): Boolean = {
     if (isEmpty(queue))
       front(enqueue(queue, elem)) == elem
     else
       true
   }.holds
 
-  def enqueueDequeueThrice(queue : AbsQueue, e1 : Int, e2 : Int, e3 : Int) : Boolean = {
+  def enqueueDequeueThrice(queue: AbsQueue, e1: Int, e2: Int, e3: Int): Boolean = {
     if (isEmpty(queue)) {
       val q1 = enqueue(queue, e1)
       val q2 = enqueue(q1, e2)

@@ -6,7 +6,7 @@ package frontends.scalac
 import extraction.xlang.{trees => xt}
 import scala.tools.nsc._
 
-import stainless.frontend.{ UnsupportedCodeException, CallBack }
+import stainless.frontend.{UnsupportedCodeException, CallBack}
 
 /** Extract each compilation unit and forward them to the Compiler callback */
 trait StainlessExtraction extends SubComponent with CodeExtraction with FragmentChecker {

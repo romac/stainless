@@ -12,8 +12,8 @@ object Typedef {
 
   // Type lambdas are correctly evaluated and unaliased.
   def succ(a: MyType[Int]): Int = {
-    require( a < 2147483647 )
+    require(a < 2147483647)
     val res = a + 1
     res
-  } ensuring( res => res > a)
+  } ensuring (res => res > a)
 }

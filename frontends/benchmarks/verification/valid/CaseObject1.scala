@@ -12,7 +12,7 @@ object CaseObject1 {
 
   def foo1(a: A): A = a match {
     case C => a
-    case B(s) => a 
+    case B(s) => a
   }
 
   def foo2(a: A): A = a match {

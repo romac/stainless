@@ -6,14 +6,14 @@ import annotation._
 import math._
 
 /**
- * Computing the kthe min using a version of merge sort that operates bottom-up.
- * This allows accessing the first element in the sorted list in O(n) time,
- * and kth element in O(kn) time.
- */
+  * Computing the kthe min using a version of merge sort that operates bottom-up.
+  * This allows accessing the first element in the sorted list in O(n) time,
+  * and kth element in O(kn) time.
+  */
 object BottomUpMergeSortPrecise {
 
   @inline
-  def max(x:BigInt, y:BigInt) = if (x >= y) x else y
+  def max(x: BigInt, y: BigInt) = if (x >= y) x else y
 
   sealed abstract class List[T] {
     // length is used in the implementation
@@ -55,16 +55,16 @@ object BottomUpMergeSortPrecise {
   private val nilStream = () => SNil()
 
   /**
-   *
-   * this method is a functional implementation of buildheap in linear time.
-   */
+    *
+    * this method is a functional implementation of buildheap in linear time.
+    */
   private def constructMergeTree(l: List[BigInt], from: BigInt, to: BigInt): (LList, List[BigInt]) = {
     require(from <= to && from >= 0)
-    decreases(abs(to-from))
+    decreases(abs(to - from))
     l match {
-      case Nil()           => (SNil(), Nil[BigInt]()) // this case is unreachable
-      case Cons(x, tail)  =>
-        if(from == to) (SCons(x, nilStream, 1), tail)
+      case Nil() => (SNil(), Nil[BigInt]()) // this case is unreachable
+      case Cons(x, tail) =>
+        if (from == to) (SCons(x, nilStream, 1), tail)
         else {
           val mid = (from + to) / 2
           val (lside, midlist) = constructMergeTree(l, from, mid)
@@ -72,7 +72,9 @@ object BottomUpMergeSortPrecise {
           (merge(lside, rside), rest)
         }
     }
-  } ensuring{ res => res._1.finite }
+  } ensuring { res =>
+    res._1.finite
+  }
 
   private def merge(a: LList, b: LList): LList = {
     require(a.finite && b.finite)
@@ -89,12 +91,14 @@ object BottomUpMergeSortPrecise {
               SCons(x, () => merge(a, b.tail), asz + bsz)
         }
     }
-  } ensuring{res => res.finite }
+  } ensuring { res =>
+    res.finite
+  }
 
   /**
-   * Takes list of integers and returns a sorted stream of integers.
-   * Takes steps linear in the size of the  input since it sorts lazily.
-   */
+    * Takes list of integers and returns a sorted stream of integers.
+    * Takes steps linear in the size of the  input since it sorts lazily.
+    */
   private def mergeSort(l: List[BigInt]): LList = {
     l match {
       case Nil() => SNil()
@@ -114,8 +118,8 @@ object BottomUpMergeSortPrecise {
   }
 
   /**
-   * A function that accesses the kth element of a list using lazy sorting.
-   */
+    * A function that accesses the kth element of a list using lazy sorting.
+    */
   def kthMin(l: List[BigInt], k: BigInt): BigInt = {
     require(k >= 0)
     kthMinRec(mergeSort(l), k)

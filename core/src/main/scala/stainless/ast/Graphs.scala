@@ -46,4 +46,3 @@ trait DependencyGraph extends inox.ast.DependencyGraph with CallGraph {
 
   override protected def getSortCollector = new SortCollector {}
 }
-

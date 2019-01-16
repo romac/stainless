@@ -10,4 +10,3 @@ object BadPre3 {
     x
   }
 }
-

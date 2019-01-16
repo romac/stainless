@@ -9,7 +9,7 @@ trait SymbolOps extends imperative.SymbolOps { self: TypeOps =>
   import symbols._
 
   protected class PatternConditions[P <: PathLike[P]](includeBinders: Boolean)(implicit pp: PathProvider[P])
-    extends super.PatternConditions[P](includeBinders) {
+      extends super.PatternConditions[P](includeBinders) {
 
     override def apply(in: Expr, pattern: Pattern): P = pattern match {
       case ClassPattern(b, ct, subPatterns) =>
@@ -24,9 +24,8 @@ trait SymbolOps extends imperative.SymbolOps { self: TypeOps =>
     }
   }
 
-  override protected def patternConditions[P <: PathLike[P]](includeBinders: Boolean)
-                                                            (implicit pp: PathProvider[P]) = 
-                                                              new PatternConditions[P](includeBinders)
+  override protected def patternConditions[P <: PathLike[P]](includeBinders: Boolean)(implicit pp: PathProvider[P]) =
+    new PatternConditions[P](includeBinders)
 
   /** $encodingof expr.asInstanceOf[tpe], returns `expr` if it already is of type `tpe`.  */
   def asInstOf(expr: Expr, tpe: Type) = {

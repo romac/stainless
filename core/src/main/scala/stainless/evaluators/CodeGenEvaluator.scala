@@ -23,9 +23,9 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.{Map => MutableMap}
 
 trait CodeGenEvaluator
-  extends CompilationUnit
-     with inox.evaluators.DeterministicEvaluator
-     with inox.evaluators.SolvingEvaluator { self =>
+    extends CompilationUnit
+    with inox.evaluators.DeterministicEvaluator
+    with inox.evaluators.SolvingEvaluator { self =>
 
   val program: Program
 
@@ -107,7 +107,6 @@ trait CodeGenEvaluator
           }
       }
 
-
       valueToJVM(res)(this)
     }
 
@@ -138,46 +137,55 @@ trait CodeGenEvaluator
   }
 
   def eval(expr: Expr, model: program.Model) = {
-    compile(expr, model.vars.toSeq.map(_._1)).map { e =>
-      timers.evaluators.codegen.runtime.run { e(model) }
-    }.getOrElse(EvaluationResults.EvaluatorError(s"Couldn't compile expression: $expr"))
+    compile(expr, model.vars.toSeq.map(_._1))
+      .map { e =>
+        timers.evaluators.codegen.runtime.run { e(model) }
+      }
+      .getOrElse(EvaluationResults.EvaluatorError(s"Couldn't compile expression: $expr"))
   }
 
   private def compileExpr(expr: Expr, args: Seq[ValDef]): Try[CompiledExpression] =
     timers.evaluators.codegen.compilation.run { Try(compileExpression(expr, args)) }
 
   override def compile(expr: Expr, args: Seq[ValDef]) = {
-    compileExpr(expr, args).map(ce => (model: program.Model) => {
-      if (args.exists(arg => !model.vars.isDefinedAt(arg))) {
-        EvaluationResults.EvaluatorError("Model undefined for free arguments")
-      } else try {
-        EvaluationResults.Successful(ce.eval(model)(new Monitor(model)))
-      } catch {
-        case e: ArithmeticException =>
-          EvaluationResults.RuntimeError(e.getMessage)
+    compileExpr(expr, args)
+      .map(
+        ce =>
+          (model: program.Model) => {
+            if (args.exists(arg => !model.vars.isDefinedAt(arg))) {
+              EvaluationResults.EvaluatorError("Model undefined for free arguments")
+            } else
+              try {
+                EvaluationResults.Successful(ce.eval(model)(new Monitor(model)))
+              } catch {
+                case e: ArithmeticException =>
+                  EvaluationResults.RuntimeError(e.getMessage)
 
-        case e: ArrayIndexOutOfBoundsException =>
-          EvaluationResults.RuntimeError(e.getMessage)
+                case e: ArrayIndexOutOfBoundsException =>
+                  EvaluationResults.RuntimeError(e.getMessage)
 
-        case e: runtime.CodeGenRuntimeException =>
-          EvaluationResults.RuntimeError(e.getMessage)
+                case e: runtime.CodeGenRuntimeException =>
+                  EvaluationResults.RuntimeError(e.getMessage)
 
-        case e: java.lang.ClassCastException =>
-          EvaluationResults.RuntimeError(e.getMessage)
+                case e: java.lang.ClassCastException =>
+                  EvaluationResults.RuntimeError(e.getMessage)
 
-        case e: java.lang.ExceptionInInitializerError =>
-          EvaluationResults.RuntimeError(e.getException.getMessage)
+                case e: java.lang.ExceptionInInitializerError =>
+                  EvaluationResults.RuntimeError(e.getException.getMessage)
 
-        case e: java.lang.StackOverflowError =>
-          EvaluationResults.RuntimeError("Stack overflow")
+                case e: java.lang.StackOverflowError =>
+                  EvaluationResults.RuntimeError("Stack overflow")
 
-        case e: java.lang.OutOfMemoryError =>
-          EvaluationResults.RuntimeError("Out of memory")
+                case e: java.lang.OutOfMemoryError =>
+                  EvaluationResults.RuntimeError("Out of memory")
+              }
+          }
+      )
+      .recover {
+        case t: Throwable =>
+          (model: program.Model) => EvaluationResults.EvaluatorError(t.getMessage)
       }
-    }).recover {
-      case t: Throwable =>
-        (model: program.Model) => EvaluationResults.EvaluatorError(t.getMessage)
-    }.toOption
+      .toOption
   }
 }
 

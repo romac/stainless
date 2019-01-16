@@ -1,4 +1,3 @@
-
 object ObjectInvariants {
 
   abstract class Foo {

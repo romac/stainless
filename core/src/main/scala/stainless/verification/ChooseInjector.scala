@@ -19,18 +19,20 @@ trait ChooseInjector extends inox.transformers.SymbolTransformer {
         def injectChooses(e: Expr): Expr = e match {
           case NoTree(tpe) =>
             val vd = ValDef(FreshIdentifier("res"), tpe, Seq(Unchecked)).copiedFrom(e)
-            Choose(vd, post
-              .map(l => symbols.application(l, Seq(vd.toVariable)))
-              .getOrElse(BooleanLiteral(true))
-              .copiedFrom(tpe)
+            Choose(
+              vd,
+              post
+                .map(l => symbols.application(l, Seq(vd.toVariable)))
+                .getOrElse(BooleanLiteral(true))
+                .copiedFrom(tpe)
             ).copiedFrom(e)
 
           case ie @ IfExpr(c, t, e) =>
             IfExpr(c, injectChooses(t), injectChooses(e)).copiedFrom(ie)
 
           case me @ MatchExpr(scrut, cases) =>
-            MatchExpr(scrut, cases.map {
-              cse => cse.copy(rhs = injectChooses(cse.rhs)).copiedFrom(cse)
+            MatchExpr(scrut, cases.map { cse =>
+              cse.copy(rhs = injectChooses(cse.rhs)).copiedFrom(cse)
             }).copiedFrom(me)
 
           case let @ Let(x, v, b) =>
@@ -52,7 +54,7 @@ trait ChooseInjector extends inox.transformers.SymbolTransformer {
         }
 
         fd.copy(fullBody = newBody)
-    })
+      })
   }
 }
 
@@ -60,7 +62,8 @@ object ChooseInjector {
   def apply(p: Program): inox.transformers.SymbolTransformer {
     val s: p.trees.type
     val t: p.trees.type
-  } = new {
-    val trees: p.trees.type = p.trees
-  } with ChooseInjector
+  } =
+    new {
+      val trees: p.trees.type = p.trees
+    } with ChooseInjector
 }

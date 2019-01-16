@@ -44,9 +44,10 @@ trait FunctionSplitting extends inox.transformers.ProgramTransformer {
 }
 
 object FunctionSplitting {
-  def apply(p: Program, size: Int = 500, slots: Int = 100): FunctionSplitting { val sourceProgram: p.type } = new {
-    val sourceProgram: p.type = p
-    val maxSize: Int = size
-    val maxSlots: Int = slots
-  } with FunctionSplitting
+  def apply(p: Program, size: Int = 500, slots: Int = 100): FunctionSplitting { val sourceProgram: p.type } =
+    new {
+      val sourceProgram: p.type = p
+      val maxSize: Int = size
+      val maxSlots: Int = slots
+    } with FunctionSplitting
 }

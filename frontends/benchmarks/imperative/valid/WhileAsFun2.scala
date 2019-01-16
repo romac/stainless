@@ -4,7 +4,6 @@ import stainless.lang._
 
 object WhileAsFun2 {
 
-
   def counterN(n: Int): Int = {
     require(n > 0)
 
@@ -17,18 +16,17 @@ object WhileAsFun2 {
     var i = 0
     def rec(): Unit = {
       require(i >= 0 && counter == i && i <= n)
-      if(i < n) {
+      if (i < n) {
         inc()
         i += 1
         rec()
       } else {
         ()
       }
-    } ensuring(_ => i >= 0 && counter == i && i <= n && i >= n)
+    } ensuring (_ => i >= 0 && counter == i && i <= n && i >= n)
     rec()
 
-
     counter
-  } ensuring(_ == n)
+  } ensuring (_ == n)
 
 }

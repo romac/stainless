@@ -9,14 +9,14 @@ package object throwing {
 
   object trees extends throwing.Trees with oo.ClassSymbols {
     case class Symbols(
-      functions: Map[Identifier, FunDef],
-      sorts: Map[Identifier, ADTSort],
-      classes: Map[Identifier, ClassDef]
+        functions: Map[Identifier, FunDef],
+        sorts: Map[Identifier, ADTSort],
+        classes: Map[Identifier, ClassDef]
     ) extends ClassSymbols
 
     object printer extends Printer { val trees: throwing.trees.type = throwing.trees }
   }
 
-  def extractor(implicit ctx: inox.Context) = 
+  def extractor(implicit ctx: inox.Context) =
     utils.DebugPipeline("ExceptionLifting", ExceptionLifting(trees, oo.trees))
 }

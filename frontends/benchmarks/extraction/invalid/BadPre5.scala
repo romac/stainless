@@ -13,4 +13,3 @@ object BadPre5 {
     f(x / 2)
   }
 }
-

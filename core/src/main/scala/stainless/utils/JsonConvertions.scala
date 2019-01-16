@@ -3,7 +3,7 @@
 package stainless
 package utils
 
-import inox.utils.{ NoPosition, OffsetPosition, Position, RangePosition }
+import inox.utils.{NoPosition, OffsetPosition, Position, RangePosition}
 
 import java.io.File
 
@@ -12,9 +12,9 @@ import io.circe.syntax._
 import io.circe.generic.semiauto._
 
 /**
- * Provide basic tools to convert some stainless/inox data into
- * JSON format.
- */
+  * Provide basic tools to convert some stainless/inox data into
+  * JSON format.
+  */
 object JsonConvertions {
 
   private object PositionHelpers {
@@ -30,12 +30,13 @@ object JsonConvertions {
   import PositionHelpers._
 
   implicit val positionDecoder: Decoder[Position] = Decoder.instance[Position] { cursor =>
-    def impl(c: ACursor): Decoder.Result[Position] = for {
-      line <- c.get[Int]("line").right
-      col <- c.get[Int]("col").right
-      point <- c.get[Int]("point").right
-      file <- c.get[String]("file").right
-    } yield OffsetPosition(line, col, point, new File(file))
+    def impl(c: ACursor): Decoder.Result[Position] =
+      for {
+        line <- c.get[Int]("line").right
+        col <- c.get[Int]("col").right
+        point <- c.get[Int]("point").right
+        file <- c.get[String]("file").right
+      } yield OffsetPosition(line, col, point, new File(file))
 
     cursor.downField("kind").as[Kind].right flatMap {
       case Unknown => Right(NoPosition)
@@ -59,7 +60,7 @@ object JsonConvertions {
     pos match {
       case NoPosition =>
         Json.obj("kind" -> (Unknown: Kind).asJson)
-        // Mind the explicit cast.. It helps circe find the right implicit encoder.
+      // Mind the explicit cast.. It helps circe find the right implicit encoder.
 
       case pos @ OffsetPosition(_, _, _, file) =>
         Json.fromFields(("kind" -> (Offset: Kind).asJson) +: impl(pos))
@@ -79,9 +80,8 @@ object JsonConvertions {
     }
 
   implicit val identifierEncoder: Encoder[Identifier] =
-    Encoder.forProduct3("name", "gid", "id") {
-      id: Identifier => (id.name, id.globalId, id.id)
+    Encoder.forProduct3("name", "gid", "id") { id: Identifier =>
+      (id.name, id.globalId, id.id)
     }
 
 }
-

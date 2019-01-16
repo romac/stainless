@@ -32,18 +32,21 @@ trait SelfCallsProcessor extends Processor {
     val seen: MutableSet[Identifier] = MutableSet.empty
     var result: Boolean = false
 
-    transformWithPC(expr)((e, path, op) => e match {
-      case l: Lambda => l
-      case _ if !path.isEmpty || result => e
-      case fi: FunctionInvocation =>
-        if (path.isEmpty && fi.id == fid) result = true
-        else if (path.isEmpty && !seen(fi.id)) {
-          seen += fi.id
-          op(getFunction(fi.id).fullBody, path)
+    transformWithPC(expr)(
+      (e, path, op) =>
+        e match {
+          case l: Lambda => l
+          case _ if !path.isEmpty || result => e
+          case fi: FunctionInvocation =>
+            if (path.isEmpty && fi.id == fid) result = true
+            else if (path.isEmpty && !seen(fi.id)) {
+              seen += fi.id
+              op(getFunction(fi.id).fullBody, path)
+            }
+            op.sup(e, path)
+          case _ => op.sup(e, path)
         }
-        op.sup(e, path)
-      case _ => op.sup(e, path)
-    })
+    )
 
     result
   }

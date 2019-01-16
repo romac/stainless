@@ -12,9 +12,7 @@ object Term {
 
   case class Core(tasks: Task, current: Option[BigInt])
 
-
   def insertBack(): Core = Core(Task(0), None())
-
 
   def looping(c: Core): Core = {
     c.current match {

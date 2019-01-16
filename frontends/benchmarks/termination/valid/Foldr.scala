@@ -5,7 +5,7 @@ import stainless.collection._
 
 object Foldr {
 
-  def foldr[A,Z](list: List[A])(z: Z)(f: (A,Z) => Z): Z = list match {
+  def foldr[A, Z](list: List[A])(z: Z)(f: (A, Z) => Z): Z = list match {
     case Cons(x, xs) => f(x, foldr(xs)(z)(f))
     case Nil() => z
   }

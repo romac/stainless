@@ -15,7 +15,6 @@ import scala.language.existentials
   * - descendants that are mutable
   * - classes that are already marked mutable
   */
-
 trait MutabilityAnalyzer extends oo.ExtractionPipeline { self =>
 
   val s: Trees
@@ -37,7 +36,7 @@ trait MutabilityAnalyzer extends oo.ExtractionPipeline { self =>
         // We don't need to check for mutable fields here, as at this point every
         // field still has a getter
         case ClassType(cid, tps) =>
-          symbols.getClass(cid).methods.exists{ fid =>
+          symbols.getClass(cid).methods.exists { fid =>
             val fd = symbols.getFunction(fid)
             // note that setters and mutable flags are taken into account in the
             // initial state of the `mutableClasses` fixpoint
@@ -51,18 +50,22 @@ trait MutabilityAnalyzer extends oo.ExtractionPipeline { self =>
     }
 
     private val mutableClasses: Set[Identifier] = {
-      val initialClasses = symbols.classes.values.filter { cd =>
-        (cd.flags contains IsMutable) || // class is marked as mutable
-        (cd.methods exists (fid => symbols.getFunction(fid).isSetter)) // class contains a setter
-      }.map(_.id).toSet
-
-      inox.utils.fixpoint[Set[Identifier]](mutableClasses =>
-        mutableClasses ++
-        symbols.classes.collect { case (id, cd) if isMutableType(cd.typed.toType, mutableClasses) => id } ++
-        mutableClasses.flatMap { id =>
-          val cd = symbols.getClass(id)
-          cd.ancestors.map(_.id) ++ cd.descendants.map(_.id)
+      val initialClasses = symbols.classes.values
+        .filter { cd =>
+          (cd.flags contains IsMutable) || // class is marked as mutable
+          (cd.methods exists (fid => symbols.getFunction(fid).isSetter)) // class contains a setter
         }
+        .map(_.id)
+        .toSet
+
+      inox.utils.fixpoint[Set[Identifier]](
+        mutableClasses =>
+          mutableClasses ++
+            symbols.classes.collect { case (id, cd) if isMutableType(cd.typed.toType, mutableClasses) => id } ++
+            mutableClasses.flatMap { id =>
+              val cd = symbols.getClass(id)
+              cd.ancestors.map(_.id) ++ cd.descendants.map(_.id)
+            }
       )(initialClasses)
     }
 
@@ -73,24 +76,22 @@ trait MutabilityAnalyzer extends oo.ExtractionPipeline { self =>
     // - which extends a non-sealed class not annotated with @mutable, or
     // - a class which extends a class without respecting non-mutability of the parent type parameters
     def checkMutability(): Unit = {
-      for (
-        cd <- symbols.classes.values if isMutable(cd);
+      for (cd <- symbols.classes.values if isMutable(cd);
         act <- cd.parents; acd <- act.lookupClass;
-        if !acd.cd.flags.contains(IsMutable) && !acd.cd.isSealed
-      ) {
-        throw MethodsException(cd,
+        if !acd.cd.flags.contains(IsMutable) && !acd.cd.isSealed) {
+        throw MethodsException(
+          cd,
           s"A mutable class (${cd.id.asString}) cannot have a non-@mutable and non-sealed parent (${acd.cd.id.asString})."
         )
       }
 
-      for (
-        cd <- symbols.classes.values;
+      for (cd <- symbols.classes.values;
         act <- cd.parents;
         acd <- act.lookupClass;
         (tpe, tp) <- act.tps zip acd.cd.tparams
-        if isMutableType(tpe) && !tp.flags.contains(IsMutable)
-      ) {
-        throw MethodsException(cd,
+        if isMutableType(tpe) && !tp.flags.contains(IsMutable)) {
+        throw MethodsException(
+          cd,
           s"Cannot extend non-mutable type parameter ${tp.asString} with mutable type ${tpe.asString}."
         )
       }

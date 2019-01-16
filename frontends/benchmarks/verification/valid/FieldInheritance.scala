@@ -18,10 +18,11 @@ object FieldInheritance {
     val y = thisIsIt + 1
   }
 
-
-  def foo[A](f: Foo[A]) = { f match {
-    case Bar(t, _) => f.thisIsIt == t
-    case _ => true
-  }}.holds
+  def foo[A](f: Foo[A]) = {
+    f match {
+      case Bar(t, _) => f.thisIsIt == t
+      case _ => true
+    }
+  }.holds
 
 }

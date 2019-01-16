@@ -23,7 +23,9 @@ trait Component { self =>
     val t: extraction.trees.type
   }
 
-  def run(pipeline: extraction.StainlessPipeline)(implicit context: inox.Context): ComponentRun { val component: self.type }
+  def run(pipeline: extraction.StainlessPipeline)(
+      implicit context: inox.Context
+  ): ComponentRun { val component: self.type }
 }
 
 object optFunctions extends inox.OptionDef[Seq[String]] {
@@ -81,33 +83,36 @@ trait ComponentRun { self =>
 
   /** Passes the provided symbols through the extraction pipeline and processes all
     * functions derived from the provided identifier. */
-  def apply(id: Identifier, symbols: extraction.xlang.trees.Symbols): Future[Analysis] = try {
+  def apply(id: Identifier, symbols: extraction.xlang.trees.Symbols): Future[Analysis] =
+    try {
 
-    val exSymbols = extract(symbols)
+      val exSymbols = extract(symbols)
 
-    val toCheck = inox.utils.fixpoint { (ids: Set[Identifier]) =>
-      ids ++ exSymbols.functions.values.toSeq
-        .filter(_.flags.exists { case trees.Derived(id) => ids(id) case _ => false })
-        .filter(extractionFilter.shouldBeChecked)
-        .map(_.id)
-    } (exSymbols.lookupFunction(id).filter(extractionFilter.shouldBeChecked).map(_.id).toSet)
+      val toCheck = inox.utils.fixpoint { (ids: Set[Identifier]) =>
+        ids ++ exSymbols.functions.values.toSeq
+          .filter(_.flags.exists {
+            case trees.Derived(id) => ids(id)
+            case _ => false
+          })
+          .filter(extractionFilter.shouldBeChecked)
+          .map(_.id)
+      }(exSymbols.lookupFunction(id).filter(extractionFilter.shouldBeChecked).map(_.id).toSet)
 
-    val toProcess = toCheck.toSeq.sortBy(exSymbols.getFunction(_).getPos)
+      val toProcess = toCheck.toSeq.sortBy(exSymbols.getFunction(_).getPos)
 
-    for (id <- toProcess) {
-      val fd = exSymbols.getFunction(id)
-      if (fd.flags exists (_.name == "library")) {
-        val fullName = fd.id.fullName
-        reporter.warning(s"Component [${component.name}]: Forcing processing of $fullName which was assumed verified")
+      for (id <- toProcess) {
+        val fd = exSymbols.getFunction(id)
+        if (fd.flags exists (_.name == "library")) {
+          val fullName = fd.id.fullName
+          reporter.warning(s"Component [${component.name}]: Forcing processing of $fullName which was assumed verified")
+        }
       }
-    }
 
-    apply(toProcess, exSymbols)
-  } catch {
-    case extraction.MissformedStainlessCode(tree, msg) =>
-      reporter.fatalError(tree.getPos, msg)
-  }
+      apply(toProcess, exSymbols)
+    } catch {
+      case extraction.MissformedStainlessCode(tree, msg) =>
+        reporter.fatalError(tree.getPos, msg)
+    }
 
   private[stainless] def apply(functions: Seq[Identifier], symbols: trees.Symbols): Future[Analysis]
 }
-

@@ -6,17 +6,17 @@ import stainless.annotation._
 @ignore
 class Real(val theReal: scala.math.BigDecimal) {
 
-   def +(a: Real): Real = new Real(theReal + a.theReal)
-   def -(a: Real): Real = new Real(theReal - a.theReal)
-   def *(a: Real): Real = new Real(theReal * a.theReal)
-   def /(a: Real): Real = new Real(theReal / a.theReal)
+  def +(a: Real): Real = new Real(theReal + a.theReal)
+  def -(a: Real): Real = new Real(theReal - a.theReal)
+  def *(a: Real): Real = new Real(theReal * a.theReal)
+  def /(a: Real): Real = new Real(theReal / a.theReal)
 
-   def unary_- : Real = new Real(- theReal)
+  def unary_- : Real = new Real(-theReal)
 
-   def > (a: Real): Boolean = theReal >  a.theReal
-   def >=(a: Real): Boolean = theReal >= a.theReal
-   def < (a: Real): Boolean = theReal <  a.theReal
-   def <=(a: Real): Boolean = theReal <= a.theReal
+  def >(a: Real): Boolean = theReal > a.theReal
+  def >=(a: Real): Boolean = theReal >= a.theReal
+  def <(a: Real): Boolean = theReal < a.theReal
+  def <=(a: Real): Boolean = theReal <= a.theReal
 
 }
 

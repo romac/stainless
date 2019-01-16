@@ -79,7 +79,8 @@ class InliningOnceSuite extends FunSpec with InputUtils {
     val (funs, xlangProgram) = load(List(source))
 
     val annFuns = xlangProgram.symbols.functions.values.map {
-      case fd if fd.id.name == "foo" || fd.id.name == "bar" => fd.copy(flags = fd.flags ++ Seq(xlangProgram.trees.Synthetic))
+      case fd if fd.id.name == "foo" || fd.id.name == "bar" =>
+        fd.copy(flags = fd.flags ++ Seq(xlangProgram.trees.Synthetic))
       case fd => fd
     }.toSeq
 

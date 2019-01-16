@@ -3,14 +3,14 @@
 package stainless
 package termination
 
-import inox.utils.ASCIIHelpers.{ Cell, Row }
+import inox.utils.ASCIIHelpers.{Cell, Row}
 import stainless.utils.JsonConvertions._
 
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 
-import scala.util.{ Right, Left }
+import scala.util.{Right, Left}
 
 object TerminationReport {
 
@@ -28,9 +28,12 @@ object TerminationReport {
   implicit val statusEncoder: Encoder[Status] = deriveEncoder
 
   case class Record(
-    id: Identifier, pos: inox.utils.Position, time: Long,
-    status: Status, verdict: String,
-    derivedFrom: Identifier
+      id: Identifier,
+      pos: inox.utils.Position,
+      time: Long,
+      status: Status,
+      verdict: String,
+      derivedFrom: Identifier
   ) extends AbstractReportHelper.Record
 
   implicit val recordDecoder: Decoder[Record] = deriveDecoder
@@ -45,7 +48,7 @@ object TerminationReport {
 
 // Variant of the report without the checker, where all the data is mapped to text
 class TerminationReport(val results: Seq[TerminationReport.Record], val sources: Set[Identifier])
-  extends BuildableAbstractReport[TerminationReport.Record, TerminationReport] {
+    extends BuildableAbstractReport[TerminationReport.Record, TerminationReport] {
   import TerminationReport._
 
   override val encoder = recordEncoder
@@ -80,4 +83,3 @@ class TerminationReport(val results: Seq[TerminationReport.Record], val sources:
     ReportStats(results.size, totalTime, totalValid, totalValidFromCache, totalInvalid, totalUnknown)
 
 }
-

@@ -21,9 +21,12 @@ trait ChainProcessor extends OrderingProcessor {
   import checker.program.symbols._
 
   private def lessThan(e1s: Seq[(Path, Expr)], e2: Expr): Seq[Expr] =
-    flatTypesPowerset(e2.getType).toSeq.map(recons => andJoin(e1s.map {
-      case (path, e1) => path implies ordering.lessThan(Seq(recons(e1)), Seq(recons(e2)))
-    }))
+    flatTypesPowerset(e2.getType).toSeq.map(
+      recons =>
+        andJoin(e1s.map {
+          case (path, e1) => path implies ordering.lessThan(Seq(recons(e1)), Seq(recons(e2)))
+        })
+    )
 
   def run(problem: Problem) = timers.termination.processors.chains.run {
     strengthenPostconditions(problem.funSet)
@@ -32,8 +35,8 @@ trait ChainProcessor extends OrderingProcessor {
     val api = getAPI
 
     reporter.debug("- Running ChainBuilder")
-    val chainsMap: Map[FunDef, (Set[FunDef], Set[Chain])] = problem.funSet.map {
-      funDef => funDef -> getChains(funDef)
+    val chainsMap: Map[FunDef, (Set[FunDef], Set[Chain])] = problem.funSet.map { funDef =>
+      funDef -> getChains(funDef)
     }.toMap
 
     val loopPoints = chainsMap.foldLeft(Set.empty[FunDef]) { case (set, (fd, (fds, chains))) => set ++ fds }

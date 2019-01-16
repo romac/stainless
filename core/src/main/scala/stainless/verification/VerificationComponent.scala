@@ -11,10 +11,10 @@ import scala.language.existentials
 import extraction._
 
 /**
- * Strict Arithmetic Mode:
- *
- * Add assertions for integer overflow checking and other unexpected behaviour (e.g. x << 65).
- */
+  * Strict Arithmetic Mode:
+  *
+  * Add assertions for integer overflow checking and other unexpected behaviour (e.g. x << 65).
+  */
 object optStrictArithmetic extends inox.FlagOptionDef("strict-arithmetic", false)
 
 object VerificationComponent extends Component {
@@ -34,8 +34,7 @@ object VerificationComponent extends Component {
   }
 }
 
-class VerificationRun(override val pipeline: StainlessPipeline)
-                     (override implicit val context: inox.Context) extends {
+class VerificationRun(override val pipeline: StainlessPipeline)(override implicit val context: inox.Context) extends {
   override val component = VerificationComponent
   override val trees: stainless.trees.type = stainless.trees
 } with ComponentRun {
@@ -44,8 +43,9 @@ class VerificationRun(override val pipeline: StainlessPipeline)
 
   override def parse(json: Json): Report = VerificationReport.parse(json)
 
-  override protected def createPipeline = pipeline andThen lowering andThen
-    extraction.utils.DebugPipeline("PartialEvaluation", PartialEvaluation(extraction.trees))
+  override protected def createPipeline =
+    pipeline andThen lowering andThen
+      extraction.utils.DebugPipeline("PartialEvaluation", PartialEvaluation(extraction.trees))
 
   implicit val debugSection = DebugSectionVerification
 
@@ -67,18 +67,22 @@ class VerificationRun(override val pipeline: StainlessPipeline)
     // We need the full encoder when verifying VCs otherwise we might end up evaluating empty trees.
     val encoder = inox.transformers.ProgramEncoder(p)(assertions andThen chooses)
 
-    val res = VerificationChecker.verify(encoder.targetProgram, context)(vcs).map(_.mapValues {
-      case VCResult(VCStatus.Invalid(VCStatus.CounterExample(model)), s, t) =>
-        VCResult(VCStatus.Invalid(VCStatus.CounterExample(model.encode(encoder.reverse))), s, t)
-      case res => res.asInstanceOf[VCResult[p.Model]]
-    })
+    val res = VerificationChecker
+      .verify(encoder.targetProgram, context)(vcs)
+      .map(_.mapValues {
+        case VCResult(VCStatus.Invalid(VCStatus.CounterExample(model)), s, t) =>
+          VCResult(VCStatus.Invalid(VCStatus.CounterExample(model.encode(encoder.reverse))), s, t)
+        case res => res.asInstanceOf[VCResult[p.Model]]
+      })
 
-    res.map(r => new VerificationAnalysis {
-      override val program: p.type = p
-      override val context = VerificationRun.this.context
-      override val sources = functions.toSet
-      override val results = r
-    })
+    res.map(
+      r =>
+        new VerificationAnalysis {
+          override val program: p.type = p
+          override val context = VerificationRun.this.context
+          override val sources = functions.toSet
+          override val results = r
+        }
+    )
   }
 }
-

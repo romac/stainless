@@ -20,4 +20,3 @@ object StaticChecks {
   def assert(@ghost pred: Boolean): Unit = ()
 
 }
-

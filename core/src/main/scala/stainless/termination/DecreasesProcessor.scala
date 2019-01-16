@@ -8,9 +8,9 @@ import scala.annotation.tailrec
 import solvers._
 
 /**
- * Checks terminations of functions using the ranking function specified in the `decreases`
- * construct. For now, it works only on first-order functions.
- */
+  * Checks terminations of functions using the ranking function specified in the `decreases`
+  * construct. For now, it works only on first-order functions.
+  */
 trait DecreasesProcessor extends Processor { self =>
   val ordering: OrderingRelation with RelationBuilder {
     val checker: DecreasesProcessor.this.checker.type
@@ -56,13 +56,13 @@ trait DecreasesProcessor extends Processor { self =>
             } else false
           case _ =>
             false
-        } (measure) && {
+        }(measure) && {
           // (b) check if the measure is well-founded
           def nonNeg(e: Expr): Expr = e.getType match {
             case TupleType(tps) => And(tps.indices.map(i => nonNeg(TupleSelect(e, i + 1))))
             case IntegerType() => GreaterEquals(e, IntegerLiteral(0))
             case BVType(true, size) => GreaterEquals(e, BVLiteral(true, 0, size))
-            case BVType(false, size) => BooleanLiteral(true) 
+            case BVType(false, size) => BooleanLiteral(true)
             case tpe => reporter.fatalError("Unexpected measure type: " + tpe)
           }
 
@@ -90,47 +90,51 @@ trait DecreasesProcessor extends Processor { self =>
             rec(fd, Set(fd))
           }
 
-          inlinedRelations.forall { case Relation(_, path, fi @ FunctionInvocation(_, _, args), _) =>
-            val callee = fi.tfd
-            if (!problem.funSet(callee.fd)) {
-              true
-            } else if (!callee.measure.isDefined) {
-              // here, we cannot prove termination of the function as it calls a self-recursive function
-              // without a measure.
-              reporter.warning(s" ==> INVALID: calling self-recursive function ${callee.id} with no measure")
-              false
-            } else {
-              val callMeasure = replaceFromSymbols((callee.params zip args).toMap, callee.measure.get)
-
-              if (callMeasure.getType != measure.getType) {
-                reporter.warning(s" ==> INVALID: recursive call ${fi.asString} uses a different measure type")
+          inlinedRelations.forall {
+            case Relation(_, path, fi @ FunctionInvocation(_, _, args), _) =>
+              val callee = fi.tfd
+              if (!problem.funSet(callee.fd)) {
+                true
+              } else if (!callee.measure.isDefined) {
+                // here, we cannot prove termination of the function as it calls a self-recursive function
+                // without a measure.
+                reporter.warning(s" ==> INVALID: calling self-recursive function ${callee.id} with no measure")
                 false
               } else {
-                // construct a lexicographic less than check
-                val lessPred = measure.getType match {
-                  case TupleType(tps) =>
-                    val s = tps.size
-                    (1 until s).foldRight(LessThan(TupleSelect(callMeasure, s), TupleSelect(measure, s)): Expr) {
-                      (i, acc) =>
-                        val m1 = TupleSelect(callMeasure, i)
-                        val m2 = TupleSelect(measure, i)
-                        Or(LessThan(m1, m2), And(Equals(m1, m2), acc))
-                    }
-                  case _ =>
-                    LessThan(callMeasure, measure)
-                }
+                val callMeasure = replaceFromSymbols((callee.params zip args).toMap, callee.measure.get)
 
-                api.solveVALID(path implies lessPred) match {
-                  case Some(true) => true
-                  case Some(false) =>
-                    reporter.warning(s" ==> INVALID: measure doesn't decrease for the (transitive) call ${fi.asString}")
-                    false
-                  case None =>
-                    reporter.warning(s"==> UNKNOWN: measure cannot be shown to decrease for (transitive) call ${fi.asString}")
-                    false
+                if (callMeasure.getType != measure.getType) {
+                  reporter.warning(s" ==> INVALID: recursive call ${fi.asString} uses a different measure type")
+                  false
+                } else {
+                  // construct a lexicographic less than check
+                  val lessPred = measure.getType match {
+                    case TupleType(tps) =>
+                      val s = tps.size
+                      (1 until s).foldRight(LessThan(TupleSelect(callMeasure, s), TupleSelect(measure, s)): Expr) {
+                        (i, acc) =>
+                          val m1 = TupleSelect(callMeasure, i)
+                          val m2 = TupleSelect(measure, i)
+                          Or(LessThan(m1, m2), And(Equals(m1, m2), acc))
+                      }
+                    case _ =>
+                      LessThan(callMeasure, measure)
+                  }
+
+                  api.solveVALID(path implies lessPred) match {
+                    case Some(true) => true
+                    case Some(false) =>
+                      reporter
+                        .warning(s" ==> INVALID: measure doesn't decrease for the (transitive) call ${fi.asString}")
+                      false
+                    case None =>
+                      reporter.warning(
+                        s"==> UNKNOWN: measure cannot be shown to decrease for (transitive) call ${fi.asString}"
+                      )
+                      false
+                  }
                 }
               }
-            }
           }
         }
 

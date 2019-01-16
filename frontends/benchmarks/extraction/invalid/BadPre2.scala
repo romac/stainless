@@ -8,4 +8,3 @@ object BadPre2 {
     if (x == 0) BigInt(0) else decreq(x - x)
   } ensuring { _ == 0 }
 }
-

@@ -13,30 +13,30 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
   import trees.exprOps._
   import symbols._
 
-  override protected def simplifierWithPC(popts: inox.solvers.PurityOptions): SimplifierWithPC = new {
-    val opts: inox.solvers.PurityOptions = popts
-  } with transformers.SimplifierWithPC with SimplifierWithPC with inox.transformers.SimplifierWithPath {
-    override val pp = implicitly[PathProvider[Env]]
-  }
+  override protected def simplifierWithPC(popts: inox.solvers.PurityOptions): SimplifierWithPC =
+    new {
+      val opts: inox.solvers.PurityOptions = popts
+    } with transformers.SimplifierWithPC with SimplifierWithPC with inox.transformers.SimplifierWithPath {
+      override val pp = implicitly[PathProvider[Env]]
+    }
 
   protected class TransformerWithPC[P <: PathLike[P]](
-    initEnv: P,
-    exprOp: (Expr, P, TransformerOp[Expr, P, Expr]) => Expr,
-    typeOp: (Type, P, TransformerOp[Type, P, Type]) => Type
-  )(implicit val pp: PathProvider[P]) extends super.TransformerWithPC[P](initEnv, exprOp, typeOp) {
+      initEnv: P,
+      exprOp: (Expr, P, TransformerOp[Expr, P, Expr]) => Expr,
+      typeOp: (Type, P, TransformerOp[Type, P, Type]) => Type
+  )(implicit val pp: PathProvider[P])
+      extends super.TransformerWithPC[P](initEnv, exprOp, typeOp) {
     self0: TransformerWithExprOp with TransformerWithTypeOp =>
-      val symbols = self.symbols
+    val symbols = self.symbols
   }
 
   override protected def transformerWithPC[P <: PathLike[P]](
-    path: P,
-    exprOp: (Expr, P, TransformerOp[Expr, P, Expr]) => Expr,
-    typeOp: (Type, P, TransformerOp[Type, P, Type]) => Type
+      path: P,
+      exprOp: (Expr, P, TransformerOp[Expr, P, Expr]) => Expr,
+      typeOp: (Type, P, TransformerOp[Type, P, Type]) => Type
   )(implicit pp: PathProvider[P]): TransformerWithPC[P] = {
-    new TransformerWithPC[P](path, exprOp, typeOp)
-      with transformers.TransformerWithPC
-      with TransformerWithExprOp
-      with TransformerWithTypeOp
+    new TransformerWithPC[P](path, exprOp, typeOp) with transformers.TransformerWithPC with TransformerWithExprOp
+    with TransformerWithTypeOp
   }
 
   override def isImpureExpr(expr: Expr): Boolean = expr match {
@@ -68,7 +68,7 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
       case TuplePattern(ob, subps) =>
         val TupleType(tpes) = in.getType
         assert(tpes.size == subps.size)
-        val subTests = subps.zipWithIndex.map { case (p, i) => apply(tupleSelect(in, i+1, subps.size), p) }
+        val subTests = subps.zipWithIndex.map { case (p, i) => apply(tupleSelect(in, i + 1, subps.size), p) }
         bind(ob, in) merge subTests
 
       case up @ UnapplyPattern(ob, _, _, _, subps) =>
@@ -101,13 +101,13 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
     *
     * @see [[purescala.Expressions.Pattern]]
     */
-  final def conditionForPattern[P <: PathLike[P]]
-                               (in: Expr, pattern: Pattern, includeBinders: Boolean = false)
-                               (implicit pp: PathProvider[P]): P = patternConditions(includeBinders)(pp)(in, pattern)
+  final def conditionForPattern[P <: PathLike[P]](in: Expr, pattern: Pattern, includeBinders: Boolean = false)(
+      implicit pp: PathProvider[P]
+  ): P = patternConditions(includeBinders)(pp)(in, pattern)
 
   /** Converts the pattern applied to an input to a map between identifiers and expressions */
-  def mapForPattern(in: Expr, pattern: Pattern): Map[ValDef,Expr] = {
-    def bindIn(vd: Option[ValDef]): Map[ValDef,Expr] = vd match {
+  def mapForPattern(in: Expr, pattern: Pattern): Map[ValDef, Expr] = {
+    def bindIn(vd: Option[ValDef]): Map[ValDef, Expr] = vd match {
       case None => Map()
       case Some(vd) => Map(vd -> in)
     }
@@ -125,14 +125,17 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
         val TupleType(tpes) = in.getType
         assert(tpes.size == subps.size)
 
-        val maps = subps.zipWithIndex.map { case (p, i) => mapForPattern(tupleSelect(in, i+1, subps.size), p)}
+        val maps = subps.zipWithIndex.map { case (p, i) => mapForPattern(tupleSelect(in, i + 1, subps.size), p) }
         val map = maps.flatten.toMap
         bindIn(b) ++ map
 
       case up @ UnapplyPattern(b, _, _, _, subps) =>
-        bindIn(b) ++ unwrapTuple(up.get(in), subps.size).zip(subps).flatMap {
-          case (e, p) => mapForPattern(e, p)
-        }.toMap
+        bindIn(b) ++ unwrapTuple(up.get(in), subps.size)
+          .zip(subps)
+          .flatMap {
+            case (e, p) => mapForPattern(e, p)
+          }
+          .toMap
 
       case other =>
         bindIn(other.binder)
@@ -165,7 +168,7 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
         }
 
         val bigIte = branches.foldRight(elze)((p1, ex) => {
-          if(p1._1 == BooleanLiteral(true)) {
+          if (p1._1 == BooleanLiteral(true)) {
             p1._2
           } else {
             IfExpr(p1._1, p1._2, ex).copiedFrom(p1._3)
@@ -181,14 +184,14 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
   }
 
   /** For each case in the [[purescala.Expressions.MatchExpr MatchExpr]],
-   *  concatenates the path condition with the newly induced conditions.
-   *
-   *  Each case holds the conditions on other previous cases as negative.
-   *
+    *  concatenates the path condition with the newly induced conditions.
+    *
+    *  Each case holds the conditions on other previous cases as negative.
+    *
     * @see [[purescala.ExprOps#conditionForPattern conditionForPattern]]
     * @see [[purescala.ExprOps#mapForPattern mapForPattern]]
     */
-  def matchExprCaseConditions[P <: PathLike[P] : PathProvider](m: MatchExpr, path: P) : Seq[P] = {
+  def matchExprCaseConditions[P <: PathLike[P]: PathProvider](m: MatchExpr, path: P): Seq[P] = {
     val MatchExpr(scrut, cases) = m
     var pcSoFar = path
 
@@ -207,21 +210,20 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
   }
 
   /** Condition to pass this match case, expressed w.r.t scrut only */
-  def matchCaseCondition[P <: PathLike[P] : PathProvider](scrut: Expr, c: MatchCase): P = {
+  def matchCaseCondition[P <: PathLike[P]: PathProvider](scrut: Expr, c: MatchCase): P = {
 
     val patternC = conditionForPattern[P](scrut, c.pattern, includeBinders = false)
 
     c.optGuard match {
       case Some(g) =>
         // guard might refer to binders
-        val map  = mapForPattern(scrut, c.pattern)
+        val map = mapForPattern(scrut, c.pattern)
         patternC withCond replaceFromSymbols(map, g)
 
       case None =>
         patternC
     }
   }
-
 
   /* ======================
    * Stainless Constructors
@@ -236,9 +238,15 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
 
       val res = ValDef(FreshIdentifier("res", true), TupleType(args))
       val patt = TuplePattern(None, newArgs map (arg => WildcardPattern(Some(arg))))
-      Lambda(Seq(res), MatchExpr(res.toVariable, Seq(
-        MatchCase(patt, None, application(fun, newArgs map (_.toVariable)))
-      ))).copiedFrom(fun)
+      Lambda(
+        Seq(res),
+        MatchExpr(
+          res.toVariable,
+          Seq(
+            MatchCase(patt, None, application(fun, newArgs map (_.toVariable)))
+          )
+        )
+      ).copiedFrom(fun)
 
     case _ => fun
   }
@@ -254,7 +262,7 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
   }
 
   def req(pred: Expr, body: Expr) = pred match {
-    case BooleanLiteral(true)  => body
+    case BooleanLiteral(true) => body
     case BooleanLiteral(false) => Error(body.getType, "Precondition failed")
     case _ => Require(pred, body)
   }
@@ -290,7 +298,7 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
     val bindings = rest collect { case CloseBound(vd, e) => vd -> e }
     val cond = fold[Expr](
       BooleanLiteral(true).setPos(pos),
-      Let(_,_,_).setPos(pos),
+      Let(_, _, _).setPos(pos),
       And(_, _).setPos(pos)
     )(rest)
 
@@ -301,7 +309,7 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
     }
 
     val full = recons(cond, es.map(wrap))
-    fold[Expr](full, Let(_,_,_).setPos(pos), (_, _) => scala.sys.error("Should never happen!"))(outers)
+    fold[Expr](full, Let(_, _, _).setPos(pos), (_, _) => scala.sys.error("Should never happen!"))(outers)
   }
 
   /** Merges the given [[Path]] into the provided [[Expressions.Expr]].
@@ -346,11 +354,12 @@ trait SymbolOps extends inox.ast.SymbolOps { self: TypeOps =>
     */
   def debugString(filter: String => Boolean = (x: String) => true)(implicit pOpts: PrinterOptions): String = {
     wrapWith("Functions", objectsToString(functions.values, filter)) ++
-    wrapWith("Sorts", objectsToString(sorts.values, filter))
+      wrapWith("Sorts", objectsToString(sorts.values, filter))
   }
 
-  protected final def objectsToString(m: Iterable[Definition], filter: String => Boolean)
-                                     (implicit pOpts: PrinterOptions): String = {
+  protected final def objectsToString(m: Iterable[Definition], filter: String => Boolean)(
+      implicit pOpts: PrinterOptions
+  ): String = {
     m.collect { case d if filter(d.id.name) => d.asString(pOpts) } mkString "\n\n"
   }
 

@@ -3,10 +3,10 @@
 package stainless
 package utils
 
-import java.io.{ File, PrintWriter }
+import java.io.{File, PrintWriter}
 import java.util.Scanner
 
-import scala.util.{ Left, Right }
+import scala.util.{Left, Right}
 
 import io.circe.Json
 import io.circe.parser._
@@ -28,8 +28,8 @@ object JsonUtils {
   def writeFile(file: File, json: Json): Unit = {
     val string = json.noSpaces
     val pw = new PrintWriter(file)
-    try pw.write(string) finally pw.close()
+    try pw.write(string)
+    finally pw.close()
   }
 
 }
-

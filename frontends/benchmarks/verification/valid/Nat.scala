@@ -9,7 +9,7 @@ object Nat {
   case class Succ(num: Nat) extends Nat
 
   def plus(a: Nat, b: Nat): Nat = a match {
-    case Zero()   => b
+    case Zero() => b
     case Succ(a1) => Succ(plus(a1, b))
   }
 
@@ -20,7 +20,7 @@ object Nat {
 
   def int2Nat(n: Int): Nat = {
     require(n >= 0)
-    if (n == 0) Zero() else Succ(int2Nat(n-1))
+    if (n == 0) Zero() else Succ(int2Nat(n - 1))
   }
 
   def sum_lemma(): Boolean = {

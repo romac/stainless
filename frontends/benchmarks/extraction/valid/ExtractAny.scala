@@ -13,4 +13,3 @@ object any {
   } ensuring { _ contains x }
 
 }
-

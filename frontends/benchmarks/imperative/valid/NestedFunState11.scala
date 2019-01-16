@@ -10,11 +10,11 @@ object NestedFunState11 {
 
     def rec(): Unit = {
       require(getI >= 0)
-      if(i < 10) {
+      if (i < 10) {
         i += 1
         rec()
       }
-    } ensuring(_ => getI >= 0)
+    } ensuring (_ => getI >= 0)
 
     rec()
 

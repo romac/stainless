@@ -35,7 +35,6 @@ trait ExprOps extends inox.ast.ExprOps {
       trees.exprOps.Postcondition(f(expr).asInstanceOf[trees.Lambda])
   }
 
-
   /** Returns an expression annotated with the provided spec. */
   def withSpec(expr: Expr, spec: Specification): Expr = spec match {
     case Precondition(pred) => withPrecondition(expr, Some(pred))
@@ -74,15 +73,16 @@ trait ExprOps extends inox.ast.ExprOps {
     */
   def withPrecondition(expr: Expr, pred: Option[Expr]): Expr =
     (pred.filterNot(_ == BooleanLiteral(true)), expr) match {
-      case (Some(newPre), Require(pre, b))                    => Require(newPre, b).copiedFrom(expr)
-      case (Some(newPre), Ensuring(req @ Require(pre, b), p)) => Ensuring(Require(newPre, b).copiedFrom(req), p).copiedFrom(expr)
-      case (Some(newPre), Ensuring(b, p))                     => Ensuring(Require(newPre, b).copiedFrom(newPre), p).copiedFrom(expr)
-      case (Some(newPre), Let(i, e, b)) if hasSpec(b)         => wrapSpec(i, e, withPrecondition(b, pred)).copiedFrom(expr)
-      case (Some(newPre), b)                                  => Require(newPre, b).copiedFrom(expr)
-      case (None, Require(pre, b))                            => b
-      case (None, Ensuring(Require(pre, b), p))               => Ensuring(b, p).copiedFrom(expr)
-      case (None, Let(i, e, b)) if hasSpec(b)                 => wrapSpec(i, e, withPrecondition(b, pred)).copiedFrom(expr)
-      case (None, b)                                          => b
+      case (Some(newPre), Require(pre, b)) => Require(newPre, b).copiedFrom(expr)
+      case (Some(newPre), Ensuring(req @ Require(pre, b), p)) =>
+        Ensuring(Require(newPre, b).copiedFrom(req), p).copiedFrom(expr)
+      case (Some(newPre), Ensuring(b, p)) => Ensuring(Require(newPre, b).copiedFrom(newPre), p).copiedFrom(expr)
+      case (Some(newPre), Let(i, e, b)) if hasSpec(b) => wrapSpec(i, e, withPrecondition(b, pred)).copiedFrom(expr)
+      case (Some(newPre), b) => Require(newPre, b).copiedFrom(expr)
+      case (None, Require(pre, b)) => b
+      case (None, Ensuring(Require(pre, b), p)) => Ensuring(b, p).copiedFrom(expr)
+      case (None, Let(i, e, b)) if hasSpec(b) => wrapSpec(i, e, withPrecondition(b, pred)).copiedFrom(expr)
+      case (None, b) => b
     }
 
   /** Replaces the postcondition of an existing [[Expressions.Expr]] with a new one.
@@ -97,12 +97,12 @@ trait ExprOps extends inox.ast.ExprOps {
     */
   def withPostcondition(expr: Expr, oie: Option[Lambda]): Expr =
     (oie.filterNot(_.body == BooleanLiteral(true)), expr) match {
-      case (Some(npost), Ensuring(b, post))          => Ensuring(b, npost).copiedFrom(expr)
+      case (Some(npost), Ensuring(b, post)) => Ensuring(b, npost).copiedFrom(expr)
       case (Some(npost), Let(i, e, b)) if hasSpec(b) => wrapSpec(i, e, withPostcondition(b, oie)).copiedFrom(expr)
-      case (Some(npost), b)                          => Ensuring(b, npost).copiedFrom(expr)
-      case (None, Ensuring(b, p))                    => b
-      case (None, Let(i, e, b)) if hasSpec(b)        => wrapSpec(i, e, withPostcondition(b, oie)).copiedFrom(expr)
-      case (None, b)                                 => b
+      case (Some(npost), b) => Ensuring(b, npost).copiedFrom(expr)
+      case (None, Ensuring(b, p)) => b
+      case (None, Let(i, e, b)) if hasSpec(b) => wrapSpec(i, e, withPostcondition(b, oie)).copiedFrom(expr)
+      case (None, b) => b
     }
 
   /** Adds a body to a specification
@@ -115,12 +115,12 @@ trait ExprOps extends inox.ast.ExprOps {
     * @see [[Expressions.Require]]
     */
   def withBody(e: Expr, body: Expr): Expr = e match {
-    case Let(i, e, b) if hasSpec(b)            => wrapSpec(i, e, withBody(b, body)).copiedFrom(e)
-    case Require(pre, _)                       => Require(pre, body).copiedFrom(e)
-    case Ensuring(req @ Require(pre, _), post) => 
+    case Let(i, e, b) if hasSpec(b) => wrapSpec(i, e, withBody(b, body)).copiedFrom(e)
+    case Require(pre, _) => Require(pre, body).copiedFrom(e)
+    case Ensuring(req @ Require(pre, _), post) =>
       Ensuring(Require(pre, body).copiedFrom(req), post).copiedFrom(e)
-    case Ensuring(_, post)                     => Ensuring(body, post).copiedFrom(e)
-    case _                                     => body
+    case Ensuring(_, post) => Ensuring(body, post).copiedFrom(e)
+    case _ => body
   }
 
   /** Extracts the body without its specification
@@ -133,35 +133,39 @@ trait ExprOps extends inox.ast.ExprOps {
     * @see [[Expressions.Require]]
     */
   def withoutSpecs(expr: Expr): Option[Expr] = expr match {
-    case Let(i, e, b)                    => withoutSpecs(b).map(Let(i, e, _).copiedFrom(expr))
-    case Require(pre, b)                 => Option(b).filterNot(_.isInstanceOf[NoTree])
+    case Let(i, e, b) => withoutSpecs(b).map(Let(i, e, _).copiedFrom(expr))
+    case Require(pre, b) => Option(b).filterNot(_.isInstanceOf[NoTree])
     case Ensuring(Require(pre, b), post) => Option(b).filterNot(_.isInstanceOf[NoTree])
-    case Ensuring(b, post)               => Option(b).filterNot(_.isInstanceOf[NoTree])
-    case b                               => Option(b).filterNot(_.isInstanceOf[NoTree])
+    case Ensuring(b, post) => Option(b).filterNot(_.isInstanceOf[NoTree])
+    case b => Option(b).filterNot(_.isInstanceOf[NoTree])
   }
 
   /** Returns the precondition of an expression wrapped in Option */
   def preconditionOf(expr: Expr): Option[Expr] = expr match {
-    case Let(i, e, b)                 => preconditionOf(b).map(Let(i, e, _).copiedFrom(expr))
-    case Require(pre, _)              => Some(pre)
+    case Let(i, e, b) => preconditionOf(b).map(Let(i, e, _).copiedFrom(expr))
+    case Require(pre, _) => Some(pre)
     case Ensuring(Require(pre, _), _) => Some(pre)
-    case b                            => None
+    case b => None
   }
 
   /** Returns the postcondition of an expression wrapped in Option */
   def postconditionOf(expr: Expr): Option[Lambda] = expr match {
-    case Let(i, e, b)      => postconditionOf(b).map(l => l.copy(body = Let(i, e, l.body).copiedFrom(expr)).copiedFrom(l))
+    case Let(i, e, b) => postconditionOf(b).map(l => l.copy(body = Let(i, e, l.body).copiedFrom(expr)).copiedFrom(l))
     case Ensuring(_, post) => Some(post)
-    case _                 => None
+    case _ => None
   }
 
   /** Deconstructs an expression into its [[Specification]] and body parts. */
   def deconstructSpecs(e: Expr)(implicit s: Symbols): (Seq[Specification], Option[Expr]) = {
     val pre = Precondition(preconditionOf(e).getOrElse(BooleanLiteral(true).copiedFrom(e)))
-    val post = Postcondition(postconditionOf(e).getOrElse(Lambda(
-      Seq(ValDef(FreshIdentifier("res"), e.getType).copiedFrom(e)),
-      BooleanLiteral(true).copiedFrom(e)
-    ).copiedFrom(e)))
+    val post = Postcondition(
+      postconditionOf(e).getOrElse(
+        Lambda(
+          Seq(ValDef(FreshIdentifier("res"), e.getType).copiedFrom(e)),
+          BooleanLiteral(true).copiedFrom(e)
+        ).copiedFrom(e)
+      )
+    )
 
     val body = withoutSpecs(e)
     (Seq(pre, post), body)
@@ -174,7 +178,8 @@ trait ExprOps extends inox.ast.ExprOps {
       case Some(body) => body
       case None =>
         val poss = specs.map(_.expr.getPos).filter(_ != NoPosition)
-        val pos = if (poss.isEmpty) NoPosition
+        val pos =
+          if (poss.isEmpty) NoPosition
           else if (poss.size == 1) poss.head
           else Position.between(poss.min, poss.max)
         NoTree(resultType).setPos(pos)
@@ -191,13 +196,17 @@ trait ExprOps extends inox.ast.ExprOps {
 
     val (paramSubst, params) = fd.params
       .map(vd => vd.copy(tpe = typeOps.instantiateType(vd.tpe, tpSubst)))
-      .foldLeft((Map[ValDef, Expr](), Seq[ValDef]())) { case ((paramSubst, params), vd) =>
-        val ntpe = typeOps.replaceFromSymbols(paramSubst, vd.tpe)
-        val nvd = ValDef(vd.id.freshen, ntpe, vd.flags).copiedFrom(vd)
-        (paramSubst + (vd -> nvd.toVariable), params :+ nvd)
+      .foldLeft((Map[ValDef, Expr](), Seq[ValDef]())) {
+        case ((paramSubst, params), vd) =>
+          val ntpe = typeOps.replaceFromSymbols(paramSubst, vd.tpe)
+          val nvd = ValDef(vd.id.freshen, ntpe, vd.flags).copiedFrom(vd)
+          (paramSubst + (vd -> nvd.toVariable), params :+ nvd)
       }
 
-    new FunDef(fd.id, typeArgs.map(TypeParameterDef(_)), params,
+    new FunDef(
+      fd.id,
+      typeArgs.map(TypeParameterDef(_)),
+      params,
       typeOps.replaceFromSymbols(paramSubst, typeOps.instantiateType(fd.returnType, tpSubst)),
       replaceFromSymbols(paramSubst, typeOps.instantiateType(fd.fullBody, tpSubst)),
       fd.flags

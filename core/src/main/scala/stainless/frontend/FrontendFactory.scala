@@ -4,7 +4,7 @@ package stainless
 package frontend
 
 import java.io.File
-import java.nio.file.{ Files, StandardCopyOption }
+import java.nio.file.{Files, StandardCopyOption}
 
 /** A Frontend factory which takes as input: context + compiler arguments + callback */
 trait FrontendFactory {
@@ -43,4 +43,3 @@ trait FrontendFactory {
   protected def allCompilerArguments(compilerArgs: Seq[String]): Seq[String] =
     extraCompilerArguments ++ libraryFiles ++ compilerArgs
 }
-

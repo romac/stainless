@@ -3,7 +3,7 @@ import stainless.annotation._
 
 object SimpleImperative {
   @mutable abstract class A {
-    def f(): Unit 
+    def f(): Unit
   }
 
   def proc(a: A) = {

@@ -53,13 +53,10 @@ trait EffectsAnalyzer extends CachingPhase {
   import s._
   import exprOps._
 
-  private[this] val effectsCache = new ExtractionCache[FunDef, Result]((fd, context) => 
-    getDependencyKey(fd.id)(context.symbols)
-  )
+  private[this] val effectsCache =
+    new ExtractionCache[FunDef, Result]((fd, context) => getDependencyKey(fd.id)(context.symbols))
 
-  protected case class Result(
-    effects: Map[FunAbstraction, Set[Effect]],
-    locals: Map[Identifier, FunAbstraction]) {
+  protected case class Result(effects: Map[FunAbstraction, Set[Effect]], locals: Map[Identifier, FunAbstraction]) {
 
     def merge(that: Result): Result = Result(effects ++ that.effects, locals ++ that.locals)
   }
@@ -101,16 +98,18 @@ trait EffectsAnalyzer extends CachingPhase {
             fd -> collect[FunAbstraction] {
               case LetRec(fds, _) => fds.map(Inner(_)).toSet
               case _ => Set.empty
-            } (fd.fullBody)
+            }(fd.fullBody)
           }.toMap
 
           val baseResult = Result(
             inners.flatMap { case (fd, inners) => inners + Outer(fd) }.map(_ -> Set.empty[Effect]).toMap,
-            inners.flatMap { case (_, inners) => inners.map(fun => fun.id -> fun) }.toMap)
+            inners.flatMap { case (_, inners) => inners.map(fun => fun.id -> fun) }.toMap
+          )
 
-          val result = inox.utils.fixpoint[Result] { case res @ Result(effects, locals) =>
-            Result(effects.map { case (fd, _) => fd -> functionEffects(fd, res) }, locals)
-          } (prevResult merge baseResult)
+          val result = inox.utils.fixpoint[Result] {
+            case res @ Result(effects, locals) =>
+              Result(effects.map { case (fd, _) => fd -> functionEffects(fd, res) }, locals)
+          }(prevResult merge baseResult)
 
           for ((fd, inners) <- inners) {
             effectsCache(fd, this) = Result(
@@ -175,10 +174,13 @@ trait EffectsAnalyzer extends CachingPhase {
       rec(path, that.path)
     }
 
-    def asString(implicit printerOpts: PrinterOptions): String = path.map {
-      case FieldAccessor(id) => s".${id.asString}"
-      case ArrayAccessor(idx) => s"(${idx.asString})"
-    }.mkString("")
+    def asString(implicit printerOpts: PrinterOptions): String =
+      path
+        .map {
+          case FieldAccessor(id) => s".${id.asString}"
+          case ArrayAccessor(idx) => s"(${idx.asString})"
+        }
+        .mkString("")
 
     override def toString: String = asString
   }
@@ -203,25 +205,27 @@ trait EffectsAnalyzer extends CachingPhase {
       case _ if variablesOf(expr).forall(v => !isMutableType(v.tpe)) => None
       case ADTSelector(e, id) => rec(e, FieldAccessor(id) +: path)
       case ArraySelect(a, idx) => rec(a, ArrayAccessor(idx) +: path)
-      case ADT(id, _, args) => path match {
-        case FieldAccessor(fid) +: rest =>
-          rec(args(symbols.getConstructor(id).fields.indexWhere(_.id == fid)), rest)
-        case _ =>
-          throw MissformedStainlessCode(expr, "Couldn't compute effect targets")
-      }
+      case ADT(id, _, args) =>
+        path match {
+          case FieldAccessor(fid) +: rest =>
+            rec(args(symbols.getConstructor(id).fields.indexWhere(_.id == fid)), rest)
+          case _ =>
+            throw MissformedStainlessCode(expr, "Couldn't compute effect targets")
+        }
       case Assert(_, _, e) => rec(e, path)
       case Annotated(e, _) => rec(e, path)
       case (_: FunctionInvocation | _: ApplyLetRec | _: Application) => None
       case (_: FiniteArray | _: LargeArray | _: ArrayUpdated) => None
       case Old(_) => None
       case Let(vd, e, b) if !isMutableType(vd.tpe) => rec(b, path)
-      case Let(vd, e, b) => (getEffect(e), rec(b, path)) match {
-        case (Some(ee), Some(be)) if be.receiver == vd.toVariable =>
-          Some(Effect(ee.receiver, Target(ee.target.path ++ be.target.path)))
-        case (_, Some(be)) => Some(be)
-        case _ =>
-          throw MissformedStainlessCode(expr, "Couldn't compute effect targets")
-      }
+      case Let(vd, e, b) =>
+        (getEffect(e), rec(b, path)) match {
+          case (Some(ee), Some(be)) if be.receiver == vd.toVariable =>
+            Some(Effect(ee.receiver, Target(ee.target.path ++ be.target.path)))
+          case (_, Some(be)) => Some(be)
+          case _ =>
+            throw MissformedStainlessCode(expr, "Couldn't compute effect targets")
+        }
       case _ =>
         throw MissformedStainlessCode(expr, "Couldn't compute effect targets")
     }
@@ -234,11 +238,12 @@ trait EffectsAnalyzer extends CachingPhase {
     case _ => throw MissformedStainlessCode(expr, "Couldn't compute exact effect targets")
   }
 
-  def getKnownEffect(expr: Expr)(implicit symbols: Symbols): Option[Effect] = try {
-    getEffect(expr)
-  } catch {
-    case _: MissformedStainlessCode => None
-  }
+  def getKnownEffect(expr: Expr)(implicit symbols: Symbols): Option[Effect] =
+    try {
+      getEffect(expr)
+    } catch {
+      case _: MissformedStainlessCode => None
+    }
 
   /** Return all effects of expr
     *
@@ -268,28 +273,31 @@ trait EffectsAnalyzer extends CachingPhase {
         rec(e, env) ++ rec(b, env ++ effect(e, env).map(vd.toVariable -> _))
 
       case MatchExpr(scrut, cses) if isMutableType(scrut.getType) =>
-        rec(scrut, env) ++ cses.flatMap { case MatchCase(pattern, guard, rhs) =>
-          val newEnv = env ++ mapForPattern(scrut, pattern).flatMap {
-            case (v, e) => effect(e, env).map(v.toVariable -> _)
-          }
-          guard.toSeq.flatMap(rec(_, newEnv)).toSet ++ rec(rhs, newEnv)
+        rec(scrut, env) ++ cses.flatMap {
+          case MatchCase(pattern, guard, rhs) =>
+            val newEnv = env ++ mapForPattern(scrut, pattern).flatMap {
+              case (v, e) => effect(e, env).map(v.toVariable -> _)
+            }
+            guard.toSeq.flatMap(rec(_, newEnv)).toSet ++ rec(rhs, newEnv)
         }
 
       case ArrayUpdate(o, idx, v) =>
         rec(o, env) ++ rec(idx, env) ++ rec(v, env) ++
-        effect(o, env).map(_ + ArrayAccessor(idx))
+          effect(o, env).map(_ + ArrayAccessor(idx))
 
       case FieldAssignment(o, id, v) =>
         rec(o, env) ++ rec(v, env) ++
-        effect(o, env).map(_ + FieldAccessor(id))
+          effect(o, env).map(_ + FieldAccessor(id))
 
       case Application(callee, args) =>
         val ft @ FunctionType(_, _) = callee.getType
         val effects = functionTypeEffects(ft)
         rec(callee, env) ++ args.flatMap(rec(_, env)) ++
-        args.map(effect(_, env)).zipWithIndex
-          .filter(p => effects contains p._2)
-          .flatMap(_._1)
+          args
+            .map(effect(_, env))
+            .zipWithIndex
+            .filter(p => effects contains p._2)
+            .flatMap(_._1)
 
       case Assignment(v, value) => rec(value, env) ++ env.get(v)
 
@@ -301,10 +309,13 @@ trait EffectsAnalyzer extends CachingPhase {
 
         val currentEffects: Set[Effect] = result.effects(fun)
         val paramSubst = (fun.params.map(_.toVariable) zip args).toMap
-        val invocEffects = currentEffects.flatMap(e => paramSubst.get(e.receiver) match {
-          case Some(arg) => (e on arg).flatMap(inEnv(_, env))
-          case None => Seq(e) // This effect occurs on some variable captured from scope
-        })
+        val invocEffects = currentEffects.flatMap(
+          e =>
+            paramSubst.get(e.receiver) match {
+              case Some(arg) => (e on arg).flatMap(inEnv(_, env))
+              case None => Seq(e) // This effect occurs on some variable captured from scope
+            }
+        )
 
         val effectsOnFreeVars = invocEffects.filter(e => freeVars contains e.receiver)
         val effectsOnLocalFreeVars = currentEffects.filterNot(e => paramSubst contains e.receiver)
@@ -324,7 +335,7 @@ trait EffectsAnalyzer extends CachingPhase {
         val deps = s.typeOps.collect {
           case ADTType(id, _) => dependencies(id)
           case _ => Set.empty[Identifier]
-        } (tpe)
+        }(tpe)
 
         (seen & deps).nonEmpty
       }
@@ -358,7 +369,8 @@ trait EffectsAnalyzer extends CachingPhase {
     mutated
       .map(truncate)
       .groupBy(_.receiver)
-      .flatMap { case (v, effects) => merge(effects.map(_.target)).map(Effect(v, _)) }.toSet
+      .flatMap { case (v, effects) => merge(effects.map(_.target)).map(Effect(v, _)) }
+      .toSet
   }
 
   /** Determine if the type is mutable
@@ -385,8 +397,9 @@ trait EffectsAnalyzer extends CachingPhase {
     * In theory this can be overriden to use a different behaviour.
     */
   def functionTypeEffects(ft: FunctionType)(implicit symbols: Symbols): Set[Int] = {
-    ft.from.zipWithIndex.flatMap { case (tpe, i) =>
-      if (isMutableType(tpe)) Some(i) else None
+    ft.from.zipWithIndex.flatMap {
+      case (tpe, i) =>
+        if (isMutableType(tpe)) Some(i) else None
     }.toSet
   }
 }

@@ -20,9 +20,9 @@ object ConcTrees {
 
     def isLeaf: Boolean = {
       this match {
-        case Empty()   => true
+        case Empty() => true
         case Single(_) => true
-        case _         => false
+        case _ => false
       }
     }
 
@@ -32,9 +32,9 @@ object ConcTrees {
     }
 
     /**
-     * (a) left and right trees of conc node should be non-empty
-     * (b) they cannot be append nodes
-     */
+      * (a) left and right trees of conc node should be non-empty
+      * (b) they cannot be append nodes
+      */
     def concInv: Boolean = this match {
       case CC(l, r) =>
         !l.isEmpty && !r.isEmpty &&
@@ -53,7 +53,7 @@ object ConcTrees {
 
     val level: BigInt = {
       (this match {
-        case Empty()   => 0
+        case Empty() => 0
         case Single(x) => 0
         case CC(l, r) =>
           1 + max(l.level, r.level)
@@ -62,7 +62,7 @@ object ConcTrees {
 
     val size: BigInt = {
       (this match {
-        case Empty()   => 0
+        case Empty() => 0
         case Single(x) => 1
         case CC(l, r) =>
           l.size + r.size
@@ -71,7 +71,7 @@ object ConcTrees {
 
     def toList: List[T] = {
       this match {
-        case Empty()   => Nil[T]()
+        case Empty() => Nil[T]()
         case Single(x) => Cons(x, Nil[T]())
         case CC(l, r) =>
           l.toList ++ r.toList // note: left elements precede the right elements in the list
@@ -96,10 +96,12 @@ object ConcTrees {
         if (i < l.size) lookup(l, i)
         else lookup(r, i - l.size)
     }
-  } ensuring (res =>
-    // axiom instantiation
-    instAppendIndexAxiom(xs, i) &&
-      res == xs.toList(i)) // lookup time is linear in the height
+  } ensuring (
+      res =>
+        // axiom instantiation
+        instAppendIndexAxiom(xs, i) &&
+          res == xs.toList(i)
+    ) // lookup time is linear in the height
 
   def instAppendIndexAxiom[T](xs: Conc[T], i: BigInt): Boolean = {
     require(0 <= i && i < xs.size)
@@ -118,10 +120,13 @@ object ConcTrees {
         if (i < l.size) CC(update(l, i, y), r)
         else CC(l, update(r, i - l.size, y))
     }
-  } ensuring (res => instAppendUpdateAxiom(xs, i, y) && // an auxiliary axiom instantiation
-    res.level == xs.level && // heights of the input and output trees are equal
-    res.valid && // tree invariants are preserved
-    res.toList == xs.toList.updated(i, y)) // update time is linear in the height of the tree
+  } ensuring (
+      res =>
+        instAppendUpdateAxiom(xs, i, y) && // an auxiliary axiom instantiation
+          res.level == xs.level && // heights of the input and output trees are equal
+          res.valid && // tree invariants are preserved
+          res.toList == xs.toList.updated(i, y)
+    ) // update time is linear in the height of the tree
 
   def instAppendUpdateAxiom[T](xs: Conc[T], i: BigInt, y: T): Boolean = {
     require(i >= 0 && i < xs.size)
@@ -133,8 +138,8 @@ object ConcTrees {
   }.holds
 
   /**
-   * A generic concat that applies to general concTrees
-   */
+    * A generic concat that applies to general concTrees
+    */
   //  def concat[T](xs: Conc[T], ys: Conc[T]): Conc[T] = {
   //    require(xs.valid && ys.valid)
   //    concatNormalized(normalize(xs), normalize(ys))
@@ -160,27 +165,30 @@ object ConcTrees {
             }
           }
       }
-    } else ys match {
-      case CC(l, r) =>
-        if (r.level >= l.level)
-          CC(concatNonEmpty(xs, l), r)
-        else {
-          l match {
-            case CC(ll, lr) =>
-              val nll = concatNonEmpty(xs, ll)
-              if (nll.level == ys.level - 3)
-                CC(CC(nll, lr), r)
-              else
-                CC(nll, CC(lr, r))
+    } else
+      ys match {
+        case CC(l, r) =>
+          if (r.level >= l.level)
+            CC(concatNonEmpty(xs, l), r)
+          else {
+            l match {
+              case CC(ll, lr) =>
+                val nll = concatNonEmpty(xs, ll)
+                if (nll.level == ys.level - 3)
+                  CC(CC(nll, lr), r)
+                else
+                  CC(nll, CC(lr, r))
+            }
           }
-        }
-    }
-  } ensuring (res =>
-    res.level <= max(xs.level, ys.level) + 1 && // height invariants
-      res.level >= max(xs.level, ys.level) &&
-      res.valid &&
-      appendAssocInst(xs, ys) && // instantiation of an axiom
-      concatCorrectness(res, xs, ys)) // time bounds
+      }
+  } ensuring (
+      res =>
+        res.level <= max(xs.level, ys.level) + 1 && // height invariants
+          res.level >= max(xs.level, ys.level) &&
+          res.valid &&
+          appendAssocInst(xs, ys) && // instantiation of an axiom
+          concatCorrectness(res, xs, ys)
+    ) // time bounds
 
   def appendAssocInst[T](xs: Conc[T], ys: Conc[T]): Boolean = {
     (xs match {
@@ -194,34 +202,37 @@ object ConcTrees {
           })
       case _ => true
     }) &&
-      (ys match {
-        case CC(l, r) =>
-          appendAssoc(xs.toList, l.toList, r.toList) &&
-            (l match {
-              case CC(ll, lr) =>
-                appendAssoc(xs.toList, ll.toList, lr.toList) &&
-                  appendAssoc(xs.toList ++ ll.toList, lr.toList, r.toList)
-              case _ => true
-            })
-        case _ => true
-      })
+    (ys match {
+      case CC(l, r) =>
+        appendAssoc(xs.toList, l.toList, r.toList) &&
+          (l match {
+            case CC(ll, lr) =>
+              appendAssoc(xs.toList, ll.toList, lr.toList) &&
+                appendAssoc(xs.toList ++ ll.toList, lr.toList, r.toList)
+            case _ => true
+          })
+      case _ => true
+    })
   }.holds
 
   /**
-   * This concat applies only to normalized trees.
-   * This prevents concat from being recursive
-   */
+    * This concat applies only to normalized trees.
+    * This prevents concat from being recursive
+    */
   def concatNormalized[T](xs: Conc[T], ys: Conc[T]): Conc[T] = {
     require(xs.valid && ys.valid)
     (xs, ys) match {
       case (xs, Empty()) => xs
       case (Empty(), ys) => ys
-      case _             => concatNonEmpty(xs, ys)
+      case _ => concatNonEmpty(xs, ys)
     }
-  } ensuring (res => res.valid && // tree invariants
-    res.level <= max(xs.level, ys.level) + 1 && // height invariants
-    res.level >= max(xs.level, ys.level) &&
-    concatCorrectness(res, xs, ys))
+  } ensuring (
+      res =>
+        res.valid && // tree invariants
+          res.level <= max(xs.level, ys.level) + 1 && // height invariants
+          res.level >= max(xs.level, ys.level) &&
+          concatCorrectness(res, xs, ys)
+    )
 
   def concatCorrectness[T](res: Conc[T], xs: Conc[T], ys: Conc[T]): Boolean =
     (res.toList == xs.toList ++ ys.toList)
@@ -239,18 +250,20 @@ object ConcTrees {
         else
           concatNonEmpty(l, insert(r, i - l.size, y))
     }
-  } ensuring (res =>
-    res.valid && // tree invariants
-      res.level - xs.level <= 1 && res.level >= xs.level && // height of the output tree is at most 1 greater than that of the input tree
-      !res.isEmpty &&
-      insertAppendAxiomInst(xs, i, y) && // instantiation of an axiom
-      res.toList == insertAtIndex(xs.toList, i, y))
+  } ensuring (
+      res =>
+        res.valid && // tree invariants
+          res.level - xs.level <= 1 && res.level >= xs.level && // height of the output tree is at most 1 greater than that of the input tree
+          !res.isEmpty &&
+          insertAppendAxiomInst(xs, i, y) && // instantiation of an axiom
+          res.toList == insertAtIndex(xs.toList, i, y)
+    )
 
   /**
-   * Using a different version of insert than of the library
-   * because the library implementation in unnecessarily complicated.
-   * TODO: update the code to use the library instead ?
-   */
+    * Using a different version of insert than of the library
+    * because the library implementation in unnecessarily complicated.
+    * TODO: update the code to use the library instead ?
+    */
   def insertAtIndex[T](l: List[T], i: BigInt, y: T): List[T] = {
     require(0 <= i && i <= l.size)
     l match {
@@ -266,20 +279,19 @@ object ConcTrees {
   def appendInsertIndex[T](l1: List[T], l2: List[T], i: BigInt, y: T): Boolean = {
     require(0 <= i && i <= l1.size + l2.size)
     (l1 match {
-      case Nil()       => true
+      case Nil() => true
       case Cons(x, xs) => if (i == 0) true else appendInsertIndex[T](xs, l2, i - 1, y)
     }) &&
-      // lemma
-      (insertAtIndex((l1 ++ l2), i, y) == (
-        if (i < l1.size) insertAtIndex(l1, i, y) ++ l2
-        else l1 ++ insertAtIndex(l2, (i - l1.size), y)))
+    // lemma
+    (insertAtIndex((l1 ++ l2), i, y) == (if (i < l1.size) insertAtIndex(l1, i, y) ++ l2
+                                         else l1 ++ insertAtIndex(l2, (i - l1.size), y)))
   }.holds
 
   def insertAppendAxiomInst[T](xs: Conc[T], i: BigInt, y: T): Boolean = {
     require(i >= 0 && i <= xs.size)
     xs match {
       case CC(l, r) => appendInsertIndex(l.toList, r.toList, i, y)
-      case _        => true
+      case _ => true
     }
   }.holds
 
@@ -301,10 +313,13 @@ object ConcTrees {
           (l, r)
         }
     }
-  } ensuring (res => res._1.valid && res._2.valid && // tree invariants are preserved
-    xs.level >= res._1.level && xs.level >= res._2.level && // height bounds of the resulting tree
-    instSplitAxiom(xs, n) && // instantiation of an axiom
-    splitCorrectness(res, xs, n))
+  } ensuring (
+      res =>
+        res._1.valid && res._2.valid && // tree invariants are preserved
+          xs.level >= res._1.level && xs.level >= res._2.level && // height bounds of the resulting tree
+          instSplitAxiom(xs, n) && // instantiation of an axiom
+          splitCorrectness(res, xs, n)
+    )
 
   def splitCorrectness[T](r: (Conc[T], Conc[T]), xs: Conc[T], n: BigInt): Boolean = {
     r._1.toList == xs.toList.take(n) && r._2.toList == xs.toList.drop(n)

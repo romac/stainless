@@ -4,7 +4,7 @@ package stainless.codegen.runtime
 
 import java.util.Arrays
 
-final class Tuple (_elems: Array[AnyRef]) {
+final class Tuple(_elems: Array[AnyRef]) {
   private val elements = Arrays.copyOf(_elems, _elems.length)
 
   private var __read = 0
@@ -23,7 +23,8 @@ final class Tuple (_elems: Array[AnyRef]) {
   def getArity(): Int = elements.length
 
   override def equals(that: Any): Boolean = that match {
-    case tpl: Tuple => elements.toSeq == tpl.elements.toSeq // the conversion to Seq is mandatory! Array.equals doesn't work as one expect.
+    case tpl: Tuple =>
+      elements.toSeq == tpl.elements.toSeq // the conversion to Seq is mandatory! Array.equals doesn't work as one expect.
     case _ => false
   }
 

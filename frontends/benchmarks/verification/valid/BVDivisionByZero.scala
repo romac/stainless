@@ -13,5 +13,5 @@ object BVDivisionByZero {
   def noRemByZero(x: BigInt): Boolean = {
     (x % 10 == 10)
   }
-  
+
 }

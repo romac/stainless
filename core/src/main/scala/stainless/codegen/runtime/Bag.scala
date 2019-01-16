@@ -4,7 +4,7 @@ package stainless.codegen.runtime
 
 import scala.collection.mutable.{Map => MutableMap}
 
-final class Bag private(private val underlying: MutableMap[AnyRef, BigInt]) {
+final class Bag private (private val underlying: MutableMap[AnyRef, BigInt]) {
   def this() = this(MutableMap.empty)
 
   // Use mutation! Useful at building time.
@@ -23,22 +23,23 @@ final class Bag private(private val underlying: MutableMap[AnyRef, BigInt]) {
   }
 
   def union(that: Bag): Bag =
-    new Bag(MutableMap.empty ++ (underlying.keySet ++ that.underlying.keySet).map {
-      k => k -> (get(k).add(that.get(k)))
+    new Bag(MutableMap.empty ++ (underlying.keySet ++ that.underlying.keySet).map { k =>
+      k -> (get(k).add(that.get(k)))
     })
 
   def intersect(that: Bag): Bag =
-    new Bag(MutableMap.empty ++ (underlying.keySet intersect that.underlying.keySet).map {
-      key => key -> {
+    new Bag(MutableMap.empty ++ (underlying.keySet intersect that.underlying.keySet).map { key =>
+      key -> {
         val (v1, v2) = (underlying(key), that.underlying(key))
         if (v1.lessThan(v2)) v1 else v2
       }
     })
 
   def difference(that: Bag): Bag =
-    new Bag(MutableMap.empty ++ underlying.toSeq.flatMap { case (key, value) =>
-      val diff = value.sub(that.get(key))
-      if (diff.greaterThan(BigInt.ZERO)) Some(key -> diff) else None
+    new Bag(MutableMap.empty ++ underlying.toSeq.flatMap {
+      case (key, value) =>
+        val diff = value.sub(that.get(key))
+        if (diff.greaterThan(BigInt.ZERO)) Some(key -> diff) else None
     })
 
   override def equals(that: Any): Boolean = that match {

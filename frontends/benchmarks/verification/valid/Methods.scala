@@ -9,15 +9,15 @@ object Methods {
     def foo(i: BigInt) = {
       require(i > 0)
       i + 1
-    } ensuring ( _ >= 0 )
+    } ensuring (_ >= 0)
   }
 
   case class C(x: BigInt) extends B {
     require(x >= 0)
     val y = BigInt(42)
     override def foo(i: BigInt) = {
-      x + y + (if (i>0) i else -i)
-    } ensuring ( _ >= x )
+      x + y + (if (i > 0) i else -i)
+    } ensuring (_ >= x)
   }
 
   case class E() extends B

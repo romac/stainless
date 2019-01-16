@@ -1,4 +1,3 @@
-
 import stainless.lang._
 import stainless.annotation._
 import scala.annotation.meta.field
@@ -8,9 +7,9 @@ import scala.collection.concurrent.TrieMap
 object IgnoredField {
 
   case class TrieMapWrapper[K, V](
-    @(ignore @field)
-    @(pure @field)
-    theMap: TrieMap[K, V]
+      @(ignore @field)
+      @(pure @field)
+      theMap: TrieMap[K, V]
   ) {
 
     @extern

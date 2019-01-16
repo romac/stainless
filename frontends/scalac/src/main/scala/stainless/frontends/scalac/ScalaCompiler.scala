@@ -4,26 +4,28 @@ package stainless
 package frontends.scalac
 
 import ast.SymbolIdentifier
-import frontend.{ Frontend, ThreadedFrontend, FrontendFactory, CallBack }
+import frontend.{Frontend, ThreadedFrontend, FrontendFactory, CallBack}
 
-import scala.tools.nsc.{ Global, Settings => NSCSettings, CompilerCommand }
+import scala.tools.nsc.{Global, Settings => NSCSettings, CompilerCommand}
 import scala.reflect.internal.Positions
 
-import scala.collection.mutable.{ Map => MutableMap }
+import scala.collection.mutable.{Map => MutableMap}
 
 object SymbolMapping {
   def getPath(sym: Global#Symbol): String =
-    sym.ownerChain.reverse map { s => s"${s.name}#${kind(s)}" } mkString "."
+    sym.ownerChain.reverse map { s =>
+      s"${s.name}#${kind(s)}"
+    } mkString "."
 
   def empty = new SymbolMapping()
 
   /**
-   * To avoid suffering too much from changes in symbols' id, we generate a
-   * more stable kind to disambiguate symbols. This allows --watch to not be
-   * fooled by the insertion/deletion of symbols (e.g. new top level classes)
-   * but unfortunately not methods because overloading/generics makes things
-   * ambiguous and hard to unify.
-   */
+    * To avoid suffering too much from changes in symbols' id, we generate a
+    * more stable kind to disambiguate symbols. This allows --watch to not be
+    * fooled by the insertion/deletion of symbols (e.g. new top level classes)
+    * but unfortunately not methods because overloading/generics makes things
+    * ambiguous and hard to unify.
+    */
   private def kind(sym: Global#Symbol): String = {
     if (sym.isPackageClass) "0"
     else if (sym.isModule) "1"
@@ -40,20 +42,24 @@ class SymbolMapping {
   import SymbolMapping.getPath
 
   /** Get the identifier associated with the given [[sym]], creating a new one if needed. */
-  def fetch(sym: Global#Symbol): SymbolIdentifier = s2i.getOrElseUpdate(getPath(sym), {
-    val top = if (sym.overrideChain.nonEmpty) sym.overrideChain.last else sym
-    val symbol = s2s.getOrElseUpdate(top, {
-      val name = sym.fullName.toString.trim
-      ast.Symbol(if (name endsWith "$") name.init else name)
-    })
+  def fetch(sym: Global#Symbol): SymbolIdentifier =
+    s2i.getOrElseUpdate(
+      getPath(sym), {
+        val top = if (sym.overrideChain.nonEmpty) sym.overrideChain.last else sym
+        val symbol = s2s.getOrElseUpdate(top, {
+          val name = sym.fullName.toString.trim
+          ast.Symbol(if (name endsWith "$") name.init else name)
+        })
 
-    SymbolIdentifier(symbol)
-  })
+        SymbolIdentifier(symbol)
+      }
+    )
 
   /** Get the identifier for the class invariant of [[sym]]. */
-  def fetchInvIdForClass(sym: Global#Symbol): SymbolIdentifier = invs.getOrElseUpdate(fetch(sym), {
-    SymbolIdentifier(invSymbol)
-  })
+  def fetchInvIdForClass(sym: Global#Symbol): SymbolIdentifier =
+    invs.getOrElseUpdate(fetch(sym), {
+      SymbolIdentifier(invSymbol)
+    })
 
   /** Mapping from [[Global#Symbol]] (or rather: its path) and the stainless identifier. */
   private val s2i = MutableMap[String, SymbolIdentifier]()
@@ -68,8 +74,8 @@ class SymbolMapping {
 }
 
 class ScalaCompiler(settings: NSCSettings, ctx: inox.Context, callback: CallBack, cache: SymbolMapping)
-  extends Global(settings, new SimpleReporter(settings, ctx.reporter))
-     with Positions {
+    extends Global(settings, new SimpleReporter(settings, ctx.reporter))
+    with Positions {
 
   object stainlessExtraction extends {
     val global: ScalaCompiler.this.type = ScalaCompiler.this
@@ -80,13 +86,13 @@ class ScalaCompiler(settings: NSCSettings, ctx: inox.Context, callback: CallBack
     val cache = ScalaCompiler.this.cache
   } with StainlessExtraction
 
-  override protected def computeInternalPhases() : Unit = {
+  override protected def computeInternalPhases(): Unit = {
     val phs = List(
-      syntaxAnalyzer          -> "parse source into ASTs, perform simple desugaring",
-      analyzer.namerFactory   -> "resolve names, attach symbols to named trees",
+      syntaxAnalyzer -> "parse source into ASTs, perform simple desugaring",
+      analyzer.namerFactory -> "resolve names, attach symbols to named trees",
       analyzer.packageObjects -> "load package objects",
-      analyzer.typerFactory   -> "the meat and potatoes: type the trees",
-      stainlessExtraction     -> "extracts stainless trees out of scala trees"
+      analyzer.typerFactory -> "the meat and potatoes: type the trees",
+      stainlessExtraction -> "extracts stainless trees out of scala trees"
       // TODO drop in replacement? add next phases, plus last phase to report VC results
     )
     phs foreach { phasesSet += _._1 }
@@ -103,8 +109,8 @@ object ScalaCompiler {
 
   /** Complying with [[frontend]]'s interface */
   class Factory(
-    override val extraCompilerArguments: Seq[String],
-    override val libraryPaths: Seq[String]
+      override val extraCompilerArguments: Seq[String],
+      override val libraryPaths: Seq[String]
   ) extends FrontendFactory {
 
     override def apply(ctx: inox.Context, compilerArgs: Seq[String], callback: CallBack): Frontend =
@@ -144,7 +150,9 @@ object ScalaCompiler {
       override val cmdName = "stainless"
     }
 
-    if (!command.ok) { ctx.reporter.fatalError("No input program.") }
+    if (!command.ok) {
+      ctx.reporter.fatalError("No input program.")
+    }
 
     command.files
   }
@@ -167,4 +175,3 @@ object ScalaCompiler {
   }
 
 }
-

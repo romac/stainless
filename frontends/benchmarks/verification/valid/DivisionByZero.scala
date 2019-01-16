@@ -13,9 +13,9 @@ object DivisionByZero {
   def noRemByZero(x: BigInt): Boolean = {
     (x % BigInt(10) == BigInt(10))
   }
-  
+
   def noModByZero(x: BigInt): Boolean = {
     (x mod BigInt(10)) == BigInt(10)
   }
-  
+
 }

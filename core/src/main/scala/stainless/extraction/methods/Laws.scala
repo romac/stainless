@@ -7,9 +7,7 @@ package methods
 import stainless.ast.{Symbol, SymbolIdentifier}
 import stainless.ast.SymbolIdentifier.IdentifierOps
 
-trait Laws
-  extends oo.CachingPhase
-     with IdentitySorts { self =>
+trait Laws extends oo.CachingPhase with IdentitySorts { self =>
   val s: Trees
   val t: Trees
 
@@ -34,7 +32,8 @@ trait Laws
           val methodSymbols = methods.map(_.symbol).toSet
           val newSymbols = methods
             .filter(id => symbols.getFunction(id).flags contains s.Law)
-            .map(_.symbol).toSet
+            .map(_.symbol)
+            .toSet
 
           lawSymbols -- methodSymbols ++ newSymbols
       }
@@ -50,11 +49,12 @@ trait Laws
       case s.MethodInvocation(sup @ s.Super(ct), id, tps, args) if symbols.getFunction(id).flags contains s.Law =>
         if (Some(id.unsafeToSymbolIdentifier.symbol) == env) {
           t.MethodInvocation(
-            t.This(transform(ct, env).asInstanceOf[t.ClassType]).copiedFrom(sup),
-            lawID(id.unsafeToSymbolIdentifier),
-            tps map (transform(_, env)),
-            args map (transform(_, env))
-          ).copiedFrom(e)
+              t.This(transform(ct, env).asInstanceOf[t.ClassType]).copiedFrom(sup),
+              lawID(id.unsafeToSymbolIdentifier),
+              tps map (transform(_, env)),
+              args map (transform(_, env))
+            )
+            .copiedFrom(e)
         } else {
           throw MissformedStainlessCode(e, "Cannot refer to super-type law outside of proof body")
         }
@@ -77,7 +77,10 @@ trait Laws
 
   override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]({ (fd, context) =>
     FunctionKey(fd) + new ValueKey(
-      if ((fd.flags exists { case s.IsMethodOf(_) => true case _ => false }) && (fd.flags contains s.Law)) {
+      if ((fd.flags exists {
+          case s.IsMethodOf(_) => true
+          case _ => false
+        }) && (fd.flags contains s.Law)) {
         context.symbols.firstSuper(fd.id.unsafeToSymbolIdentifier).toSet[Identifier]
       } else {
         Set.empty[Identifier]
@@ -96,7 +99,10 @@ trait Laws
 
     if (fd.flags contains s.Law) {
       // Some sanity checks
-      if (!fd.flags.exists { case s.IsMethodOf(_) => true case _ => false })
+      if (!fd.flags.exists {
+          case s.IsMethodOf(_) => true
+          case _ => false
+        })
         throw MissformedStainlessCode(fd, "Unexpected non-method law")
 
       val cid = fd.flags.collectFirst { case s.IsMethodOf(id) => id }.get
@@ -111,9 +117,9 @@ trait Laws
       if (symbols.isRecursive(fd.id))
         throw MissformedStainlessCode(fd, "Unexpected recursive law")
       if (symbols.firstSuper(fd.id.unsafeToSymbolIdentifier).exists { sid =>
-        val sfd = symbols.getFunction(sid)
-        !sfd.isAbstract && !sfd.isLaw
-      }) throw MissformedStainlessCode(fd, "Unexpected law overriding concrete function")
+          val sfd = symbols.getFunction(sid)
+          !sfd.isAbstract && !sfd.isLaw
+        }) throw MissformedStainlessCode(fd, "Unexpected law overriding concrete function")
 
       val env = Some(fd.id.unsafeToSymbolIdentifier.symbol)
       val ct = t.ClassType(cid, cd.typeArgs.map(transform(_, env))).setPos(fd)
@@ -121,16 +127,26 @@ trait Laws
 
       val newFd: t.FunDef = {
         val vd = t.ValDef(FreshIdentifier("res"), t.BooleanType().setPos(fd.fullBody)).setPos(fd.fullBody)
-        val newBody = t.Ensuring(t.NoTree(t.BooleanType().setPos(fd.fullBody)).setPos(fd.fullBody),
-          t.Lambda(Seq(vd), t.And(
-            vd.toVariable,
-            t.MethodInvocation(
-              t.This(ct).setPos(fd.fullBody), lid,
-              fd.typeArgs map (transform(_, env)),
-              fd.params map (vd => transform(vd.toVariable, env))
-            ).setPos(fd.fullBody)
-          ).setPos(fd.fullBody)).setPos(fd.fullBody)
-        ).setPos(fd.fullBody)
+        val newBody = t
+          .Ensuring(
+            t.NoTree(t.BooleanType().setPos(fd.fullBody)).setPos(fd.fullBody),
+            t.Lambda(
+                Seq(vd),
+                t.And(
+                    vd.toVariable,
+                    t.MethodInvocation(
+                        t.This(ct).setPos(fd.fullBody),
+                        lid,
+                        fd.typeArgs map (transform(_, env)),
+                        fd.params map (vd => transform(vd.toVariable, env))
+                      )
+                      .setPos(fd.fullBody)
+                  )
+                  .setPos(fd.fullBody)
+              )
+              .setPos(fd.fullBody)
+          )
+          .setPos(fd.fullBody)
 
         new t.FunDef(
           fd.id,
@@ -146,19 +162,31 @@ trait Laws
         val (specs, body) = s.exprOps.deconstructSpecs(fd.fullBody)(symbols)
         val newSpecs = specs.map(_.map(t)(transform(_, env)))
         val returnType = transform(fd.returnType, env)
-        val newBody = t.exprOps.reconstructSpecs(newSpecs, Some(t.andJoin(
-          symbols.firstSuper(fd.id.unsafeToSymbolIdentifier).map { sid =>
-            t.MethodInvocation(
-              t.This(ct).setPos(fd), lawID(sid),
-              fd.typeArgs map (transform(_, env)),
-              fd.params map (vd => transform(vd.toVariable, env))
-            ).setPos(fd)
-          }.toSeq :+ transform(body.get, env)
-        ).setPos(body.get)), returnType)
+        val newBody = t.exprOps.reconstructSpecs(
+          newSpecs,
+          Some(
+            t.andJoin(
+                symbols
+                  .firstSuper(fd.id.unsafeToSymbolIdentifier)
+                  .map { sid =>
+                    t.MethodInvocation(
+                        t.This(ct).setPos(fd),
+                        lawID(sid),
+                        fd.typeArgs map (transform(_, env)),
+                        fd.params map (vd => transform(vd.toVariable, env))
+                      )
+                      .setPos(fd)
+                  }
+                  .toSeq :+ transform(body.get, env)
+              )
+              .setPos(body.get)
+          ),
+          returnType
+        )
 
         val newFlags = (
           (fd.flags filter (_ != s.Law) map (transform(_, env))) ++
-          Seq(t.InlineOnce, t.Derived(fd.id), t.Final)
+            Seq(t.InlineOnce, t.Derived(fd.id), t.Final)
         ).distinct
 
         t.exprOps.freshenSignature(
@@ -166,13 +194,17 @@ trait Laws
             lid,
             fd.tparams map (transform(_, env)),
             fd.params map (transform(_, env)),
-            returnType, newBody, newFlags).setPos(fd)
+            returnType,
+            newBody,
+            newFlags
+          ).setPos(fd)
         )
       }
 
       (newFd, Some(propFd))
     } else {
-      symbols.firstSuper(fd.id.unsafeToSymbolIdentifier)
+      symbols
+        .firstSuper(fd.id.unsafeToSymbolIdentifier)
         .map(id => symbols.getFunction(id))
         .filter(_.flags contains s.Law)
         .map { sfd =>
@@ -188,14 +220,25 @@ trait Laws
           val newSpecs = specs.map {
             case s.exprOps.Postcondition(l @ s.Lambda(Seq(vd), pred)) =>
               val nvd = transform(vd, env)
-              t.exprOps.Postcondition(t.Lambda(Seq(nvd),
-                t.and(transform(pred, env), nvd.toVariable, t.MethodInvocation(
-                  t.This(t.ClassType(cd.id, cd.typeArgs map (transform(_, env))).copiedFrom(fd)).copiedFrom(fd),
-                  lawID(sfd.id.unsafeToSymbolIdentifier),
-                  tparams map (_.tp),
-                  params map (_.toVariable)
-                ).copiedFrom(fd)).copiedFrom(fd)
-              ).copiedFrom(fd))
+              t.exprOps.Postcondition(
+                t.Lambda(
+                    Seq(nvd),
+                    t.and(
+                        transform(pred, env),
+                        nvd.toVariable,
+                        t.MethodInvocation(
+                            t.This(t.ClassType(cd.id, cd.typeArgs map (transform(_, env))).copiedFrom(fd))
+                              .copiedFrom(fd),
+                            lawID(sfd.id.unsafeToSymbolIdentifier),
+                            tparams map (_.tp),
+                            params map (_.toVariable)
+                          )
+                          .copiedFrom(fd)
+                      )
+                      .copiedFrom(fd)
+                  )
+                  .copiedFrom(fd)
+              )
 
             case spec => spec.map(t)(transform(_, env))
           }
@@ -204,7 +247,8 @@ trait Laws
           val newBody = t.exprOps.reconstructSpecs(newSpecs, body.map(transform(_, env)), returnType)
           val newFlags = (fd.flags map (transform(_, env))) :+ t.Law
           (new t.FunDef(fd.id, tparams, params, returnType, newBody, newFlags).copiedFrom(fd), None)
-        }.getOrElse {
+        }
+        .getOrElse {
           (context.transform(fd), None)
         }
     }
@@ -213,9 +257,14 @@ trait Laws
   override protected final val classCache = new ExtractionCache[s.ClassDef, ClassResult]({ (cd, context) =>
     ClassKey(cd) + SetKey(
       if (cd.flags contains s.IsAbstract) Set.empty[CacheKey]
-      else context.missingLaws(cd).map { case (acd, fd) =>
-        ClassKey(acd.cd) + FunctionKey(fd) + ValueKey(acd.tpSubst)
-      }.toSet[CacheKey]
+      else
+        context
+          .missingLaws(cd)
+          .map {
+            case (acd, fd) =>
+              ClassKey(acd.cd) + FunctionKey(fd) + ValueKey(acd.tpSubst)
+          }
+          .toSet[CacheKey]
     )
   })
 
@@ -229,32 +278,39 @@ trait Laws
     import context.{s => _, t => _, _}
 
     if (!(cd.flags contains s.IsAbstract)) {
-      val functions = context.missingLaws(cd).map { case (acd, lawFd) =>
-        val env = Some(lawFd.id.unsafeToSymbolIdentifier.symbol)
-        val tparams = lawFd.typeArgs
-          .map(tp => s.typeOps.instantiateType(tp, acd.tpSubst))
-          .map(tp => t.TypeParameterDef(transform(tp, env).asInstanceOf[t.TypeParameter]).copiedFrom(tp))
-        val params = lawFd.params
-          .map(vd => transform(vd.copy(tpe = s.typeOps.instantiateType(vd.tpe, acd.tpSubst)), env))
+      val functions = context.missingLaws(cd).map {
+        case (acd, lawFd) =>
+          val env = Some(lawFd.id.unsafeToSymbolIdentifier.symbol)
+          val tparams = lawFd.typeArgs
+            .map(tp => s.typeOps.instantiateType(tp, acd.tpSubst))
+            .map(tp => t.TypeParameterDef(transform(tp, env).asInstanceOf[t.TypeParameter]).copiedFrom(tp))
+          val params = lawFd.params
+            .map(vd => transform(vd.copy(tpe = s.typeOps.instantiateType(vd.tpe, acd.tpSubst)), env))
 
-        t.exprOps.freshenSignature(new t.FunDef(
-          SymbolIdentifier(lawFd.id.unsafeToSymbolIdentifier.symbol),
-          tparams, params,
-          transform(s.typeOps.instantiateType(lawFd.returnType, acd.tpSubst), env),
-          t.Ensuring(
-            t.BooleanLiteral(true).setPos(lawFd),
-            t.Lambda(
-              Seq(t.ValDef.fresh("res", t.BooleanType().setPos(lawFd)).setPos(lawFd)),
-              t.MethodInvocation(
-                t.This(t.ClassType(cd.id, cd.typeArgs map (transform(_, env))).setPos(lawFd)).setPos(lawFd),
-                lawID(lawFd.id.unsafeToSymbolIdentifier),
-                tparams.map(_.tp),
-                params.map(_.toVariable)
-              ).setPos(lawFd)
-            ).setPos(lawFd)
-          ).setPos(lawFd),
-          Seq(t.IsMethodOf(cd.id), t.Derived(lawFd.id), t.Law)
-        ).setPos(cd))
+          t.exprOps.freshenSignature(
+            new t.FunDef(
+              SymbolIdentifier(lawFd.id.unsafeToSymbolIdentifier.symbol),
+              tparams,
+              params,
+              transform(s.typeOps.instantiateType(lawFd.returnType, acd.tpSubst), env),
+              t.Ensuring(
+                  t.BooleanLiteral(true).setPos(lawFd),
+                  t.Lambda(
+                      Seq(t.ValDef.fresh("res", t.BooleanType().setPos(lawFd)).setPos(lawFd)),
+                      t.MethodInvocation(
+                          t.This(t.ClassType(cd.id, cd.typeArgs map (transform(_, env))).setPos(lawFd)).setPos(lawFd),
+                          lawID(lawFd.id.unsafeToSymbolIdentifier),
+                          tparams.map(_.tp),
+                          params.map(_.toVariable)
+                        )
+                        .setPos(lawFd)
+                    )
+                    .setPos(lawFd)
+                )
+                .setPos(lawFd),
+              Seq(t.IsMethodOf(cd.id), t.Derived(lawFd.id), t.Law)
+            ).setPos(cd)
+          )
       }
 
       (transform(cd), functions)
@@ -268,10 +324,11 @@ object Laws {
   def apply(tr: Trees)(implicit ctx: inox.Context): ExtractionPipeline {
     val s: tr.type
     val t: tr.type
-  } = new {
-    override val s: tr.type = tr
-    override val t: tr.type = tr
-  } with Laws {
-    override val context = ctx
-  }
+  } =
+    new {
+      override val s: tr.type = tr
+      override val t: tr.type = tr
+    } with Laws {
+      override val context = ctx
+    }
 }

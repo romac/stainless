@@ -24,33 +24,44 @@ trait InoxEncoder extends ProgramEncoder {
   }
 
   override protected def encodedProgram: inox.Program { val trees: t.type } = {
-    inox.InoxProgram(t.NoSymbols
-      .withSorts(sourceProgram.symbols.sorts.values.toSeq
-        .map(sort => sort.copy(flags = sort.flags.filter(keepFlag)))
-        .map(encoder.transform))
-      .withFunctions(sourceProgram.symbols.functions.values.toSeq
-        .map(fd => fd.copy(flags = fd.flags.filter(keepFlag)))
-        .map(encoder.transform)))
+    inox.InoxProgram(
+      t.NoSymbols
+        .withSorts(
+          sourceProgram.symbols.sorts.values.toSeq
+            .map(sort => sort.copy(flags = sort.flags.filter(keepFlag)))
+            .map(encoder.transform)
+        )
+        .withFunctions(
+          sourceProgram.symbols.functions.values.toSeq
+            .map(fd => fd.copy(flags = fd.flags.filter(keepFlag)))
+            .map(encoder.transform)
+        )
+    )
   }
 
   import t.dsl._
 
   protected val arrayID = FreshIdentifier("array")
-  protected val arr  = FreshIdentifier("arr")
+  protected val arr = FreshIdentifier("arr")
   protected val size = FreshIdentifier("size")
 
   protected val arrayInvariantID = FreshIdentifier("array_inv")
-  protected val arrayInvariant = mkFunDef(arrayInvariantID)("A") { case Seq(aT) => (
-    Seq("array" :: T(arrayID)(aT)), t.BooleanType(), { case Seq(array) =>
-      array.getField(size) >= E(0)
-    })
+  protected val arrayInvariant = mkFunDef(arrayInvariantID)("A") {
+    case Seq(aT) =>
+      (Seq("array" :: T(arrayID)(aT)), t.BooleanType(), {
+        case Seq(array) =>
+          array.getField(size) >= E(0)
+      })
   }
 
   protected val arraySort: t.ADTSort = mkSort(arrayID, t.HasADTInvariant(arrayInvariantID))("A") {
-    case Seq(aT) => Seq((
-      arrayID.freshen,
-      Seq(t.ValDef(arr, t.MapType(t.Int32Type(), aT)), t.ValDef(size, t.Int32Type()))
-    ))
+    case Seq(aT) =>
+      Seq(
+        (
+          arrayID.freshen,
+          Seq(t.ValDef(arr, t.MapType(t.Int32Type(), aT)), t.ValDef(size, t.Int32Type()))
+        )
+      )
   }
   protected val Seq(arrayCons) = arraySort.constructors
 
@@ -76,15 +87,17 @@ trait InoxEncoder extends ProgramEncoder {
 
       case s.NoTree(tpe) =>
         t.Choose(
-          t.ValDef(FreshIdentifier("empty", true), transform(tpe)).copiedFrom(e),
-          t.BooleanLiteral(true).copiedFrom(e)
-        ).copiedFrom(e)
+            t.ValDef(FreshIdentifier("empty", true), transform(tpe)).copiedFrom(e),
+            t.BooleanLiteral(true).copiedFrom(e)
+          )
+          .copiedFrom(e)
 
       case s.Error(tpe, desc) =>
         t.Choose(
-          t.ValDef(FreshIdentifier("error: " + desc, true), transform(tpe)).copiedFrom(e),
-          t.BooleanLiteral(true).copiedFrom(e)
-        ).copiedFrom(e)
+            t.ValDef(FreshIdentifier("error: " + desc, true), transform(tpe)).copiedFrom(e),
+            t.BooleanLiteral(true).copiedFrom(e)
+          )
+          .copiedFrom(e)
 
       case s.Require(pred, body) =>
         transform(body)
@@ -94,20 +107,20 @@ trait InoxEncoder extends ProgramEncoder {
         val postWithAssumes = s.exprOps.postMap {
           case as @ s.Assert(pred, _, body) => Some(s.Assume(pred, body).copiedFrom(as))
           case _ => None
-        } (post)
+        }(post)
 
         t.Assume(
-          transform(pred),
-          t.Let(vd, transform(body),
-            t.Assume(transform(postWithAssumes), vd.toVariable).copiedFrom(e)).copiedFrom(e)
-        ).copiedFrom(e)
+            transform(pred),
+            t.Let(vd, transform(body), t.Assume(transform(postWithAssumes), vd.toVariable).copiedFrom(e)).copiedFrom(e)
+          )
+          .copiedFrom(e)
 
       case s.Ensuring(body, s.Lambda(Seq(res), post)) =>
         val vd = transform(res)
         val postWithAssumes = s.exprOps.postMap {
           case as @ s.Assert(pred, _, body) => Some(s.Assume(pred, body).copiedFrom(as))
           case _ => None
-        } (post)
+        }(post)
 
         t.Let(vd, transform(body), t.Assume(transform(postWithAssumes), vd.toVariable).copiedFrom(e)).copiedFrom(e)
 
@@ -117,29 +130,42 @@ trait InoxEncoder extends ProgramEncoder {
       case s.Annotated(body, _) => transform(body)
 
       case s.FiniteArray(elems, base) =>
-        t.ADT(arrayCons.id, Seq(transform(base)), Seq(
-          t.FiniteMap(
-            elems.zipWithIndex.map { case (e, i) => t.Int32Literal(i).copiedFrom(e) -> transform(e) },
-            if (hasInstance(base) contains true) transform(simplestValue(base)).copiedFrom(e)
-            else if (elems.nonEmpty) transform(elems.head)
-            else t.Choose(
-              t.ValDef(FreshIdentifier("res"), transform(base)).copiedFrom(e),
-              t.BooleanLiteral(true).copiedFrom(e)
-            ).copiedFrom(e),
-            t.Int32Type(),
-            transform(base)),
-          t.Int32Literal(elems.size).copiedFrom(e)
-        ))
+        t.ADT(
+          arrayCons.id,
+          Seq(transform(base)),
+          Seq(
+            t.FiniteMap(
+              elems.zipWithIndex.map { case (e, i) => t.Int32Literal(i).copiedFrom(e) -> transform(e) },
+              if (hasInstance(base) contains true) transform(simplestValue(base)).copiedFrom(e)
+              else if (elems.nonEmpty) transform(elems.head)
+              else
+                t.Choose(
+                    t.ValDef(FreshIdentifier("res"), transform(base)).copiedFrom(e),
+                    t.BooleanLiteral(true).copiedFrom(e)
+                  )
+                  .copiedFrom(e),
+              t.Int32Type(),
+              transform(base)
+            ),
+            t.Int32Literal(elems.size).copiedFrom(e)
+          )
+        )
 
       case s.LargeArray(elems, dflt, size, base) =>
-        t.ADT(arrayCons.id, Seq(transform(base)), Seq(
-          t.FiniteMap(
-            elems.toSeq.map(p => t.Int32Literal(p._1).copiedFrom(e) -> transform(p._2)),
-            transform(dflt),
-            t.Int32Type(),
-            transform(base)),
-          transform(size)
-        )).copiedFrom(e)
+        t.ADT(
+            arrayCons.id,
+            Seq(transform(base)),
+            Seq(
+              t.FiniteMap(
+                elems.toSeq.map(p => t.Int32Literal(p._1).copiedFrom(e) -> transform(p._2)),
+                transform(dflt),
+                t.Int32Type(),
+                transform(base)
+              ),
+              transform(size)
+            )
+          )
+          .copiedFrom(e)
 
       case s.ArraySelect(array, index) =>
         t.MapApply(t.ADTSelector(transform(array), arr).copiedFrom(e), transform(index)).copiedFrom(e)
@@ -147,10 +173,15 @@ trait InoxEncoder extends ProgramEncoder {
       case s.ArrayUpdated(array, index, value) =>
         val na = transform(array)
         val t.ADTType(_, tps) = transform(array.getType)
-        t.ADT(arrayCons.id, tps, Seq(
-          t.MapUpdated(t.ADTSelector(na, arr).copiedFrom(e), transform(index), transform(value)).copiedFrom(e),
-          t.ADTSelector(na, size).copiedFrom(e)
-        )).copiedFrom(e)
+        t.ADT(
+            arrayCons.id,
+            tps,
+            Seq(
+              t.MapUpdated(t.ADTSelector(na, arr).copiedFrom(e), transform(index), transform(value)).copiedFrom(e),
+              t.ADTSelector(na, size).copiedFrom(e)
+            )
+          )
+          .copiedFrom(e)
 
       case s.ArrayLength(array) =>
         t.ADTSelector(transform(array), size).copiedFrom(e)
@@ -189,22 +220,24 @@ trait InoxEncoder extends ProgramEncoder {
       */
     override def transform(e: s.Expr): t.Expr = e match {
       case s.ADT(
-        arrayCons.id,
-        Seq(base),
-        Seq(s.FiniteMap(elems, dflt, _, _), s.Int32Literal(size))
-      ) if size <= 10 =>
+          arrayCons.id,
+          Seq(base),
+          Seq(s.FiniteMap(elems, dflt, _, _), s.Int32Literal(size))
+          ) if size <= 10 =>
         val elemsMap = elems.toMap
-        t.FiniteArray((0 until size).toSeq.map {
-          i => transform(elemsMap.getOrElse(s.Int32Literal(i).copiedFrom(e), dflt))
-        }, transform(base)).copiedFrom(e)
+        t.FiniteArray((0 until size).toSeq.map { i =>
+            transform(elemsMap.getOrElse(s.Int32Literal(i).copiedFrom(e), dflt))
+          }, transform(base))
+          .copiedFrom(e)
 
       case s.ADT(arrayCons.id, Seq(base), Seq(s.FiniteMap(elems, dflt, _, _), size)) =>
         t.LargeArray(
-          elems.map { case (s.Int32Literal(i), e) => i -> transform(e) }.toMap,
-          transform(dflt),
-          transform(size),
-          transform(base)
-        ).copiedFrom(e)
+            elems.map { case (s.Int32Literal(i), e) => i -> transform(e) }.toMap,
+            transform(dflt),
+            transform(size),
+            transform(base)
+          )
+          .copiedFrom(e)
 
       case _ => super.transform(e)
     }
@@ -218,12 +251,13 @@ trait InoxEncoder extends ProgramEncoder {
 }
 
 object InoxEncoder {
-  def apply(p: StainlessProgram, ctx: inox.Context): InoxEncoder { val sourceProgram: p.type } = new {
-    val sourceProgram: p.type = p
-    val context = ctx
-  } with InoxEncoder {
-    val semantics = p.getSemantics
-    object encoder extends TreeEncoder
-    object decoder extends TreeDecoder
-  }
+  def apply(p: StainlessProgram, ctx: inox.Context): InoxEncoder { val sourceProgram: p.type } =
+    new {
+      val sourceProgram: p.type = p
+      val context = ctx
+    } with InoxEncoder {
+      val semantics = p.getSemantics
+      object encoder extends TreeEncoder
+      object decoder extends TreeDecoder
+    }
 }

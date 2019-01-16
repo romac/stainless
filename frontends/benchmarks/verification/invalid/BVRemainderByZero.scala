@@ -9,5 +9,5 @@ object BVRemainderByZero {
   def remByZero(x: Int): Boolean = {
     (x % 0 == 10)
   }
-  
+
 }

@@ -6,10 +6,7 @@ package methods
 
 import scala.language.existentials
 
-trait Sealing extends oo.CachingPhase
-  with IdentitySorts
-  with MutabilityAnalyzer { self =>
-
+trait Sealing extends oo.CachingPhase with IdentitySorts with MutabilityAnalyzer { self =>
 
   /* ====================================
    *       Context and caches setup
@@ -40,19 +37,23 @@ trait Sealing extends oo.CachingPhase
     // Given a (non-sealed) class, we lookup in the ancestors all methods that are
     // not final and not invariants in order to override them in the dummy class
     private[this] def latestNonFinalMethods(cd: ClassDef): Set[SymbolIdentifier] =
-      (cd +: cd.ancestors.map(_.cd)).reverse.foldLeft(Map[Symbol, SymbolIdentifier]()) {
-        case (lnfm, cd) =>
-          val methods = cd.methods
-          val newMethods = methods
-            .filterNot(id => symbols.getFunction(id).isFinal)
-            .filterNot(id => symbols.getFunction(id).isInvariant)
-            .map(id => id.symbol -> id)
-          lnfm -- methods.map(_.symbol) ++ newMethods
-      }.values.toSet
+      (cd +: cd.ancestors.map(_.cd)).reverse
+        .foldLeft(Map[Symbol, SymbolIdentifier]()) {
+          case (lnfm, cd) =>
+            val methods = cd.methods
+            val newMethods = methods
+              .filterNot(id => symbols.getFunction(id).isFinal)
+              .filterNot(id => symbols.getFunction(id).isInvariant)
+              .map(id => id.symbol -> id)
+            lnfm -- methods.map(_.symbol) ++ newMethods
+        }
+        .values
+        .toSet
 
     val lnfm: Map[ClassDef, Set[SymbolIdentifier]] = {
-      symbols.classes.map { case (cid, cd) =>
-        cd -> latestNonFinalMethods(cd)
+      symbols.classes.map {
+        case (cid, cd) =>
+          cd -> latestNonFinalMethods(cd)
       }
     }
   }
@@ -82,7 +83,6 @@ trait Sealing extends oo.CachingPhase
     FunctionKey(fd) + ValueKey(context.mustDuplicate(fd))
   })
 
-
   /* ====================================
    *         Extraction of classes
    * ==================================== */
@@ -94,10 +94,11 @@ trait Sealing extends oo.CachingPhase
   override protected def extractClass(context: TransformerContext, cd: ClassDef): ClassResult = {
     import context.symbols
 
-    val flagsWithMutable = if (context.isMutable(cd))
-      (cd.flags :+ IsMutable).distinct
-    else
-      cd.flags
+    val flagsWithMutable =
+      if (context.isMutable(cd))
+        (cd.flags :+ IsMutable).distinct
+      else
+        cd.flags
 
     if (context.mustAddSubclass(cd)) {
       val newCd = cd.copy(flags = (flagsWithMutable :+ IsSealed).distinct).copiedFrom(cd)
@@ -118,13 +119,15 @@ trait Sealing extends oo.CachingPhase
 
       // Return a type instantiator that will substitute the type parameters in the given
       // function's signature/body by the relevant types based on the new dummy class
-      def getInstantiator(fd: FunDef) = new typeOps.TypeInstantiator(fd.flags.collectFirst {
-        case IsMethodOf(cid) =>
-          val acd = (cd.typed +: cd.ancestors).find(_.id == cid).get
-          (acd.cd.typeArgs zip acd.tps).map { case (tp, tpe) =>
-            tp -> typeOps.instantiateType(tpe, classSubst)
-          }.toMap
-      }.get)
+      def getInstantiator(fd: FunDef) =
+        new typeOps.TypeInstantiator(fd.flags.collectFirst {
+          case IsMethodOf(cid) =>
+            val acd = (cd.typed +: cd.ancestors).find(_.id == cid).get
+            (acd.cd.typeArgs zip acd.tps).map {
+              case (tp, tpe) =>
+                tp -> typeOps.instantiateType(tpe, classSubst)
+            }.toMap
+        }.get)
 
       // These are the flags that we *discard* when overriding an accessor or a methodand creating a field
       def overrideDiscardFlag(flag: Flag) = flag match {
@@ -198,34 +201,39 @@ trait Sealing extends oo.CachingPhase
         val fd = symbols.getFunction(id)
         val instantiator = getInstantiator(fd)
         val (specs, _) = deconstructSpecs(fd.fullBody)
-        instantiator.transform(exprOps.freshenSignature(fd.copy(
-          id = ast.SymbolIdentifier(id.symbol),
-          fullBody = reconstructSpecs(specs, None, fd.returnType),
-          flags = (
-            fd.flags.filterNot(overrideDiscardFlag) ++
-              Seq(Extern, Derived(id), Synthetic, IsMethodOf(dummyClass.id))
-          ).distinct
-        )))
+        instantiator.transform(
+          exprOps.freshenSignature(
+            fd.copy(
+              id = ast.SymbolIdentifier(id.symbol),
+              fullBody = reconstructSpecs(specs, None, fd.returnType),
+              flags = (
+                fd.flags.filterNot(overrideDiscardFlag) ++
+                  Seq(Extern, Derived(id), Synthetic, IsMethodOf(dummyClass.id))
+              ).distinct
+            )
+          )
+        )
       }
 
       (newCd, Some(dummyClass), dummyOverrides ++ newAccessors)
-    }
-    else if (context.isMutable(cd))
+    } else if (context.isMutable(cd))
       (cd.copy(flags = flagsWithMutable).copiedFrom(cd), None, Seq())
     else
       (cd, None, Seq())
   }
-
 
   /* ====================================
    *         Extraction of functions
    * ==================================== */
 
   private[this] def duplicate(fd: FunDef): FunDef = {
-    exprOps.freshenSignature(fd.copy(
-      id = ast.SymbolIdentifier(fd.id.name),
-      flags = fd.flags :+ Derived(fd.id)
-    ).copiedFrom(fd))
+    exprOps.freshenSignature(
+      fd.copy(
+          id = ast.SymbolIdentifier(fd.id.name),
+          flags = fd.flags :+ Derived(fd.id)
+        )
+        .copiedFrom(fd)
+    )
   }
 
   // We duplicate concrete non-final/accessor/field/invariant functions of non-sealed classes
@@ -234,7 +242,6 @@ trait Sealing extends oo.CachingPhase
     else if (fd.isFinal) (fd.copy(flags = fd.flags.filterNot(_ == Final)).copiedFrom(fd), None)
     else (fd, None)
   }
-
 
   /* ====================================
    *             Registration

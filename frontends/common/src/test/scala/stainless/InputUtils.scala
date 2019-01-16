@@ -4,21 +4,22 @@ package stainless
 
 import scala.language.existentials
 
-import extraction.xlang.{ trees => xt, TreeSanitizer }
+import extraction.xlang.{trees => xt, TreeSanitizer}
 import frontend.CallBack
-import utils.{ CheckFilter, DependenciesFinder, Registry }
+import utils.{CheckFilter, DependenciesFinder, Registry}
 
 import scala.collection.mutable.ListBuffer
 
-import java.io.{ File, BufferedWriter, FileWriter }
+import java.io.{File, BufferedWriter, FileWriter}
 
 trait InputUtils {
 
   type Filter = CheckFilter { val trees: xt.type }
 
   /** Compile and extract the given files' **content** (& the library). */
-  def load(contents: Seq[String], filterOpt: Option[Filter] = None)
-          (implicit ctx: inox.Context): (Seq[xt.UnitDef], Program { val trees: xt.type }) = {
+  def load(contents: Seq[String], filterOpt: Option[Filter] = None)(
+      implicit ctx: inox.Context
+  ): (Seq[xt.UnitDef], Program { val trees: xt.type }) = {
     val files = contents.map { content =>
       val file = File.createTempFile("stainless", ".scala")
       file.deleteOnExit()
@@ -32,8 +33,9 @@ trait InputUtils {
   }
 
   /** Compile and extract the given files (& the library). */
-  def loadFiles(files: Seq[String], filterOpt: Option[Filter] = None)
-               (implicit ctx: inox.Context): (Seq[xt.UnitDef], Program { val trees: xt.type }) = {
+  def loadFiles(files: Seq[String], filterOpt: Option[Filter] = None)(
+      implicit ctx: inox.Context
+  ): (Seq[xt.UnitDef], Program { val trees: xt.type }) = {
 
     // Use the callback to collect the trees.
     val units = ListBuffer[xt.UnitDef]()
@@ -43,8 +45,9 @@ trait InputUtils {
     var done = false
 
     def updateSyms(extra: xt.Symbols) = {
-      syms = syms.withClasses(extra.classes.values.toSeq)
-                 .withFunctions(extra.functions.values.toSeq)
+      syms = syms
+        .withClasses(extra.classes.values.toSeq)
+        .withFunctions(extra.functions.values.toSeq)
     }
 
     val callback = new CallBack {
@@ -72,8 +75,7 @@ trait InputUtils {
 
       override def beginExtractions(): Unit = ()
 
-      override def apply(file: String, unit: xt.UnitDef,
-                         classes: Seq[xt.ClassDef], functions: Seq[xt.FunDef]): Unit = {
+      override def apply(file: String, unit: xt.UnitDef, classes: Seq[xt.ClassDef], functions: Seq[xt.FunDef]): Unit = {
         units += unit
         cls ++= classes
         funs ++= functions
@@ -105,4 +107,3 @@ trait InputUtils {
   }
 
 }
-

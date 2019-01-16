@@ -9,19 +9,22 @@ trait Trees extends inlining.Trees with Definitions { self =>
 
   case class LetRec(fds: Seq[LocalFunDef], body: Expr) extends Expr with CachingTyped {
     protected def computeType(implicit s: Symbols): Type = {
-      if (fds.forall { case fd @ LocalFunDef(_, _, _, _, fullBody, _) =>
-        s.isSubtypeOf(fullBody.getType, fd.getType)
-      }) body.getType else Untyped
+      if (fds.forall {
+          case fd @ LocalFunDef(_, _, _, _, fullBody, _) =>
+            s.isSubtypeOf(fullBody.getType, fd.getType)
+        }) body.getType
+      else Untyped
     }
   }
 
   case class ApplyLetRec(
-    id: Identifier,
-    tparams: Seq[TypeParameter],
-    tpe: FunctionType,
-    tps: Seq[Type],
-    args: Seq[Expr]
-  ) extends Expr with CachingTyped {
+      id: Identifier,
+      tparams: Seq[TypeParameter],
+      tpe: FunctionType,
+      tps: Seq[Type],
+      args: Seq[Expr]
+  ) extends Expr
+      with CachingTyped {
     protected def computeType(implicit s: Symbols): Type = {
       val tpMap = (tparams zip tps).toMap
       val realFrom = tpe.from.map(tpe => typeOps.instantiateType(tpe.getType, tpMap))
@@ -30,34 +33,35 @@ trait Trees extends inlining.Trees with Definitions { self =>
     }
   }
 
-
   /** Abstract over [[FunctionInvocation]] and [[ApplyLetRec]] to provide a unified interface
     * to both of them as they have strong commonalities. */
   object FunInvocation {
-    def unapply(e: Expr): Option[(Identifier, Seq[Type], Seq[Expr], (Identifier, Seq[Type], Seq[Expr]) => Expr)] = e match {
-      case FunctionInvocation(id, tps, es) =>
-        Some((id, tps, es, FunctionInvocation))
-      case ApplyLetRec(id, tparams, tpe, tps, args) =>
-        Some((id, tps, args, (id, tps, args) => ApplyLetRec(id, tparams, tpe, tps, args)))
-      case _ => None
-    }
+    def unapply(e: Expr): Option[(Identifier, Seq[Type], Seq[Expr], (Identifier, Seq[Type], Seq[Expr]) => Expr)] =
+      e match {
+        case FunctionInvocation(id, tps, es) =>
+          Some((id, tps, es, FunctionInvocation))
+        case ApplyLetRec(id, tparams, tpe, tps, args) =>
+          Some((id, tps, args, (id, tps, args) => ApplyLetRec(id, tparams, tpe, tps, args)))
+        case _ => None
+      }
   }
-
 
   override val exprOps: ExprOps { val trees: Trees.this.type } = new {
     protected val trees: Trees.this.type = Trees.this
   } with ExprOps
 
-
   /* ========================================
    *               EXTRACTORS
    * ======================================== */
 
-  override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-    case tree: Trees => new TreeDeconstructor {
-      protected val s: self.type = self
-      protected val t: tree.type = tree
-    }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+  override def getDeconstructor(
+      that: inox.ast.Trees
+  ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+    case tree: Trees =>
+      new TreeDeconstructor {
+        protected val s: self.type = self
+        protected val t: tree.type = tree
+      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
     case _ => super.getDeconstructor(that)
   }
@@ -116,41 +120,44 @@ trait TreeDeconstructor extends inlining.TreeDeconstructor {
   protected val t: Trees
 
   override def deconstruct(e: s.Expr): Deconstructed[t.Expr] = e match {
-    case s.LetRec(defs, body) => (
-      defs map (_.id),
-      defs flatMap (_.params) map (_.toVariable),
-      (defs map (_.fullBody)) :+ body,
-      defs flatMap (d => (d.tparams map (_.tp)) :+ d.returnType),
-      defs flatMap (_.flags),
-      (ids, vs, es, tps, flags) => {
-        var rvs = vs
-        var rtps = tps
-        var rflags = flags
+    case s.LetRec(defs, body) =>
+      (
+        defs map (_.id),
+        defs flatMap (_.params) map (_.toVariable),
+        (defs map (_.fullBody)) :+ body,
+        defs flatMap (d => (d.tparams map (_.tp)) :+ d.returnType),
+        defs flatMap (_.flags),
+        (ids, vs, es, tps, flags) => {
+          var rvs = vs
+          var rtps = tps
+          var rflags = flags
 
-        val newFds = for {
-          ((fd @ s.LocalFunDef(_, tparams, params, _, _, flags), id), e) <- defs zip ids zip es.init
-        } yield {
-          val (currVs, nextVs) = rvs.splitAt(params.size)
-          rvs = nextVs
+          val newFds = for {
+            ((fd @ s.LocalFunDef(_, tparams, params, _, _, flags), id), e) <- defs zip ids zip es.init
+          } yield {
+            val (currVs, nextVs) = rvs.splitAt(params.size)
+            rvs = nextVs
 
-          val (currTps, nextTps) = rtps.splitAt(tparams.size + 1)
-          rtps = nextTps
+            val (currTps, nextTps) = rtps.splitAt(tparams.size + 1)
+            rtps = nextTps
 
-          val (currFlags, nextFlags) = rflags.splitAt(flags.size)
-          rflags = nextFlags
+            val (currFlags, nextFlags) = rflags.splitAt(flags.size)
+            rflags = nextFlags
 
-          t.LocalFunDef(
-            id,
-            currTps.init.map(tp => t.TypeParameterDef(tp.asInstanceOf[t.TypeParameter]).copiedFrom(tp)),
-            currVs.map(_.toVal),
-            currTps.last,
-            e,
-            currFlags
-          ).copiedFrom(fd)
+            t.LocalFunDef(
+                id,
+                currTps.init.map(tp => t.TypeParameterDef(tp.asInstanceOf[t.TypeParameter]).copiedFrom(tp)),
+                currVs.map(_.toVal),
+                currTps.last,
+                e,
+                currFlags
+              )
+              .copiedFrom(fd)
+          }
+
+          t.LetRec(newFds, es.last)
         }
-
-        t.LetRec(newFds, es.last)
-      })
+      )
 
     case s.ApplyLetRec(id, tparams, tpe, tps, args) =>
       (Seq(id), Seq(), args, (tparams :+ tpe) ++ tps, Seq(), (ids, _, es, tps, _) => {
@@ -172,11 +179,12 @@ trait TreeDeconstructor extends inlining.TreeDeconstructor {
 trait ExprOps extends extraction.ExprOps {
   protected val trees: Trees
   import trees._
+
   /** Returns functions in directly nested LetDefs */
   def directlyNestedFunDefs(e: Expr): Set[LocalFunDef] = {
-    fold[Set[LocalFunDef]]{
-      case (LetRec(fds,_), fromFdsFromBd) => fromFdsFromBd.last ++ fds
-      case (_,             subs)          => subs.flatten.toSet
+    fold[Set[LocalFunDef]] {
+      case (LetRec(fds, _), fromFdsFromBd) => fromFdsFromBd.last ++ fds
+      case (_, subs) => subs.flatten.toSet
     }(e)
   }
 

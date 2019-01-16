@@ -11,29 +11,32 @@ trait SimplifierWithPC extends Transformer with inox.transformers.SimplifierWith
   implicit val pp: PathProvider[Env]
 
   override protected def simplify(e: Expr, path: Env): (Expr, Boolean) = e match {
-    case Assert(pred, oerr, body) => simplify(pred, path) match {
-      case (BooleanLiteral(true), true) => simplify(body, path)
-      case (BooleanLiteral(false), true) =>
-        val (rb, _) = simplify(body, path)
-        (Assert(BooleanLiteral(false).copiedFrom(e), oerr, rb).copiedFrom(e), opts.assumeChecked)
-      case (rp, _) =>
-        val (rb, _) = simplify(body, path withCond rp)
-        (Assert(rp, oerr, rb).copiedFrom(e), opts.assumeChecked)
-    }
+    case Assert(pred, oerr, body) =>
+      simplify(pred, path) match {
+        case (BooleanLiteral(true), true) => simplify(body, path)
+        case (BooleanLiteral(false), true) =>
+          val (rb, _) = simplify(body, path)
+          (Assert(BooleanLiteral(false).copiedFrom(e), oerr, rb).copiedFrom(e), opts.assumeChecked)
+        case (rp, _) =>
+          val (rb, _) = simplify(body, path withCond rp)
+          (Assert(rp, oerr, rb).copiedFrom(e), opts.assumeChecked)
+      }
 
-    case Require(pred, body) => simplify(pred, path) match {
-      case (BooleanLiteral(true), true) => simplify(body, path)
-      case (rp, _) =>
-        val (rb, _) = simplify(body, path withCond rp)
-        (Require(rp, rb).copiedFrom(e), opts.assumeChecked)
-    }
+    case Require(pred, body) =>
+      simplify(pred, path) match {
+        case (BooleanLiteral(true), true) => simplify(body, path)
+        case (rp, _) =>
+          val (rb, _) = simplify(body, path withCond rp)
+          (Require(rp, rb).copiedFrom(e), opts.assumeChecked)
+      }
 
-    case Ensuring(body, l @ Lambda(Seq(res), pred)) => simplify(pred, path) match {
-      case (BooleanLiteral(true), true) => simplify(body, path)
-      case (rp, _) =>
-        val (rb, _) = simplify(body, path)
-        (Ensuring(rb, Lambda(Seq(res), rp).copiedFrom(l)).copiedFrom(e), opts.assumeChecked)
-    }
+    case Ensuring(body, l @ Lambda(Seq(res), pred)) =>
+      simplify(pred, path) match {
+        case (BooleanLiteral(true), true) => simplify(body, path)
+        case (rp, _) =>
+          val (rb, _) = simplify(body, path)
+          (Ensuring(rb, Lambda(Seq(res), rp).copiedFrom(l)).copiedFrom(e), opts.assumeChecked)
+      }
 
     case MatchExpr(scrut, cases) =>
       val (rs, ps) = simplify(scrut, path)
@@ -68,17 +71,18 @@ trait SimplifierWithPC extends Transformer with inox.transformers.SimplifierWith
       }
 
       newCases match {
-        case Seq() => (
-          Assert(
-            BooleanLiteral(false).copiedFrom(e),
-            Some("No valid case"),
-            Choose(
-              ValDef.fresh("res", e.getType).copiedFrom(e),
-              BooleanLiteral(true).copiedFrom(e)
-            ).copiedFrom(e)
-          ).copiedFrom(e),
-          opts.assumeChecked
-        )
+        case Seq() =>
+          (
+            Assert(
+              BooleanLiteral(false).copiedFrom(e),
+              Some("No valid case"),
+              Choose(
+                ValDef.fresh("res", e.getType).copiedFrom(e),
+                BooleanLiteral(true).copiedFrom(e)
+              ).copiedFrom(e)
+            ).copiedFrom(e),
+            opts.assumeChecked
+          )
 
         case Seq(MatchCase(WildcardPattern(None), None, rhs)) if stop => (rhs, purity)
         case _ => (MatchExpr(rs, newCases).copiedFrom(e), purity)

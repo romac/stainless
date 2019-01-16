@@ -84,7 +84,7 @@ trait DebugPipeline extends ExtractionPipeline with PositionChecker { self =>
     }
 
     if (debugPos) {
-      res.functions.values foreach(positions.traverse)
+      res.functions.values foreach (positions.traverse)
     }
 
     res
@@ -95,8 +95,9 @@ object DebugPipeline {
   def apply(nme: String, pipeline: ExtractionPipeline): ExtractionPipeline {
     val s: pipeline.s.type
     val t: pipeline.t.type
-  } = new {
-    override val underlying: pipeline.type = pipeline
-    override val name: String = nme
-  } with DebugPipeline
+  } =
+    new {
+      override val underlying: pipeline.type = pipeline
+      override val name: String = nme
+    } with DebugPipeline
 }

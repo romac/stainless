@@ -10,7 +10,6 @@ object HigherOrderFunctionsMutableParams1 {
     a.x += 1
   }
 
-
   def test(): BigInt = {
     val a = A(0)
     app(fImpl, a)
@@ -19,6 +18,6 @@ object HigherOrderFunctionsMutableParams1 {
     assert(a.x == 2)
     app(fImpl, a)
     a.x
-  } ensuring(_ == 3)
+  } ensuring (_ == 3)
 
 }

@@ -2,41 +2,40 @@
 
 package stainless.utils
 
-import scala.collection.mutable.{ Map => MutableMap, Set => MutableSet, Queue => MutableQueue }
+import scala.collection.mutable.{Map => MutableMap, Set => MutableSet, Queue => MutableQueue}
 
 /**
- * Describe a Graph of Computation that is incrementally refined/updated. [[Node]]s can be inserted
- * (and updated) sequentially to build a full graph. After each [[update]], [[compute]] is called at
- * most once with the set of all nodes not yet computed -- which (indirect, possibly cyclic) dependencies
- * are all known -- with the dependencies themselves, hence a node might be passed to [[compute]]
- * several times.
- *
- * When any dependency of a node is updated, the node is recomputed unless its [[compute]] flag is
- * turned off.
- *
- * Before entering an invalid state for the graph, one can [[freeze]] it and then [[unfreeze]] the
- * graph to resume computation.
- */
+  * Describe a Graph of Computation that is incrementally refined/updated. [[Node]]s can be inserted
+  * (and updated) sequentially to build a full graph. After each [[update]], [[compute]] is called at
+  * most once with the set of all nodes not yet computed -- which (indirect, possibly cyclic) dependencies
+  * are all known -- with the dependencies themselves, hence a node might be passed to [[compute]]
+  * several times.
+  *
+  * When any dependency of a node is updated, the node is recomputed unless its [[compute]] flag is
+  * turned off.
+  *
+  * Before entering an invalid state for the graph, one can [[freeze]] it and then [[unfreeze]] the
+  * graph to resume computation.
+  */
 trait IncrementalComputationalGraph[Id, Input, Result] {
 
   /******************* Public Interface ***********************************************************/
-
   /**
-   * Insert (or override) a given node into the graph, then perform computation
-   * based on the graph state. Return the computed values.
-   *
-   * When [[compute]] is false the node doesn't trigger a call to [[compute]] when
-   * all the [[deps]] -- and the indirect dependencies -- are present in the graph.
-   */
+    * Insert (or override) a given node into the graph, then perform computation
+    * based on the graph state. Return the computed values.
+    *
+    * When [[compute]] is false the node doesn't trigger a call to [[compute]] when
+    * all the [[deps]] -- and the indirect dependencies -- are present in the graph.
+    */
   final def update(id: Id, in: Input, deps: Set[Id], compute: Boolean): Option[Result] = {
     update(Node(id, in, deps, compute))
   }
 
   /**
-   * Remove a node from the graph.
-   *
-   * Throw an [[java.lang.IllegalArgumentException]] if the node wasn't in the graph.
-   */
+    * Remove a node from the graph.
+    *
+    * Throw an [[java.lang.IllegalArgumentException]] if the node wasn't in the graph.
+    */
   final def remove(id: Id): Unit = nodes get id match {
     case Some(n) => remove(n)
     case None => throw new java.lang.IllegalArgumentException(s"Node $id is not part of the graph")
@@ -59,36 +58,32 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
   /** Get the current missing nodes' identifier from the graph. */
   final def getMissing: Set[Id] = allIds.toSet -- nodes.keySet
 
-
   /******************* Customisation Points *******************************************************/
-
   /**
-   * Produce some result for the set of nodes that are all ready.
-   *
-   * It is guaranteed that [[ready]] contains all the dependencies for all element of [[ready]].
-   *
-   * The result itself is not used by [[IncrementalComputationalGraph]].
-   */
+    * Produce some result for the set of nodes that are all ready.
+    *
+    * It is guaranteed that [[ready]] contains all the dependencies for all element of [[ready]].
+    *
+    * The result itself is not used by [[IncrementalComputationalGraph]].
+    */
   protected def compute(ready: Set[(Id, Input)]): Result
 
   /**
-   * Determine whether the new value for a node is equivalent to the old value, given that
-   * they have the same id (enforced by the graph model) and the same set of dependencies.
-   */
+    * Determine whether the new value for a node is equivalent to the old value, given that
+    * they have the same id (enforced by the graph model) and the same set of dependencies.
+    */
   protected def equivalent(id: Id, deps: Set[Id], oldInput: Input, newInput: Input): Boolean
 
-
   /******************* Implementation *************************************************************/
-
   /**
-   * Representation of a [[Node]]:
-   *  - Its [[id]] fully identifies a node (i.e. two nodes are equal <=> their ids are equal).
-   *    This allows overriding a node simply by inserting a new node with the same identifier.
-   *  - [[in]] denotes the input value for the node which is used for the computation.
-   *  - [[deps]] holds the set of **direct** dependencies.
-   *  - [[compute]] determines whether the node should trigger a computation on its own or not.
-   * Indirect dependencies is computed by [[IncrementalComputationalGraph]] itself.
-   */
+    * Representation of a [[Node]]:
+    *  - Its [[id]] fully identifies a node (i.e. two nodes are equal <=> their ids are equal).
+    *    This allows overriding a node simply by inserting a new node with the same identifier.
+    *  - [[in]] denotes the input value for the node which is used for the computation.
+    *  - [[deps]] holds the set of **direct** dependencies.
+    *  - [[compute]] determines whether the node should trigger a computation on its own or not.
+    * Indirect dependencies is computed by [[IncrementalComputationalGraph]] itself.
+    */
   private case class Node(id: Id, in: Input, deps: Set[Id], compute: Boolean) {
     override def equals(any: Any): Boolean = any match {
       case Node(other, _, _, _) => id == other
@@ -99,12 +94,12 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
   }
 
   /**
-   * Implementation for the public [[update]] function.
-   *
-   * If the new node is equivalent to an old one, do nothing. Otherwise, process normally.
-   * Note that, when any of its dependencies is updated the (new) node is put in the
-   * [[toCompute]] set.
-   */
+    * Implementation for the public [[update]] function.
+    *
+    * If the new node is equivalent to an old one, do nothing. Otherwise, process normally.
+    * Note that, when any of its dependencies is updated the (new) node is put in the
+    * [[toCompute]] set.
+    */
   private def update(n: Node): Option[Result] = nodes get n.id match {
     case Some(m) if (m.deps == n.deps) && equivalent(n.id, n.deps, m.in, n.in) =>
       // Nothing new, but update the node anyway -- equivalence != equality.
@@ -122,10 +117,10 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
   private var frozen = false
 
   /**
-   * Some nodes might not yet be fully known, yet we have some evidence (through other nodes'
-   * dependencies) that they exists. We therefore keep track of dependencies using their
-   * identifiers, and we keep track of the mapping between identifiers and nodes in [[nodes]].
-   */
+    * Some nodes might not yet be fully known, yet we have some evidence (through other nodes'
+    * dependencies) that they exists. We therefore keep track of dependencies using their
+    * identifiers, and we keep track of the mapping between identifiers and nodes in [[nodes]].
+    */
   private val nodes = MutableMap[Id, Node]()
   private val allIds = MutableSet[Id]()
 
@@ -138,11 +133,10 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
    */
   private val reverse = MutableMap[Id, MutableSet[Node]]()
 
-
   /**
-   * Insert a new node & update the graph,
-   * placing any node that depends on [[n]] into [[toCompute]]
-   */
+    * Insert a new node & update the graph,
+    * placing any node that depends on [[n]] into [[toCompute]]
+    */
   private def insert(n: Node): Unit = {
     allIds += n.id
     allIds ++= n.deps
@@ -176,12 +170,15 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
     }
 
     // Visit a node and queue the ones that depend on it.
-    def visit(n: Node): Unit = if (seen contains n) { /* visited via another path */ } else {
-      seen += n
-      if (n.compute) toCompute += n
+    def visit(n: Node): Unit =
+      if (seen contains n) {
+        /* visited via another path */
+      } else {
+        seen += n
+        if (n.compute) toCompute += n
 
-      add(n)
-    }
+        add(n)
+      }
 
     // Start visiting the node itself, then loop until all nodes that
     // depend on it are visited.
@@ -207,15 +204,17 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
     toCompute --= ready
     if (ready.isEmpty) None
     else {
-      val args = ready map { n => (n.id, n.in) }
+      val args = ready map { n =>
+        (n.id, n.in)
+      }
       Some(compute(args))
     }
   }
 
   /**
-   * Compute the set of (indirect or not) dependencies,
-   * or return None if any dependency is missing from the graph.
-   */
+    * Compute the set of (indirect or not) dependencies,
+    * or return None if any dependency is missing from the graph.
+    */
   private def dependencies(n: Node): Option[Set[Node]] = {
     val seen = MutableSet[Node]()
     val deps = MutableSet[Node]()
@@ -228,15 +227,18 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
     }
 
     // Visit this node, and queue its dependencies when we have all of them, abort otherwise.
-    def visit(n: Node): Unit = if (seen contains n) { /* visited via another path */ } else {
-      seen += n
-      deps += n
+    def visit(n: Node): Unit =
+      if (seen contains n) {
+        /* visited via another path */
+      } else {
+        seen += n
+        deps += n
 
-      if (n.deps subsetOf nodes.keySet) {
-        val nexts = n.deps map nodes filterNot seen
-        queue ++= nexts
-      } else abort()
-    }
+        if (n.deps subsetOf nodes.keySet) {
+          val nexts = n.deps map nodes filterNot seen
+          queue ++= nexts
+        } else abort()
+      }
 
     visit(n)
     while (complete && queue.nonEmpty) {
@@ -249,4 +251,3 @@ trait IncrementalComputationalGraph[Id, Input, Result] {
   }
 
 }
-

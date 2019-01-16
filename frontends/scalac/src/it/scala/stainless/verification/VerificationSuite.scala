@@ -9,13 +9,13 @@ trait VerificationSuite extends ComponentTestSuite {
 
   val component = VerificationComponent
 
-  override def configurations = super.configurations.map {
-    seq => optFailInvalid(true) +: seq
+  override def configurations = super.configurations.map { seq =>
+    optFailInvalid(true) +: seq
   }
 
   override protected def optionsString(options: inox.Options): String = {
     super.optionsString(options) +
-    (if (options.findOptionOrDefault(evaluators.optCodeGen)) " codegen" else "")
+      (if (options.findOptionOrDefault(evaluators.optCodeGen)) " codegen" else "")
   }
 
   override def filter(ctx: inox.Context, name: String): FilterStatus = name match {
@@ -48,8 +48,8 @@ trait VerificationSuite extends ComponentTestSuite {
 }
 
 class SMTZ3VerificationSuite extends VerificationSuite {
-  override def configurations = super.configurations.map {
-    seq => Seq(
+  override def configurations = super.configurations.map { seq =>
+    Seq(
       inox.optSelectedSolvers(Set("smt-z3")),
       inox.solvers.optCheckModels(true)
     ) ++ seq
@@ -64,8 +64,8 @@ class SMTZ3VerificationSuite extends VerificationSuite {
 }
 
 class CodeGenVerificationSuite extends VerificationSuite {
-  override def configurations = super.configurations.map {
-    seq => Seq(
+  override def configurations = super.configurations.map { seq =>
+    Seq(
       inox.optSelectedSolvers(Set("smt-z3")),
       inox.solvers.unrolling.optFeelingLucky(true),
       inox.solvers.optCheckModels(true),
@@ -83,8 +83,8 @@ class CodeGenVerificationSuite extends VerificationSuite {
 }
 
 class SMTCVC4VerificationSuite extends VerificationSuite {
-  override def configurations = super.configurations.map {
-    seq => Seq(
+  override def configurations = super.configurations.map { seq =>
+    Seq(
       inox.optSelectedSolvers(Set("smt-cvc4")),
       inox.solvers.optCheckModels(true),
       evaluators.optCodeGen(true)
@@ -111,4 +111,3 @@ class SMTCVC4VerificationSuite extends VerificationSuite {
     case _ => super.filter(ctx, name)
   }
 }
-

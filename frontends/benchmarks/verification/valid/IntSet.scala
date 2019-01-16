@@ -1,20 +1,17 @@
 /**
- * NOTE: This test won't run with the current stainless configuration
- *       as the proofs in the function bodies will be simplified away!
- */
-
+  * NOTE: This test won't run with the current stainless configuration
+  *       as the proofs in the function bodies will be simplified away!
+  */
 import stainless.lang._
 import stainless.annotation._
 
 object IntSet {
   case class Empty() extends IntSet
-  case class Node(left: IntSet,
-                  elem: Int,
-                  right: IntSet) extends IntSet
+  case class Node(left: IntSet, elem: Int, right: IntSet) extends IntSet
 
   sealed abstract class IntSet {
     def incl(x: Int): IntSet = this match {
-      case Empty() => Node(Empty(),x,Empty())
+      case Empty() => Node(Empty(), x, Empty())
       case Node(left, elem, right) =>
         if (x < elem) Node(left incl x, elem, right)
         else if (x > elem) Node(left, elem, right incl x)
@@ -31,7 +28,7 @@ object IntSet {
 
     def P1(x: Int): Boolean = {
       true
-    } ensuring(_ => !(Empty() contains x))
+    } ensuring (_ => !(Empty() contains x))
 
     def P2(s: IntSet, x: Int): Boolean = {
       s match {
@@ -41,9 +38,9 @@ object IntSet {
           else if (x > elem) P2(right, x)
           else true
       }
-    } ensuring(_ => (s incl x) contains x)
+    } ensuring (_ => (s incl x) contains x)
 
-    def P3(s: IntSet, x: Int,  y: Int): Boolean = {
+    def P3(s: IntSet, x: Int, y: Int): Boolean = {
       require(x != y)
       s match {
         case Empty() => true
@@ -52,6 +49,6 @@ object IntSet {
           else if (x > elem) P3(right, x, y)
           else true
       }
-    } ensuring(_ =>  ((s incl x) contains y)==(s contains y))
+    } ensuring (_ => ((s incl x) contains y) == (s contains y))
   }
 }

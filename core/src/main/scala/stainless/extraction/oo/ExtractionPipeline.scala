@@ -31,11 +31,13 @@ trait SimpleClasses extends CachingPhase {
   val t: Trees
 
   override protected type ClassResult = t.ClassDef
-  override protected def registerClasses(symbols: t.Symbols, classes: Seq[t.ClassDef]): t.Symbols = symbols.withClasses(classes)
+  override protected def registerClasses(symbols: t.Symbols, classes: Seq[t.ClassDef]): t.Symbols =
+    symbols.withClasses(classes)
 }
 
 trait SimplyCachedClasses extends CachingPhase {
-  override protected final val classCache: ExtractionCache[s.ClassDef, ClassResult] = new SimpleCache[s.ClassDef, ClassResult]
+  override protected final val classCache: ExtractionCache[s.ClassDef, ClassResult] =
+    new SimpleCache[s.ClassDef, ClassResult]
 }
 
 trait IdentityClasses extends SimpleClasses with SimplyCachedClasses { self =>

@@ -1,4 +1,3 @@
-
 object EffectfulVal {
 
   import stainless.util.Random

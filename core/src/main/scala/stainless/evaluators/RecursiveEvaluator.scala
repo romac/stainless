@@ -38,28 +38,31 @@ trait RecursiveEvaluator extends inox.evaluators.RecursiveEvaluator {
     case LargeArray(elems, default, size, base) =>
       LargeArray(elems.map(p => p._1 -> e(p._2)), e(default), e(size), base)
 
-    case ArraySelect(array, index) => (e(array), e(index)) match {
-      case (FiniteArray(elems, base), Int32Literal(i)) =>
-        if (i < 0 || i >= elems.size) throw RuntimeError("Index out of bounds @" + expr.getPos)
-        elems(i)
-      case (LargeArray(elems, default, Int32Literal(size), _), Int32Literal(i)) =>
-        if (i < 0 || i >= size) throw RuntimeError("Index out of bounds @" + expr.getPos)
-        elems.getOrElse(i, default)
-    }
+    case ArraySelect(array, index) =>
+      (e(array), e(index)) match {
+        case (FiniteArray(elems, base), Int32Literal(i)) =>
+          if (i < 0 || i >= elems.size) throw RuntimeError("Index out of bounds @" + expr.getPos)
+          elems(i)
+        case (LargeArray(elems, default, Int32Literal(size), _), Int32Literal(i)) =>
+          if (i < 0 || i >= size) throw RuntimeError("Index out of bounds @" + expr.getPos)
+          elems.getOrElse(i, default)
+      }
 
-    case ArrayUpdated(array, index, value) => (e(array), e(index)) match {
-      case (FiniteArray(elems, base), Int32Literal(i)) =>
-        if (i < 0 || i >= elems.size) throw RuntimeError("Index out of bounds @" + expr.getPos)
-        FiniteArray(elems.updated(i, e(value)), base)
-      case (LargeArray(elems, default, s @ Int32Literal(size), base), Int32Literal(i)) =>
-        if (i < 0 || i >= size) throw RuntimeError("Index out of bounds @" + expr.getPos)
-        LargeArray(elems + (i -> e(value)), default, s, base)
-    }
+    case ArrayUpdated(array, index, value) =>
+      (e(array), e(index)) match {
+        case (FiniteArray(elems, base), Int32Literal(i)) =>
+          if (i < 0 || i >= elems.size) throw RuntimeError("Index out of bounds @" + expr.getPos)
+          FiniteArray(elems.updated(i, e(value)), base)
+        case (LargeArray(elems, default, s @ Int32Literal(size), base), Int32Literal(i)) =>
+          if (i < 0 || i >= size) throw RuntimeError("Index out of bounds @" + expr.getPos)
+          LargeArray(elems + (i -> e(value)), default, s, base)
+      }
 
-    case ArrayLength(array) => e(array) match {
-      case FiniteArray(elems, _) => Int32Literal(elems.size)
-      case LargeArray(_, _, s, _) => s
-    }
+    case ArrayLength(array) =>
+      e(array) match {
+        case FiniteArray(elems, _) => Int32Literal(elems.size)
+        case LargeArray(_, _, s, _) => s
+      }
 
     case Error(tpe, msg) =>
       throw RuntimeError("Error reached in evaluation: " + msg)
@@ -73,8 +76,7 @@ trait RecursiveEvaluator extends inox.evaluators.RecursiveEvaluator {
     case _ => super.e(expr)
   }
 
-  protected def matchesCase(scrut: Expr, caze: MatchCase)
-                           (implicit rctx: RC, gctx: GC): Option[Map[ValDef, Expr]] = {
+  protected def matchesCase(scrut: Expr, caze: MatchCase)(implicit rctx: RC, gctx: GC): Option[Map[ValDef, Expr]] = {
 
     def obind(ob: Option[ValDef], e: Expr): Map[ValDef, Expr] = {
       Map.empty[ValDef, Expr] ++ ob.map(_ -> e)
@@ -150,9 +152,7 @@ object RecursiveEvaluator {
     new {
       val program: p.type = p
       val context = ctx
-    } with RecursiveEvaluator
-      with inox.evaluators.HasDefaultGlobalContext
-      with inox.evaluators.HasDefaultRecContext {
+    } with RecursiveEvaluator with inox.evaluators.HasDefaultGlobalContext with inox.evaluators.HasDefaultRecContext {
 
       val semantics = p.getSemantics
     }

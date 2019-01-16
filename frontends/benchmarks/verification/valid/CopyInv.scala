@@ -1,4 +1,3 @@
-
 object CopyInv {
 
   case class Foo(x: BigInt) {

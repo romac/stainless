@@ -10,12 +10,16 @@ object ShortCircuit {
     var b = true
     a && { b = false; true }
     b
-  } ensuring { res => res != a }
+  } ensuring { res =>
+    res != a
+  }
 
   def negateOr(a: Boolean) = {
     var b = false
     a || { b = true; true }
     b
-  } ensuring { res => res != a }
+  } ensuring { res =>
+    res != a
+  }
 
 }

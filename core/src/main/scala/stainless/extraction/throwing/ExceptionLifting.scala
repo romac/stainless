@@ -4,11 +4,8 @@ package stainless
 package extraction
 package throwing
 
-trait ExceptionLifting
-  extends oo.ExtractionPipeline
-     with IdentityFunctions
-     with IdentitySorts
-     with oo.IdentityClasses { self =>
+trait ExceptionLifting extends oo.ExtractionPipeline with IdentityFunctions with IdentitySorts with oo.IdentityClasses {
+  self =>
 
   val s: Trees
   val t: oo.Trees

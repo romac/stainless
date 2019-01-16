@@ -11,16 +11,16 @@ object MutableField {
   }
 
   case class Nat() extends Box {
-    require(c.v >= 0)         // should not be allowed (?)
+    require(c.v >= 0) // should not be allowed (?)
 
     def extract(): BigInt = {
       c.v
-    } ensuring(_ >= 0)
+    } ensuring (_ >= 0)
   }
 
-  def theorem() = { 
+  def theorem() = {
     val n = Nat()
     n.load(-1)
-    assert(n.extract() == 0)  // should be -1
+    assert(n.extract() == 0) // should be -1
   }
 }

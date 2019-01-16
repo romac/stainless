@@ -25,26 +25,28 @@ trait SyntheticSorts extends ExtractionCaches { self: CachingPhase =>
         }
       }
 
-      val syntheticFunction: t.FunDef = createFunction(
-        syntheticOption.id,
-        syntheticOption.constructors.find(_.fields.isEmpty).get.id)
+      val syntheticFunction: t.FunDef =
+        createFunction(syntheticOption.id, syntheticOption.constructors.find(_.fields.isEmpty).get.id)
 
       val cache = new SimpleCache[s.ADTSort, t.FunDef]
-      (symbols: s.Symbols) => symbols.lookup.get[s.ADTSort]("stainless.lang.Option") match {
-        case Some(sort) => cache.cached(sort) {
-          createFunction(sort.id, sort.constructors.find(_.fields.isEmpty).get.id)
+      (symbols: s.Symbols) =>
+        symbols.lookup.get[s.ADTSort]("stainless.lang.Option") match {
+          case Some(sort) =>
+            cache.cached(sort) {
+              createFunction(sort.id, sort.constructors.find(_.fields.isEmpty).get.id)
+            }
+          case None => syntheticFunction
         }
-        case None => syntheticFunction
-      }
     }
 
     private[this] val syntheticGet: s.Symbols => t.FunDef = {
       def createFunction(option: Identifier, some: Identifier, value: Identifier): t.FunDef = {
         val get = ast.SymbolIdentifier("stainless.lang.Option.get")
         mkFunDef(get, t.Unchecked, t.Synthetic)("A") {
-          case Seq(aT) => (Seq("x" :: T(option)(aT)), aT, {
-            case Seq(v) => t.Require(v is some, v.getField(value))
-          })
+          case Seq(aT) =>
+            (Seq("x" :: T(option)(aT)), aT, {
+              case Seq(v) => t.Require(v is some, v.getField(value))
+            })
         }
       }
 
@@ -54,13 +56,15 @@ trait SyntheticSorts extends ExtractionCaches { self: CachingPhase =>
       }
 
       val cache = new SimpleCache[s.ADTSort, t.FunDef]
-      (symbols: s.Symbols) => symbols.lookup.get[s.ADTSort]("stainless.lang.Option") match {
-        case Some(sort) => cache.cached(sort) {
-          val some = sort.constructors.find(_.fields.nonEmpty).get
-          createFunction(sort.id, some.id, some.fields.head.id)
+      (symbols: s.Symbols) =>
+        symbols.lookup.get[s.ADTSort]("stainless.lang.Option") match {
+          case Some(sort) =>
+            cache.cached(sort) {
+              val some = sort.constructors.find(_.fields.nonEmpty).get
+              createFunction(sort.id, some.id, some.fields.head.id)
+            }
+          case None => syntheticFunction
         }
-        case None => syntheticFunction
-      }
     }
 
     private[this] def optionSort(implicit symbols: s.Symbols): inox.ast.Trees#ADTSort =
@@ -94,8 +98,8 @@ trait SyntheticSorts extends ExtractionCaches { self: CachingPhase =>
 
     def key(implicit symbols: s.Symbols): CacheKey = new SeqKey(
       symbols.lookup.get[s.ADTSort]("stainless.lang.Option").map(SortKey(_)).toSeq ++
-      symbols.lookup.get[s.FunDef]("stainless.lang.Option.isEmpty").map(FunctionKey(_)) ++
-      symbols.lookup.get[s.FunDef]("stainless.lang.Option.get").map(FunctionKey(_))
+        symbols.lookup.get[s.FunDef]("stainless.lang.Option.isEmpty").map(FunctionKey(_)) ++
+        symbols.lookup.get[s.FunDef]("stainless.lang.Option.get").map(FunctionKey(_))
     )
   }
 }

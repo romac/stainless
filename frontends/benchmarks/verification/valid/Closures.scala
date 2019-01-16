@@ -3,8 +3,8 @@
 import stainless.lang._
 
 object Closures {
-  def addX(x: Int): Int => Int = {
-    (a: Int) => a + x
+  def addX(x: Int): Int => Int = { (a: Int) =>
+    a + x
   }
 
   def test(x: Int): Boolean = {

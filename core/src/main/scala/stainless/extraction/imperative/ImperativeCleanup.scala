@@ -11,10 +11,7 @@ package imperative
   * common case is the generation of function returning tuple with
   * Unit in it, which can be safely eliminated.
   */
-trait ImperativeCleanup
-  extends SimplePhase
-     with SimplyCachedFunctions
-     with SimplyCachedSorts { self =>
+trait ImperativeCleanup extends SimplePhase with SimplyCachedFunctions with SimplyCachedSorts { self =>
 
   val s: Trees
   val t: extraction.Trees
@@ -26,7 +23,7 @@ trait ImperativeCleanup
     import symbols._
 
     def isImperativeFlag(f: s.Flag): Boolean = f match {
-      case s.IsPure | s.IsVar| s.IsMutable => true
+      case s.IsPure | s.IsVar | s.IsMutable => true
       case _ => false
     }
 
@@ -42,14 +39,14 @@ trait ImperativeCleanup
         val (lhs, rhs, recons): (s.Expr, s.Expr, (t.Expr, t.Expr) => t.Expr) = expr match {
           case s.BoolBitwiseAnd(lhs, rhs) => (lhs, rhs, t.And(_, _).copiedFrom(expr))
           case s.BoolBitwiseOr(lhs, rhs) => (lhs, rhs, t.Or(_, _).copiedFrom(expr))
-          case s.BoolBitwiseXor(lhs, rhs) => (lhs, rhs, (l,r) => t.Not(t.Equals(l, r).copiedFrom(expr)).copiedFrom(expr))
+          case s.BoolBitwiseXor(lhs, rhs) =>
+            (lhs, rhs, (l, r) => t.Not(t.Equals(l, r).copiedFrom(expr)).copiedFrom(expr))
         }
 
         val l = t.ValDef(FreshIdentifier("lhs"), transform(lhs.getType)).copiedFrom(lhs)
         val r = t.ValDef(FreshIdentifier("rhs"), transform(rhs.getType)).copiedFrom(rhs)
-        t.Let(l, transform(lhs),
-          t.Let(r, transform(rhs),
-            recons(l.toVariable, r.toVariable)).copiedFrom(expr)).copiedFrom(expr)
+        t.Let(l, transform(lhs), t.Let(r, transform(rhs), recons(l.toVariable, r.toVariable)).copiedFrom(expr))
+          .copiedFrom(expr)
 
       case s.Variable(id, tpe, flags) =>
         t.Variable(id, transform(tpe), flags filterNot isImperativeFlag map transform).copiedFrom(expr)
@@ -63,20 +60,24 @@ trait ImperativeCleanup
     }
   }
 
-  private def checkNoOld(expr: s.Expr): Unit = s.exprOps.preTraversal {
-    case o @ s.Old(_) =>
-      throw MissformedStainlessCode(o, s"Stainless `old` can only occur in postconditions.")
-    case _ => ()
-  } (expr)
+  private def checkNoOld(expr: s.Expr): Unit =
+    s.exprOps.preTraversal {
+      case o @ s.Old(_) =>
+        throw MissformedStainlessCode(o, s"Stainless `old` can only occur in postconditions.")
+      case _ => ()
+    }(expr)
 
-  private def checkValidOldUsage(expr: s.Expr): Unit = s.exprOps.preTraversal {
-    case o @ s.Old(s.ADTSelector(v: s.Variable, id)) =>
-      throw MissformedStainlessCode(o,
-        s"Stainless `old` can only occur on `this` and variables. Did you mean `old($v).$id`?")
-    case o @ s.Old(e) =>
-      throw MissformedStainlessCode(o, s"Stainless `old` is only defined on `this` and variables.")
-    case _ => ()
-  } (expr)
+  private def checkValidOldUsage(expr: s.Expr): Unit =
+    s.exprOps.preTraversal {
+      case o @ s.Old(s.ADTSelector(v: s.Variable, id)) =>
+        throw MissformedStainlessCode(
+          o,
+          s"Stainless `old` can only occur on `this` and variables. Did you mean `old($v).$id`?"
+        )
+      case o @ s.Old(e) =>
+        throw MissformedStainlessCode(o, s"Stainless `old` is only defined on `this` and variables.")
+      case _ => ()
+    }(expr)
 
   override protected def extractFunction(context: TransformerContext, fd: s.FunDef): t.FunDef = {
     val (specs, body) = s.exprOps.deconstructSpecs(fd.fullBody)(context.symbols)

@@ -3,7 +3,6 @@
 package stainless
 package verification
 
-
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -11,7 +10,7 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 
 import scala.collection.concurrent.TrieMap
-import scala.util.{ Success, Failure }
+import scala.util.{Success, Failure}
 
 import inox.solvers.SolverFactory
 
@@ -21,11 +20,11 @@ object DebugSectionCacheHit extends inox.DebugSection("cachehit")
 object DebugSectionCacheMiss extends inox.DebugSection("cachemiss")
 
 /**
- * VerificationChecker with cache for VC results.
- *
- * NOTE Several instance of this trait can be created, but under the constraint that they
- *      all share the same [[inox.Context]] because the cache file is shared among all instances.
- */
+  * VerificationChecker with cache for VC results.
+  *
+  * NOTE Several instance of this trait can be created, but under the constraint that they
+  *      all share the same [[inox.Context]] because the cache file is shared among all instances.
+  */
 trait VerificationCache extends VerificationChecker { self =>
   val program: StainlessProgram
 
@@ -71,7 +70,8 @@ trait VerificationCache extends VerificationChecker { self =>
             debug("Cache miss for VC")
             debug(vc.condition)
 
-            implicit val printerOpts = new PrinterOptions(printUniqueIds = true, printTypes = true, symbols = Some(canonicalSymbols))
+            implicit val printerOpts =
+              new PrinterOptions(printUniqueIds = true, printTypes = true, symbols = Some(canonicalSymbols))
             debug("Canonical symbols:")
             debug(" ## SORTS ##")
             debug(canonicalSymbols.sorts.values.map(_.asString).toList.sorted.mkString("\n\n"))
@@ -80,10 +80,10 @@ trait VerificationCache extends VerificationChecker { self =>
             debug("Canonical verification condition:")
             debug(canonicalExpr)
             debug("--------------")
-          } (DebugSectionCacheMiss)
+          }(DebugSectionCacheMiss)
         }
 
-        val result = super.checkVC(vc,sf)
+        val result = super.checkVC(vc, sf)
         if (result.isValid) {
           vccache addPersistently key
         }
@@ -124,19 +124,18 @@ object VerificationCache {
       else new FileOutputStream(cacheFile)
   }
 
-
   /**
-   * Only two tasks for the cache loader:
-   *  - initialize the cache from the file,
-   *  - return the same [[Cache]] instance for the same [[File]].
-   */
+    * Only two tasks for the cache loader:
+    *  - initialize the cache from the file,
+    *  - return the same [[Cache]] instance for the same [[File]].
+    */
   private object CacheLoader {
 
     private val db = scala.collection.mutable.Map[File, Cache]()
 
     /**
-     * Opens an ObjectInputStream and catches corruption errors
-     */
+      * Opens an ObjectInputStream and catches corruption errors
+      */
     private def openStream(ctx: inox.Context, file: File): InputStream = {
       try new FileInputStream(file)
       catch {
@@ -146,8 +145,8 @@ object VerificationCache {
     }
 
     /**
-     * Closes an ObjectInputStream and catches potential IO errors
-     */
+      * Closes an ObjectInputStream and catches potential IO errors
+      */
     private def closeStream(ctx: inox.Context, in: InputStream, file: File) = {
       try in.close()
       catch {
@@ -156,38 +155,37 @@ object VerificationCache {
       }
     }
 
-
-
     /**
-     * Create a cache with the data stored in the given file if it exists.
-     *
-     * NOTE This function assumes the file is not written by another process
-     *      while being loaded!
-     */
+      * Create a cache with the data stored in the given file if it exists.
+      *
+      * NOTE This function assumes the file is not written by another process
+      *      while being loaded!
+      */
     def get(ctx: inox.Context): Cache = this.synchronized {
       val cacheFile: File = utils.Caches.getCacheFile(ctx, "vccache.bin")
 
-      db.getOrElseUpdate(cacheFile, {
-        val cache = new Cache(cacheFile)
+      db.getOrElseUpdate(
+        cacheFile, {
+          val cache = new Cache(cacheFile)
 
-        if (cacheFile.exists) {
-          val in = openStream(ctx, cacheFile)
+          if (cacheFile.exists) {
+            val in = openStream(ctx, cacheFile)
 
-          try {
-            while (true) {
-              val s = serializer.deserialize[SerializationResult](in)
-              cache += s
+            try {
+              while (true) {
+                val s = serializer.deserialize[SerializationResult](in)
+                cache += s
+              }
+            } catch {
+              case e: java.io.EOFException => // Silently consume expected exception.
+            } finally {
+              closeStream(ctx, in, cacheFile)
             }
-          } catch {
-            case e: java.io.EOFException => // Silently consume expected exception.
-          } finally {
-            closeStream(ctx, in, cacheFile)
           }
-        }
 
-        cache
-      })
+          cache
+        }
+      )
     }
   }
 }
-

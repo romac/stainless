@@ -6,6 +6,6 @@ object Main {
     def g() = {
       s = s + 1
       assert(f(this, old(this)))
-    } 
+    }
   }
 }

@@ -13,10 +13,11 @@ import stainless.proof._
 sealed abstract class List[T] {
 
   @isabelle.function(term = "Int.int o List.length")
-  def size: BigInt = (this match {
-    case Nil() => BigInt(0)
-    case Cons(h, t) => 1 + t.size
-  }) ensuring (_ >= 0)
+  def size: BigInt =
+    (this match {
+      case Nil() => BigInt(0)
+      case Cons(h, t) => 1 + t.size
+    }) ensuring (_ >= 0)
 
   def length = size
 
@@ -27,20 +28,22 @@ sealed abstract class List[T] {
   }
 
   @isabelle.function(term = "List.member")
-  def contains(v: T): Boolean = (this match {
-    case Cons(h, t) => h == v || t.contains(v)
-    case Nil() => false
-  }) ensuring { _ == (content contains v) }
+  def contains(v: T): Boolean =
+    (this match {
+      case Cons(h, t) => h == v || t.contains(v)
+      case Nil() => false
+    }) ensuring { _ == (content contains v) }
 
   @isabelle.function(term = "List.append")
-  def ++(that: List[T]): List[T] = (this match {
-    case Nil() => that
-    case Cons(x, xs) => Cons(x, xs ++ that)
-  }) ensuring { res =>
-    (res.content == this.content ++ that.content) &&
-    (res.size == this.size + that.size) &&
-    (that != Nil[T]() || res == this)
-  }
+  def ++(that: List[T]): List[T] =
+    (this match {
+      case Nil() => that
+      case Cons(x, xs) => Cons(x, xs ++ that)
+    }) ensuring { res =>
+      (res.content == this.content ++ that.content) &&
+      (res.size == this.size + that.size) &&
+      (that != Nil[T]() || res == this)
+    }
 
   def head: T = {
     require(this != Nil[T]())
@@ -60,80 +63,86 @@ sealed abstract class List[T] {
     if (index == BigInt(0)) {
       head
     } else {
-      tail(index-1)
+      tail(index - 1)
     }
   }
 
   @isabelle.function(term = "%xs x. x # xs")
-  def ::(t:T): List[T] = Cons(t, this)
+  def ::(t: T): List[T] = Cons(t, this)
 
   @isabelle.function(term = "%xs x. xs @ [x]")
-  def :+(t:T): List[T] = {
+  def :+(t: T): List[T] = {
     this match {
       case Nil() => Cons(t, this)
       case Cons(x, xs) => Cons(x, xs :+ (t))
     }
-  } ensuring(res => (res.size == size + 1) && (res.content == content ++ Set(t)))
+  } ensuring (res => (res.size == size + 1) && (res.content == content ++ Set(t)))
 
   @isabelle.function(term = "List.rev")
   def reverse: List[T] = {
     this match {
       case Nil() => this
-      case Cons(x,xs) => xs.reverse :+ x
+      case Cons(x, xs) => xs.reverse :+ x
     }
   } ensuring (res => (res.size == size) && (res.content == content))
 
-  def take(i: BigInt): List[T] = { (this, i) match {
-    case (Nil(), _) => Nil[T]()
-    case (Cons(h, t), i) =>
-      if (i <= BigInt(0)) {
-        Nil[T]()
-      } else {
-        Cons(h, t.take(i-1))
-      }
-  }} ensuring { res =>
+  def take(i: BigInt): List[T] = {
+    (this, i) match {
+      case (Nil(), _) => Nil[T]()
+      case (Cons(h, t), i) =>
+        if (i <= BigInt(0)) {
+          Nil[T]()
+        } else {
+          Cons(h, t.take(i - 1))
+        }
+    }
+  } ensuring { res =>
     res.content.subsetOf(this.content) && (res.size == (
-      if      (i <= 0)         BigInt(0)
+      if (i <= 0) BigInt(0)
       else if (i >= this.size) this.size
-      else                     i
+      else i
     ))
   }
 
-  def drop(i: BigInt): List[T] = { (this, i) match {
-    case (Nil(), _) => Nil[T]()
-    case (Cons(h, t), i) =>
-      if (i <= BigInt(0)) {
-        Cons[T](h, t)
-      } else {
-        t.drop(i-1)
-      }
-  }} ensuring { res =>
+  def drop(i: BigInt): List[T] = {
+    (this, i) match {
+      case (Nil(), _) => Nil[T]()
+      case (Cons(h, t), i) =>
+        if (i <= BigInt(0)) {
+          Cons[T](h, t)
+        } else {
+          t.drop(i - 1)
+        }
+    }
+  } ensuring { res =>
     res.content.subsetOf(this.content) && (res.size == (
-      if      (i <= 0)         this.size
+      if (i <= 0) this.size
       else if (i >= this.size) BigInt(0)
-      else                     this.size - i
+      else this.size - i
     ))
   }
 
   def slice(from: BigInt, to: BigInt): List[T] = {
     require(0 <= from && from <= to && to <= size)
-    drop(from).take(to-from)
+    drop(from).take(to - from)
   }
 
-  def replace(from: T, to: T): List[T] = { this match {
-    case Nil() => Nil[T]()
-    case Cons(h, t) =>
-      val r = t.replace(from, to)
-      if (h == from) {
-        Cons(to, r)
-      } else {
-        Cons(h, r)
-      }
-  }} ensuring { (res: List[T]) =>
+  def replace(from: T, to: T): List[T] = {
+    this match {
+      case Nil() => Nil[T]()
+      case Cons(h, t) =>
+        val r = t.replace(from, to)
+        if (h == from) {
+          Cons(to, r)
+        } else {
+          Cons(h, r)
+        }
+    }
+  } ensuring { (res: List[T]) =>
     res.size == this.size &&
     res.content == (
       (this.content -- Set(from)) ++
-      (if (this.content contains from) Set(to) else Set[T]())
+        (if (this.content contains from) Set(to) else Set[T]())
     )
   }
 
@@ -148,9 +157,9 @@ sealed abstract class List[T] {
         }
       case Cons(h, t) =>
         if (s0 == BigInt(0)) {
-          chunk0(s, t, Cons(h, Nil()), res :+ acc, s-1)
+          chunk0(s, t, Cons(h, Nil()), res :+ acc, s - 1)
         } else {
-          chunk0(s, t, acc :+ h, res, s0-1)
+          chunk0(s, t, acc :+ h, res, s0 - 1)
         }
     }
   }
@@ -162,66 +171,78 @@ sealed abstract class List[T] {
   }
 
   @isabelle.function(term = "List.zip")
-  def zip[B](that: List[B]): List[(T, B)] = { (this, that) match {
-    case (Cons(h1, t1), Cons(h2, t2)) =>
-      Cons((h1, h2), t1.zip(t2))
-    case _ =>
-      Nil[(T, B)]()
-  }} ensuring { _.size == (
-    if (this.size <= that.size) this.size else that.size
-  )}
+  def zip[B](that: List[B]): List[(T, B)] = {
+    (this, that) match {
+      case (Cons(h1, t1), Cons(h2, t2)) =>
+        Cons((h1, h2), t1.zip(t2))
+      case _ =>
+        Nil[(T, B)]()
+    }
+  } ensuring {
+    _.size == (
+      if (this.size <= that.size) this.size else that.size
+    )
+  }
 
   @isabelle.function(term = "%xs x. removeAll x xs")
-  def -(e: T): List[T] = { this match {
-    case Cons(h, t) =>
-      if (e == h) {
-        t - e
-      } else {
-        Cons(h, t - e)
-      }
-    case Nil() =>
-      Nil[T]()
-  }} ensuring { res =>
+  def -(e: T): List[T] = {
+    this match {
+      case Cons(h, t) =>
+        if (e == h) {
+          t - e
+        } else {
+          Cons(h, t - e)
+        }
+      case Nil() =>
+        Nil[T]()
+    }
+  } ensuring { res =>
     res.size <= this.size &&
     res.content == this.content -- Set(e)
   }
 
-  def --(that: List[T]): List[T] = { this match {
-    case Cons(h, t) =>
-      if (that.contains(h)) {
-        t -- that
-      } else {
-        Cons(h, t -- that)
-      }
-    case Nil() =>
-      Nil[T]()
-  }} ensuring { res =>
+  def --(that: List[T]): List[T] = {
+    this match {
+      case Cons(h, t) =>
+        if (that.contains(h)) {
+          t -- that
+        } else {
+          Cons(h, t -- that)
+        }
+      case Nil() =>
+        Nil[T]()
+    }
+  } ensuring { res =>
     res.size <= this.size &&
     res.content == this.content -- that.content
   }
 
-  def &(that: List[T]): List[T] = { this match {
-    case Cons(h, t) =>
-      if (that.contains(h)) {
-        Cons(h, t & that)
-      } else {
-        t & that
-      }
-    case Nil() =>
-      Nil[T]()
-  }} ensuring { res =>
+  def &(that: List[T]): List[T] = {
+    this match {
+      case Cons(h, t) =>
+        if (that.contains(h)) {
+          Cons(h, t & that)
+        } else {
+          t & that
+        }
+      case Nil() =>
+        Nil[T]()
+    }
+  } ensuring { res =>
     res.size <= this.size &&
     res.content == (this.content & that.content)
   }
 
-  def padTo(s: BigInt, e: T): List[T] = { (this, s) match {
-    case (_, s) if s <= 0 =>
-      this
-    case (Nil(), s) =>
-      Cons(e, Nil().padTo(s-1, e))
-    case (Cons(h, t), s) =>
-      Cons(h, t.padTo(s-1, e))
-  }} ensuring { res =>
+  def padTo(s: BigInt, e: T): List[T] = {
+    (this, s) match {
+      case (_, s) if s <= 0 =>
+        this
+      case (Nil(), s) =>
+        Cons(e, Nil().padTo(s - 1, e))
+      case (Cons(h, t), s) =>
+        Cons(h, t.padTo(s - 1, e))
+    }
+  } ensuring { res =>
     if (s <= this.size)
       res == this
     else
@@ -229,58 +250,67 @@ sealed abstract class List[T] {
       res.content == this.content ++ Set(e)
   }
 
-  def indexOf(elem: T): BigInt = { this match {
-    case Nil() => BigInt(-1)
-    case Cons(h, t) if h == elem => BigInt(0)
-    case Cons(h, t) =>
-      val rec = t.indexOf(elem)
-      if (rec == BigInt(-1)) BigInt(-1)
-      else rec + 1
-  }} ensuring { res =>
+  def indexOf(elem: T): BigInt = {
+    this match {
+      case Nil() => BigInt(-1)
+      case Cons(h, t) if h == elem => BigInt(0)
+      case Cons(h, t) =>
+        val rec = t.indexOf(elem)
+        if (rec == BigInt(-1)) BigInt(-1)
+        else rec + 1
+    }
+  } ensuring { res =>
     (res >= 0) == content.contains(elem)
-        }
+  }
 
   def init: List[T] = {
     require(!isEmpty)
-    (this : @unchecked) match {
+    (this: @unchecked) match {
       case Cons(h, Nil()) =>
         Nil[T]()
       case Cons(h, t) =>
         Cons[T](h, t.init)
     }
-  } ensuring ( (r: List[T]) =>
-    r.size == this.size - 1 &&
-    r.content.subsetOf(this.content)
-  )
+  } ensuring (
+      (r: List[T]) =>
+        r.size == this.size - 1 &&
+          r.content.subsetOf(this.content)
+    )
 
   def last: T = {
     require(!isEmpty)
-    (this : @unchecked) match {
+    (this: @unchecked) match {
       case Cons(h, Nil()) => h
       case Cons(_, t) => t.last
     }
   } ensuring { this.contains _ }
 
-  def lastOption: Option[T] = { this match {
-    case Cons(h, t) =>
-      t.lastOption.orElse(Some(h))
-    case Nil() =>
-      None[T]()
-  }} ensuring { _.isDefined != this.isEmpty }
+  def lastOption: Option[T] = {
+    this match {
+      case Cons(h, t) =>
+        t.lastOption.orElse(Some(h))
+      case Nil() =>
+        None[T]()
+    }
+  } ensuring { _.isDefined != this.isEmpty }
 
-  def headOption: Option[T] = { this match {
-    case Cons(h, t) =>
-      Some(h)
-    case Nil() =>
-      None[T]()
-  }} ensuring { _.isDefined != this.isEmpty }
+  def headOption: Option[T] = {
+    this match {
+      case Cons(h, t) =>
+        Some(h)
+      case Nil() =>
+        None[T]()
+    }
+  } ensuring { _.isDefined != this.isEmpty }
 
-  def tailOption: Option[List[T]] = { this match {
-    case Cons(h, t) =>
-      Some(t)
-    case Nil() =>
-      None[List[T]]()
-  }} ensuring { _.isDefined != this.isEmpty }
+  def tailOption: Option[List[T]] = {
+    this match {
+      case Cons(h, t) =>
+        Some(t)
+      case Nil() =>
+        None[List[T]]()
+    }
+  } ensuring { _.isDefined != this.isEmpty }
 
   def unique: List[T] = this match {
     case Nil() => Nil()
@@ -288,7 +318,7 @@ sealed abstract class List[T] {
       Cons(h, t.unique - h)
   }
 
-  def splitAt(e: T): List[List[T]] =  split(Cons(e, Nil()))
+  def splitAt(e: T): List[List[T]] = split(Cons(e, Nil()))
 
   def split(seps: List[T]): List[List[T]] = this match {
     case Cons(h, t) =>
@@ -303,21 +333,23 @@ sealed abstract class List[T] {
   }
 
   def evenSplit: (List[T], List[T]) = {
-    val c = size/2
+    val c = size / 2
     (take(c), drop(c))
   }
 
-  def splitAtIndex(index: BigInt) : (List[T], List[T]) = { this match {
-    case Nil() => (Nil[T](), Nil[T]())
-    case Cons(h, rest) => {
-      if (index <= BigInt(0)) {
-        (Nil[T](), this)
-      } else {
-        val (left,right) = rest.splitAtIndex(index - 1)
-        (Cons[T](h,left), right)
+  def splitAtIndex(index: BigInt): (List[T], List[T]) = {
+    this match {
+      case Nil() => (Nil[T](), Nil[T]())
+      case Cons(h, rest) => {
+        if (index <= BigInt(0)) {
+          (Nil[T](), this)
+        } else {
+          val (left, right) = rest.splitAtIndex(index - 1)
+          (Cons[T](h, left), right)
+        }
       }
     }
-  }} ensuring { (res:(List[T],List[T])) =>
+  } ensuring { (res: (List[T], List[T])) =>
     res._1 ++ res._2 == this &&
     res._1 == take(index) && res._2 == drop(index)
   }
@@ -334,12 +366,12 @@ sealed abstract class List[T] {
 
   private def insertAtImpl(pos: BigInt, l: List[T]): List[T] = {
     require(0 <= pos && pos <= size)
-    if(pos == BigInt(0)) {
+    if (pos == BigInt(0)) {
       l ++ this
     } else {
       this match {
         case Cons(h, t) =>
-          Cons(h, t.insertAtImpl(pos-1, l))
+          Cons(h, t.insertAtImpl(pos - 1, l))
         case Nil() =>
           l
       }
@@ -351,7 +383,7 @@ sealed abstract class List[T] {
 
   def insertAt(pos: BigInt, l: List[T]): List[T] = {
     require(-pos <= size && pos <= size)
-    if(pos < 0) {
+    if (pos < 0) {
       insertAtImpl(size + pos, l)
     } else {
       insertAtImpl(pos, l)
@@ -376,7 +408,7 @@ sealed abstract class List[T] {
     } else {
       this match {
         case Cons(h, t) =>
-          Cons(h, t.replaceAtImpl(pos-1, l))
+          Cons(h, t.replaceAtImpl(pos - 1, l))
         case Nil() =>
           l
       }
@@ -387,7 +419,7 @@ sealed abstract class List[T] {
 
   def replaceAt(pos: BigInt, l: List[T]): List[T] = {
     require(-pos <= size && pos <= size)
-    if(pos < 0) {
+    if (pos < 0) {
       replaceAtImpl(size + pos, l)
     } else {
       replaceAtImpl(pos, l)
@@ -416,44 +448,52 @@ sealed abstract class List[T] {
 
   // Higher-order API
   @isabelle.function(term = "%xs f. List.list.map f xs")
-  def map[R](f: T => R): List[R] = { this match {
-    case Nil() => Nil[R]()
-    case Cons(h, t) => f(h) :: t.map(f)
-  }} ensuring { _.size == this.size }
+  def map[R](f: T => R): List[R] = {
+    this match {
+      case Nil() => Nil[R]()
+      case Cons(h, t) => f(h) :: t.map(f)
+    }
+  } ensuring { _.size == this.size }
 
   @isabelle.function(term = "%bs a f. List.foldl f a bs")
-  def foldLeft[R](z: R)(f: (R,T) => R): R = this match {
+  def foldLeft[R](z: R)(f: (R, T) => R): R = this match {
     case Nil() => z
-    case Cons(h,t) => t.foldLeft(f(z,h))(f)
+    case Cons(h, t) => t.foldLeft(f(z, h))(f)
   }
 
   @isabelle.function(term = "%as b f. List.foldr f as b")
-  def foldRight[R](z: R)(f: (T,R) => R): R = this match {
+  def foldRight[R](z: R)(f: (T, R) => R): R = this match {
     case Nil() => z
     case Cons(h, t) => f(h, t.foldRight(z)(f))
   }
 
-  def scanLeft[R](z: R)(f: (R,T) => R): List[R] = { this match {
-    case Nil() => z :: Nil()
-    case Cons(h,t) => z :: t.scanLeft(f(z,h))(f)
-  }} ensuring { !_.isEmpty }
+  def scanLeft[R](z: R)(f: (R, T) => R): List[R] = {
+    this match {
+      case Nil() => z :: Nil()
+      case Cons(h, t) => z :: t.scanLeft(f(z, h))(f)
+    }
+  } ensuring { !_.isEmpty }
 
-  def scanRight[R](z: R)(f: (T,R) => R): List[R] = { this match {
-    case Nil() => z :: Nil[R]()
-    case Cons(h, t) =>
-      val rest@Cons(h1,_) = t.scanRight(z)(f)
-      f(h, h1) :: rest
-  }} ensuring { !_.isEmpty }
+  def scanRight[R](z: R)(f: (T, R) => R): List[R] = {
+    this match {
+      case Nil() => z :: Nil[R]()
+      case Cons(h, t) =>
+        val rest @ Cons(h1, _) = t.scanRight(z)(f)
+        f(h, h1) :: rest
+    }
+  } ensuring { !_.isEmpty }
 
   @isabelle.function(term = "List.bind")
   def flatMap[R](f: T => List[R]): List[R] =
     ListOps.flatten(this map f)
 
-  def filter(p: T => Boolean): List[T] = { this match {
-    case Nil() => Nil[T]()
-    case Cons(h, t) if p(h) => Cons(h, t.filter(p))
-    case Cons(_, t) => t.filter(p)
-  }} ensuring { res =>
+  def filter(p: T => Boolean): List[T] = {
+    this match {
+      case Nil() => Nil[T]()
+      case Cons(h, t) if p(h) => Cons(h, t.filter(p))
+      case Cons(_, t) => t.filter(p)
+    }
+  } ensuring { res =>
     res.size <= this.size &&
     res.content.subsetOf(this.content) &&
     res.forall(p)
@@ -466,13 +506,15 @@ sealed abstract class List[T] {
       res.forall(!p(_))
     }
 
-  def partition(p: T => Boolean): (List[T], List[T]) = { this match {
-    case Nil() => (Nil[T](), Nil[T]())
-    case Cons(h, t) =>
-      val (l1, l2) = t.partition(p)
-      if (p(h)) (h :: l1, l2)
-      else      (l1, h :: l2)
-  }} ensuring { res =>
+  def partition(p: T => Boolean): (List[T], List[T]) = {
+    this match {
+      case Nil() => (Nil[T](), Nil[T]())
+      case Cons(h, t) =>
+        val (l1, l2) = t.partition(p)
+        if (p(h)) (h :: l1, l2)
+        else (l1, h :: l2)
+    }
+  } ensuring { res =>
     res._1 == filter(p) &&
     res._2 == filterNot(p)
   }
@@ -490,13 +532,17 @@ sealed abstract class List[T] {
   def exists(p: T => Boolean) = !forall(!p(_))
 
   @isabelle.function(term = "%xs P. List.find P xs")
-  def find(p: T => Boolean): Option[T] = { this match {
-    case Nil() => None[T]()
-    case Cons(h, t) => if (p(h)) Some(h) else t.find(p)
-  }} ensuring { res => res match {
-    case Some(r) => (content contains r) && p(r)
-    case None() => true
-  }}
+  def find(p: T => Boolean): Option[T] = {
+    this match {
+      case Nil() => None[T]()
+      case Cons(h, t) => if (p(h)) Some(h) else t.find(p)
+    }
+  } ensuring { res =>
+    res match {
+      case Some(r) => (content contains r) && p(r)
+      case None() => true
+    }
+  }
 
   def groupBy[R](f: T => R): Map[R, List[T]] = this match {
     case Nil() => Map.empty[R, List[T]]
@@ -504,49 +550,56 @@ sealed abstract class List[T] {
       val key: R = f(h)
       val rest: Map[R, List[T]] = t.groupBy(f)
       val prev: List[T] = if (rest isDefinedAt key) rest(key) else Nil[T]()
-      (rest ++ Map((key, h :: prev))) : Map[R, List[T]]
+      (rest ++ Map((key, h :: prev))): Map[R, List[T]]
   }
 
-  def takeWhile(p: T => Boolean): List[T] = { this match {
-    case Cons(h,t) if p(h) => Cons(h, t.takeWhile(p))
-    case _ => Nil[T]()
-  }} ensuring { res =>
+  def takeWhile(p: T => Boolean): List[T] = {
+    this match {
+      case Cons(h, t) if p(h) => Cons(h, t.takeWhile(p))
+      case _ => Nil[T]()
+    }
+  } ensuring { res =>
     (res forall p) &&
     (res.size <= this.size) &&
     (res.content subsetOf this.content)
   }
 
-  def dropWhile(p: T => Boolean): List[T] = { this match {
-    case Cons(h,t) if p(h) => t.dropWhile(p)
-    case _ => this
-  }} ensuring { res =>
+  def dropWhile(p: T => Boolean): List[T] = {
+    this match {
+      case Cons(h, t) if p(h) => t.dropWhile(p)
+      case _ => this
+    }
+  } ensuring { res =>
     (res.size <= this.size) &&
     (res.content subsetOf this.content) &&
     (res.isEmpty || !p(res.head))
   }
 
-  def count(p: T => Boolean): BigInt = { this match {
-    case Nil() => BigInt(0)
-    case Cons(h, t) =>
-      (if (p(h)) BigInt(1) else BigInt(0)) + t.count(p)
-  }} ensuring {
+  def count(p: T => Boolean): BigInt = {
+    this match {
+      case Nil() => BigInt(0)
+      case Cons(h, t) =>
+        (if (p(h)) BigInt(1) else BigInt(0)) + t.count(p)
+    }
+  } ensuring {
     _ == this.filter(p).size
   }
 
-  def indexWhere(p: T => Boolean): BigInt = { this match {
-    case Nil() => BigInt(-1)
-    case Cons(h, _) if p(h) => BigInt(0)
-    case Cons(_, t) => 
-      val rec = t.indexWhere(p)
-      if (rec >= 0) rec + BigInt(1)
-      else BigInt(-1)
-  }} ensuring { 
+  def indexWhere(p: T => Boolean): BigInt = {
+    this match {
+      case Nil() => BigInt(-1)
+      case Cons(h, _) if p(h) => BigInt(0)
+      case Cons(_, t) =>
+        val rec = t.indexWhere(p)
+        if (rec >= 0) rec + BigInt(1)
+        else BigInt(-1)
+    }
+  } ensuring {
     _ >= BigInt(0) == (this exists p)
   }
 
-
   // Translation to other collections
-  def toSet: Set[T] = foldLeft(Set[T]()){ 
+  def toSet: Set[T] = foldLeft(Set[T]()) {
     case (current, next) => current ++ Set(next)
   }
 }
@@ -570,20 +623,25 @@ object List {
   }
 
   @library
-  def fill[T](n: BigInt)(x: T) : List[T] = {
+  def fill[T](n: BigInt)(x: T): List[T] = {
     if (n <= 0) Nil[T]()
-    else Cons[T](x, fill[T](n-1)(x))
-  } ensuring(res => (res.content == (if (n <= BigInt(0)) Set.empty[T] else Set(x))) &&
-                    res.size == (if (n <= BigInt(0)) BigInt(0) else n))
-           
+    else Cons[T](x, fill[T](n - 1)(x))
+  } ensuring (
+      res =>
+        (res.content == (if (n <= BigInt(0)) Set.empty[T] else Set(x))) &&
+          res.size == (if (n <= BigInt(0)) BigInt(0) else n)
+    )
+
   /* Range from start (inclusive) to until (exclusive) */
   @library
   def range(start: BigInt, until: BigInt): List[BigInt] = {
     require(start <= until)
     decreases(until - start)
-    if(until <= start) Nil[BigInt]() else Cons(start, range(start + 1, until))
-  } ensuring{(res: List[BigInt]) => res.size == until - start }
-  
+    if (until <= start) Nil[BigInt]() else Cons(start, range(start + 1, until))
+  } ensuring { (res: List[BigInt]) =>
+    res.size == until - start
+  }
+
   @library
   def mkString[A](l: List[A], mid: String, f: A => String) = {
     def rec(l: List[A]): String = l match {
@@ -608,14 +666,16 @@ object ListOps {
   def isSorted(ls: List[BigInt]): Boolean = ls match {
     case Nil() => true
     case Cons(_, Nil()) => true
-    case Cons(h1, Cons(h2, _)) if(h1 > h2) => false
+    case Cons(h1, Cons(h2, _)) if (h1 > h2) => false
     case Cons(_, t) => isSorted(t)
   }
 
-  def sorted(ls: List[BigInt]): List[BigInt] = { ls match {
-    case Cons(h, t) => sortedIns(sorted(t), h)
-    case Nil() => Nil[BigInt]()
-  }} ensuring { isSorted _ }
+  def sorted(ls: List[BigInt]): List[BigInt] = {
+    ls match {
+      case Cons(h, t) => sortedIns(sorted(t), h)
+      case Nil() => Nil[BigInt]()
+    }
+  } ensuring { isSorted _ }
 
   private def sortedIns(ls: List[BigInt], v: BigInt): List[BigInt] = {
     require(isSorted(ls))
@@ -628,9 +688,11 @@ object ListOps {
           Cons(h, sortedIns(t, v))
         }
     }
-  } ensuring { res => isSorted(res) && res.content == ls.content + v }
+  } ensuring { res =>
+    isSorted(res) && res.content == ls.content + v
+  }
 
-  def toMap[K, V](l: List[(K, V)]): Map[K, V] = l.foldLeft(Map[K, V]()){
+  def toMap[K, V](l: List[(K, V)]): Map[K, V] = l.foldLeft(Map[K, V]()) {
     case (current, (k, v)) => current ++ Map(k -> v)
   }
 }
@@ -644,7 +706,6 @@ object :: {
   }
 }
 
-
 import ListOps._
 
 @library
@@ -655,7 +716,7 @@ object ListSpecs {
   }.holds because (
     l match {
       case Nil() => true
-      case Cons(x, xs) => if (i > 0) snocIndex[T](xs, t, i-1) else true
+      case Cons(x, xs) => if (i > 0) snocIndex[T](xs, t, i - 1) else true
     }
   )
 
@@ -669,10 +730,12 @@ object ListSpecs {
   def reverseIndex[T](l: List[T], i: BigInt): Boolean = {
     require(0 <= i && i < l.size)
     l.reverse.apply(i) == l.apply(l.size - 1 - i)
-  }.holds because(
+  }.holds because (
     l match {
       case Nil() => true
-      case Cons(x,xs) => snocIndex(xs.reverse, x, i) && (if (i < xs.size) consIndex(x, xs, l.size - 1 - i) && reverseIndex[T](xs, i) else true)
+      case Cons(x, xs) =>
+        snocIndex(xs.reverse, x, i) && (if (i < xs.size) consIndex(x, xs, l.size - 1 - i) && reverseIndex[T](xs, i)
+                                        else true)
     }
   )
 
@@ -682,24 +745,24 @@ object ListSpecs {
     l match {
       case Nil() => true
       case Cons(y, ys) => {
-        ((y :: ys) :+ x).last   ==| trivial         |
-        (y :: (ys :+ x)).last   ==| trivial         |
-        (ys :+ x).last          ==| snocLast(ys, x) |
-        x
+        ((y :: ys) :+ x).last ==| trivial |
+          (y :: (ys :+ x)).last ==| trivial |
+          (ys :+ x).last ==| snocLast(ys, x) |
+          x
       }.qed
     }
   }
 
   def headReverseLast[T](l: List[T]): Boolean = {
-    require (!l.isEmpty)
+    require(!l.isEmpty)
     (l.head == l.reverse.last)
   }.holds because {
     val Cons(x, xs) = l;
     {
-      (x :: xs).head           ==| trivial                 |
-      x                        ==| snocLast(xs.reverse, x) |
-      (xs.reverse :+ x).last   ==| trivial                 |
-      (x :: xs).reverse.last
+      (x :: xs).head ==| trivial |
+        x ==| snocLast(xs.reverse, x) |
+        (xs.reverse :+ x).last ==| trivial |
+        (x :: xs).reverse.last
     }.qed
   }
 
@@ -709,7 +772,7 @@ object ListSpecs {
   }.holds because {
     l1 match {
       case Nil() => true
-      case Cons(x,xs) =>
+      case Cons(x, xs) =>
         (i != BigInt(0)) ==> appendIndex[T](xs, l2, i - 1)
     }
   }
@@ -735,7 +798,7 @@ object ListSpecs {
   }.holds because {
     l match {
       case Nil() => true
-      case Cons(x,xs) => snocIsAppend(xs,t)
+      case Cons(x, xs) => snocIsAppend(xs, t)
     }
   }
 
@@ -744,7 +807,7 @@ object ListSpecs {
   }.holds because {
     l1 match {
       case Nil() => true
-      case Cons(x,xs) => snocAfterAppend(xs,l2,t)
+      case Cons(x, xs) => snocAfterAppend(xs, l2, t)
     }
   }
 
@@ -753,7 +816,7 @@ object ListSpecs {
   }.holds because {
     l match {
       case Nil() => true
-      case Cons(x,xs) => snocReverse(xs,t)
+      case Cons(x, xs) => snocReverse(xs, t)
     }
   }
 
@@ -761,11 +824,11 @@ object ListSpecs {
     l.reverse.reverse == l
   }.holds because {
     l match {
-      case Nil()       => trivial
+      case Nil() => trivial
       case Cons(x, xs) => {
         (xs.reverse :+ x).reverse ==| snocReverse[T](xs.reverse, x) |
-        x :: xs.reverse.reverse   ==| reverseReverse[T](xs)         |
-        (x :: xs)
+          x :: xs.reverse.reverse ==| reverseReverse[T](xs) |
+          (x :: xs)
       }.qed
     }
   }
@@ -775,19 +838,19 @@ object ListSpecs {
   }.holds because {
     l1 match {
       case Nil() => {
-        (Nil() ++ l2).reverse         ==| trivial                     |
-        l2.reverse                    ==| rightUnitAppend(l2.reverse) |
-        l2.reverse ++ Nil()           ==| trivial                     |
-        l2.reverse ++ Nil().reverse
+        (Nil() ++ l2).reverse ==| trivial |
+          l2.reverse ==| rightUnitAppend(l2.reverse) |
+          l2.reverse ++ Nil() ==| trivial |
+          l2.reverse ++ Nil().reverse
       }.qed
       case Cons(x, xs) => {
-        ((x :: xs) ++ l2).reverse         ==| trivial               |
-        (x :: (xs ++ l2)).reverse         ==| trivial               |
-        (xs ++ l2).reverse :+ x           ==| reverseAppend(xs, l2) |
-        (l2.reverse ++ xs.reverse) :+ x   ==|
-          snocAfterAppend(l2.reverse, xs.reverse, x)                |
-        l2.reverse ++ (xs.reverse :+ x)   ==| trivial               |
-        l2.reverse ++ (x :: xs).reverse
+        ((x :: xs) ++ l2).reverse ==| trivial |
+          (x :: (xs ++ l2)).reverse ==| trivial |
+          (xs ++ l2).reverse :+ x ==| reverseAppend(xs, l2) |
+          (l2.reverse ++ xs.reverse) :+ x ==|
+            snocAfterAppend(l2.reverse, xs.reverse, x) |
+          l2.reverse ++ (xs.reverse :+ x) ==| trivial |
+          l2.reverse ++ (x :: xs).reverse
       }.qed
     }
   }
@@ -803,24 +866,24 @@ object ListSpecs {
 
   def folds[A, B](xs: List[A], z: B, f: (B, A) => B): Boolean = {
     val f2 = (x: A, z: B) => f(z, x)
-    ( xs.foldLeft(z)(f) == xs.reverse.foldRight(z)(f2) ) because {
+    (xs.foldLeft(z)(f) == xs.reverse.foldRight(z)(f2)) because {
       xs match {
         case Nil() => true
         case Cons(x, xs) => {
-          (x :: xs).foldLeft(z)(f)              ==| trivial               |
-          xs.foldLeft(f(z, x))(f)               ==| folds(xs, f(z, x), f) |
-          xs.reverse.foldRight(f(z, x))(f2)     ==| trivial               |
-          xs.reverse.foldRight(f2(x, z))(f2)    ==|
-            snocFoldRight(xs.reverse, x, z, f2)                           |
-          (xs.reverse :+ x).foldRight(z)(f2)    ==| trivial               |
-          (x :: xs).reverse.foldRight(z)(f2)
+          (x :: xs).foldLeft(z)(f) ==| trivial |
+            xs.foldLeft(f(z, x))(f) ==| folds(xs, f(z, x), f) |
+            xs.reverse.foldRight(f(z, x))(f2) ==| trivial |
+            xs.reverse.foldRight(f2(x, z))(f2) ==|
+              snocFoldRight(xs.reverse, x, z, f2) |
+            (xs.reverse :+ x).foldRight(z)(f2) ==| trivial |
+            (x :: xs).reverse.foldRight(z)(f2)
         }.qed
       }
     }
   }.holds
 
   def scanVsFoldLeft[A, B](l: List[A], z: B, f: (B, A) => B): Boolean = {
-    ( l.scanLeft(z)(f).last == l.foldLeft(z)(f) )
+    (l.scanLeft(z)(f).last == l.foldLeft(z)(f))
   }.holds because {
     l match {
       case Nil() => true
@@ -842,7 +905,7 @@ object ListSpecs {
   //}.holds
 
   @induct
-  def scanVsFoldRight[A,B](l: List[A], z: B, f: (A,B) => B): Boolean = {
+  def scanVsFoldRight[A, B](l: List[A], z: B, f: (A, B) => B): Boolean = {
     l.scanRight(z)(f).head == l.foldRight(z)(f)
   }.holds
 
@@ -852,16 +915,16 @@ object ListSpecs {
 
   def flattenPreservesContent[T](ls: List[List[T]]): Boolean = {
     val f: (List[T], Set[T]) => Set[T] = _.content ++ _
-    ( flatten(ls).content == ls.foldRight(Set[T]())(f) ) because {
+    (flatten(ls).content == ls.foldRight(Set[T]())(f)) because {
       ls match {
         case Nil() => true
         case Cons(h, t) => {
-          flatten(h :: t).content                     ==| trivial                       |
-          (h ++ flatten(t)).content                   ==| appendContent(h, flatten(t))  |
-          h.content ++ flatten(t).content             ==| flattenPreservesContent(t)    |
-          h.content ++ t.foldRight(Set[T]())(f)       ==| trivial                       |
-          f(h, Set[T]()) ++ t.foldRight(Set[T]())(f)  ==| trivial                       |
-          (h :: t).foldRight(Set[T]())(f)
+          flatten(h :: t).content ==| trivial |
+            (h ++ flatten(t)).content ==| appendContent(h, flatten(t)) |
+            h.content ++ flatten(t).content ==| flattenPreservesContent(t) |
+            h.content ++ t.foldRight(Set[T]())(f) ==| trivial |
+            f(h, Set[T]()) ++ t.foldRight(Set[T]())(f) ==| trivial |
+            (h :: t).foldRight(Set[T]())(f)
         }.qed
       }
     }
@@ -871,11 +934,10 @@ object ListSpecs {
   def appendUpdate[T](l1: List[T], l2: List[T], i: BigInt, y: T): Boolean = {
     require(0 <= i && i < l1.size + l2.size)
     // lemma
-    ((l1 ++ l2).updated(i, y) == (
-      if (i < l1.size)
-        l1.updated(i, y) ++ l2
-      else
-        l1 ++ l2.updated(i - l1.size, y)))
+    ((l1 ++ l2).updated(i, y) == (if (i < l1.size)
+                                    l1.updated(i, y) ++ l2
+                                  else
+                                    l1 ++ l2.updated(i - l1.size, y)))
   }.holds because (
     // induction scheme
     l1 match {
@@ -887,14 +949,12 @@ object ListSpecs {
   // a lemma about `append`, `take` and `drop`
   def appendTakeDrop[T](l1: List[T], l2: List[T], n: BigInt): Boolean = {
     // lemma
-    ((l1 ++ l2).take(n) == (
-      if (n < l1.size) l1.take(n)
-      else if (n > l1.size) l1 ++ l2.take(n - l1.size)
-      else l1)) &&
-      ((l1 ++ l2).drop(n) == (
-        if (n < l1.size) l1.drop(n) ++ l2
-        else if (n > l1.size) l2.drop(n - l1.size)
-        else l2))
+    ((l1 ++ l2).take(n) == (if (n < l1.size) l1.take(n)
+                            else if (n > l1.size) l1 ++ l2.take(n - l1.size)
+                            else l1)) &&
+    ((l1 ++ l2).drop(n) == (if (n < l1.size) l1.drop(n) ++ l2
+                            else if (n > l1.size) l2.drop(n - l1.size)
+                            else l2))
   }.holds because (
     //induction scheme
     l1 match {
@@ -907,16 +967,15 @@ object ListSpecs {
   def appendInsert[T](l1: List[T], l2: List[T], i: BigInt, y: T): Boolean = {
     require(0 <= i && i <= l1.size + l2.size)
     // lemma
-    (l1 ++ l2).insertAt(i, y) == (
-      if (i < l1.size) l1.insertAt(i, y) ++ l2
-      else l1 ++ l2.insertAt(i - l1.size, y))
+    (l1 ++ l2).insertAt(i, y) == (if (i < l1.size) l1.insertAt(i, y) ++ l2
+                                  else l1 ++ l2.insertAt(i - l1.size, y))
   }.holds because (
     l1 match {
       case Nil() => true
       case Cons(x, xs) => if (i == 0) true else appendInsert[T](xs, l2, i - 1, y)
     }
   )
-  
+
   /** A way to apply the forall axiom */
   def applyForAll[T](l: List[T], i: BigInt, p: T => Boolean): Boolean = {
     require(i >= 0 && i < l.length && l.forall(p))
@@ -924,7 +983,7 @@ object ListSpecs {
   }.holds because (
     l match {
       case Nil() => trivial
-      case Cons(head, tail) => if(i == 0) p(head) else applyForAll(l.tail, i - 1, p)
+      case Cons(head, tail) => if (i == 0) p(head) else applyForAll(l.tail, i - 1, p)
     }
   )
 }

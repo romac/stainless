@@ -8,7 +8,7 @@ object QuickSortFilter {
   def quickSort(ls: List[BigInt]): List[BigInt] = ls match {
     case Nil() => Nil[BigInt]()
     case Cons(x, Nil()) => ls
-    case Cons(x, xs) => quickSort(xs filter (_ < x)) ++ Cons(x, xs filter(_ == x)) ++ quickSort(xs filter (_ > x))
+    case Cons(x, xs) => quickSort(xs filter (_ < x)) ++ Cons(x, xs filter (_ == x)) ++ quickSort(xs filter (_ > x))
   }
 
   def isSorted(ls: List[BigInt]): Boolean = ls match {
@@ -74,12 +74,14 @@ object QuickSortFilter {
 
       assert(
         filter_preserves_forall(xs, _ < x, p) &&
-        filter_preserves_forall(xs, _ == x, p) &&
-        filter_preserves_forall(xs, _ > x, p))
+          filter_preserves_forall(xs, _ == x, p) &&
+          filter_preserves_forall(xs, _ > x, p)
+      )
 
       assert(
         sort_preserves_forall(less, p) &&
-        sort_preserves_forall(more, p))
+          sort_preserves_forall(more, p)
+      )
 
       append_preserves_forall(quickSort(less), equal, p) &&
       append_preserves_forall(quickSort(less) ++ equal, quickSort(more), p)

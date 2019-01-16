@@ -22,15 +22,15 @@ object EvaluatorReport {
   implicit val statusEncoder: Encoder[Status] = deriveEncoder
 
   /**
-   * Hold the information relative to the evaluation of a function.
-   *
-   * [[id]]: function's identifier
-   * [[pos]]: function's position
-   * [[status]]: result of the evaluation, see above
-   * [[time]]: amount of time that the evaluation took
-   */
+    * Hold the information relative to the evaluation of a function.
+    *
+    * [[id]]: function's identifier
+    * [[pos]]: function's position
+    * [[status]]: result of the evaluation, see above
+    * [[time]]: amount of time that the evaluation took
+    */
   case class Record(id: Identifier, pos: inox.utils.Position, status: Status, time: Long)
-    extends AbstractReportHelper.Record {
+      extends AbstractReportHelper.Record {
     override val derivedFrom = id
   }
 
@@ -44,7 +44,7 @@ object EvaluatorReport {
 }
 
 class EvaluatorReport(val results: Seq[EvaluatorReport.Record], val sources: Set[Identifier])
-  extends BuildableAbstractReport[EvaluatorReport.Record, EvaluatorReport] {
+    extends BuildableAbstractReport[EvaluatorReport.Record, EvaluatorReport] {
   import EvaluatorReport._
 
   override val encoder = recordEncoder
@@ -60,7 +60,9 @@ class EvaluatorReport(val results: Seq[EvaluatorReport.Record], val sources: Set
   }
 
   private lazy val totalTime = (results map { _.time }).sum
-  private lazy val totalValid = results count { r => levelOf(r.status) == Level.Normal }
+  private lazy val totalValid = results count { r =>
+    levelOf(r.status) == Level.Normal
+  }
   private lazy val totalInvalid = results.size - totalValid
 
   override lazy val stats =
@@ -79,4 +81,3 @@ class EvaluatorReport(val results: Seq[EvaluatorReport.Record], val sources: Set
     case NoPost(body) => "successful"
   }
 }
-

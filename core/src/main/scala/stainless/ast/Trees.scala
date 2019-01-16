@@ -4,12 +4,12 @@ package stainless
 package ast
 
 trait Trees
-  extends inox.ast.Trees
-     with Definitions
-     with Expressions
-     with Constructors
-     with Deconstructors
-     with TreeOps { self =>
+    extends inox.ast.Trees
+    with Definitions
+    with Expressions
+    with Constructors
+    with Deconstructors
+    with TreeOps { self =>
 
   type Symbol = ast.Symbol
   type SymbolIdentifier = ast.SymbolIdentifier

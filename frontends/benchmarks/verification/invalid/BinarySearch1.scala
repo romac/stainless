@@ -7,8 +7,8 @@ object BinarySearch1 {
       val i = (lo + hi) / 2
       val y = arr(i)
       if (x == y) true
-      else if (x < y) search(arr, x, lo, i-1)
-      else search(arr, x, i+1, hi)
+      else if (x < y) search(arr, x, lo, i - 1)
+      else search(arr, x, i + 1, hi)
     } else {
       false
     }

@@ -9,14 +9,14 @@ object MergeSortTermination {
 
   def size(l: List): BigInt = {
     l match {
-      case Nil()       => BigInt(0)
+      case Nil() => BigInt(0)
       case Cons(x, xs) => 1 + size(xs)
     }
   } ensuring (res => res >= 0)
 
   def length(l: List): BigInt = {
     l match {
-      case Nil()       => BigInt(0)
+      case Nil() => BigInt(0)
       case Cons(x, xs) => 1 + length(xs)
     }
   } ensuring (res => res >= 0 && res == size(l))
@@ -34,23 +34,24 @@ object MergeSortTermination {
       }
   } ensuring (res => size(res._2) == size(l) - n && size(res._1) == n)
 
-  def merge(l1: List, l2: List): List = (l2 match {
-    case Nil() => l1
-    case Cons(x, xs) =>
-      l1 match {
-        case Nil() => l2
-        case Cons(y, ys) =>
-          if (y < x)
-            Cons(y, merge(ys, l2))
-          else
-            Cons(x, merge(l1, xs))
-      }
-  }) ensuring (res => size(l1) + size(l2) == size(res))
+  def merge(l1: List, l2: List): List =
+    (l2 match {
+      case Nil() => l1
+      case Cons(x, xs) =>
+        l1 match {
+          case Nil() => l2
+          case Cons(y, ys) =>
+            if (y < x)
+              Cons(y, merge(ys, l2))
+            else
+              Cons(x, merge(l1, xs))
+        }
+    }) ensuring (res => size(l1) + size(l2) == size(res))
 
   def mergeSort(l: List): List = {
     decreases(size(l))
     l match {
-      case Nil()          => l
+      case Nil() => l
       case Cons(x, Nil()) => l
       case _ =>
         val (fst, snd) = split(l, length(l) / 2)

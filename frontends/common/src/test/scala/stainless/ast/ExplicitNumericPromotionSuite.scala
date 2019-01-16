@@ -11,11 +11,9 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
     """|object Shift1 {
        | def foo(i: Byte, j: Long) = i << j
        |} """.stripMargin,
-
     """|object Shift3 {
        | def foo(i: Short, j: Long) = i >> j
        |} """.stripMargin,
-
     """|object Shift2 {
        | def foo(i: Int, j: Long) = i >>> j
        |} """.stripMargin
@@ -39,7 +37,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def gun(i: Int) = -i
        |
        |} """.stripMargin,
-
     """|object Longs {
        |
        |  def foo(i: Long, j: Long) = i + j
@@ -49,7 +46,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def gun(i: Long) = +i
        |
        |} """.stripMargin,
-
     """|object IntByte {
        |
        |  def foo(i: Int, j: Byte) = i + j
@@ -57,7 +53,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def bar(i: Int, j: Byte) = i & j
        |
        |} """.stripMargin,
-
     """|object ByteInt {
        |
        |  def foo(i: Byte, j: Int) = i + j
@@ -65,7 +60,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def bar(i: Byte, j: Int) = i & j
        |
        |} """.stripMargin,
-
     """|object IntShort {
        |
        |  def foo(i: Int, j: Short) = i + j
@@ -73,13 +67,11 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def bar(i: Int, j: Short) = i & j
        |
        |} """.stripMargin,
-
     """|object ByteShort {
        |
        |  def foo(i: Byte, j: Short) = i + j
        |
        |} """.stripMargin,
-
     """|object MixWithLong {
        |
        |  def foo(i: Long, j: Int) = i + j
@@ -87,7 +79,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def bar(i: Byte, j: Long) = i | j
        |
        |} """.stripMargin,
-
     """|object Shifts {
        |
        |  def fun1 (i: Byte,  j: Byte ) = i <<  j
@@ -111,7 +102,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def fun16(i: Long,  j: Long ) = i <<  j
        |
        |} """.stripMargin,
-
     """|object Bytes {
        |
        |  def foo(i: Byte, j: Byte) = i + j
@@ -123,7 +113,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def hun(i: Byte) = +i
        |
        |} """.stripMargin,
-
     """|object ExplicitCast {
        |
        |  def foo1(i: Int)  = bar(i.toByte)
@@ -132,7 +121,6 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
        |  def bar(i: Byte) = i
        |
        |} """.stripMargin,
-
     """|object ImplicitCast {
        |
        |  def foo1(i: Byte)  = bar1(i) // implicit i.toInt here
@@ -179,15 +167,14 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
     }
   }
 
-  val i8  = V("i", Int8Type())
-  val j8  = V("j", Int8Type())
+  val i8 = V("i", Int8Type())
+  val j8 = V("j", Int8Type())
   val i16 = V("i", Int16Type())
   val j16 = V("j", Int16Type())
   val i32 = V("i", Int32Type())
   val j32 = V("j", Int32Type())
   val i64 = V("i", Int64Type())
   val j64 = V("j", Int64Type())
-
 
   test("No redundant cast on arithmetic Int operations") {
     funDefBody("Ints.foo") match {
@@ -415,4 +402,3 @@ class ExplicitNumericPromotionSuite extends FunSuite with InputUtils {
   }
 
 }
-

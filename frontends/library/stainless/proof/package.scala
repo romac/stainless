@@ -38,15 +38,15 @@ package object proof {
   }.holds
 
   /**
-   * Relational reasoning.
-   *
-   *         {
-   *           ((y :: ys) :+ x).last   ^^ _ == _ ^^| trivial         |
-   *           (y :: (ys :+ x)).last   ==| trivial         |
-   *           (ys :+ x).last          ==| snocLast(ys, x) |
-   *           x
-   *         }.qed
-   */
+    * Relational reasoning.
+    *
+    *         {
+    *           ((y :: ys) :+ x).last   ^^ _ == _ ^^| trivial         |
+    *           (y :: (ys :+ x)).last   ==| trivial         |
+    *           (ys :+ x).last          ==| snocLast(ys, x) |
+    *           x
+    *         }.qed
+    */
   @library
   case class RelReasoning[A](x: A, prop: Boolean) {
 
@@ -66,4 +66,3 @@ package object proof {
     RelReasoning(x, true)
 
 }
-

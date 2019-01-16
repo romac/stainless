@@ -6,10 +6,10 @@ import annotation._
 import math._
 
 /**
- * The packrat parser that uses the Expressions grammar presented in Bran Ford ICFP'02 paper.
- * The implementation is almost exactly as it was presented in the paper, but
- * here indices are passed around between parse functions, instead of strings.
- */
+  * The packrat parser that uses the Expressions grammar presented in Bran Ford ICFP'02 paper.
+  * The implementation is almost exactly as it was presented in the paper, but
+  * here indices are passed around between parse functions, instead of strings.
+  */
 object PackratParsing {
 
   sealed abstract class Terminal
@@ -20,30 +20,31 @@ object PackratParsing {
   case class Digit() extends Terminal
 
   /**
-   * A mutable array of tokens returned by the lexer.
-   * The string of tokens is reversed i.e,
-   * string(length-1) represents the first char and string(0) represents the last char.
-   */
+    * A mutable array of tokens returned by the lexer.
+    * The string of tokens is reversed i.e,
+    * string(length-1) represents the first char and string(0) represents the last char.
+    */
   @extern
   var string = Array[Terminal]()
 
   /**
-   * looking up the ith token
-   */
+    * looking up the ith token
+    */
   @extern
   def lookup(i: BigInt): Terminal = {
     string(i.toInt)
   }
 
   sealed abstract class Result {
+
     /**
-     * Checks if the index in the result (if any) is
-     * smaller than `i`
-     */
+      * Checks if the index in the result (if any) is
+      * smaller than `i`
+      */
     //@inline - makes Dotty compiler crash
     def smallerIndex(i: BigInt) = this match {
       case Parsed(m) => m < i
-      case _         => true
+      case _ => true
     }
   }
   case class Parsed(rest: BigInt) extends Result
@@ -51,7 +52,7 @@ object PackratParsing {
 
   def pAdd(i: BigInt): Result = {
     require(i >= 0)
-    decreases(2*abs(i) + 1)
+    decreases(2 * abs(i) + 1)
     // Rule 1: Add <- Mul + Add
     val mulRes = pMul(i)
     mulRes match {
@@ -71,7 +72,7 @@ object PackratParsing {
 
   def pMul(i: BigInt): Result = {
     require(i >= 0)
-    decreases(2*abs(i))
+    decreases(2 * abs(i))
     // Rule 1: Mul <- Prim *  Mul
     val primRes = pPrim(i)
     primRes match {
@@ -118,10 +119,10 @@ object PackratParsing {
   }
 
   /**
-   * Parsing a string of length 'n+1'.
-   * Word is represented as an array indexed by 'n'. We only pass around the index.
-   * The 'lookup' function will return a character of the array.
-   */
+    * Parsing a string of length 'n+1'.
+    * Word is represented as an array indexed by 'n'. We only pass around the index.
+    * The 'lookup' function will return a character of the array.
+    */
   def parse(n: BigInt): Result = {
     require(n >= 0)
     if (n == 0) invoke(n)

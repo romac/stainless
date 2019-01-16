@@ -1,4 +1,3 @@
-
 import stainless.lang._
 import stainless.collection._
 import stainless.annotation._
@@ -18,9 +17,9 @@ object actors {
   }
 
   case class ActorRef(
-    name: String,
-    @(ignore @field)
-    underlying: akka.actor.ActorRef
+      name: String,
+      @(ignore @field)
+      underlying: akka.actor.ActorRef
   ) {
 
     @inline
@@ -30,9 +29,9 @@ object actors {
   }
 
   case class ActorContext(
-    self: ActorRef,
-    @ghost
-    var toSend: List[(ActorRef, Msg)] = Nil()
+      self: ActorRef,
+      @ghost
+      var toSend: List[(ActorRef, Msg)] = Nil()
   ) {
 
     @inline
@@ -50,8 +49,8 @@ object actors {
 
   @ghost
   case class ActorSystem(
-    behaviors: Map[ActorRef, Behavior],
-    inboxes: Map[(ActorRef, ActorRef), List[Msg]]
+      behaviors: Map[ActorRef, Behavior],
+      inboxes: Map[(ActorRef, ActorRef), List[Msg]]
   ) {
 
     def step(from: ActorRef, to: ActorRef): ActorSystem = {

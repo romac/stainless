@@ -8,9 +8,9 @@ object NestedFunState10 {
 
     def getI = i
 
-    (while(i < 10) {
+    (while (i < 10) {
       i += 1
-    }) invariant(getI >= 0)
+    }) invariant (getI >= 0)
 
     assert(i == 10)
   }

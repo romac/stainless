@@ -14,12 +14,13 @@ trait VerificationAnalysis extends AbstractAnalysis {
   lazy val vrs: Seq[(VC[trees.type], VCResult[Model])] =
     results.toSeq.sortBy { case (vc, _) => (vc.fd.name, vc.kind.toString) }
 
-  private lazy val records = vrs map { case (vc, vr) =>
-    val time = vr.time.getOrElse(0L) // TODO make time mandatory (?)
-    val status = VerificationReport.Status(program)(vr.status)
-    val solverName = vr.solver map { _.name }
-    val source = symbols.getFunction(vc.fd).source
-    VerificationReport.Record(vc.fd, vc.getPos, time, status, solverName, vc.kind.name, derivedFrom = source)
+  private lazy val records = vrs map {
+    case (vc, vr) =>
+      val time = vr.time.getOrElse(0L) // TODO make time mandatory (?)
+      val status = VerificationReport.Status(program)(vr.status)
+      val solverName = vr.solver map { _.name }
+      val source = symbols.getFunction(vc.fd).source
+      VerificationReport.Record(vc.fd, vc.getPos, time, status, solverName, vc.kind.name, derivedFrom = source)
   }
 
   override val name = VerificationComponent.name
@@ -29,4 +30,3 @@ trait VerificationAnalysis extends AbstractAnalysis {
   override def toReport = new VerificationReport(records, sources)
 
 }
-

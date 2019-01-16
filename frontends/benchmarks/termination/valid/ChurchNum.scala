@@ -10,8 +10,9 @@ object ChurchNum {
 
   def id(x: BigInt): BigInt = x
 
-  def two(f: ((BigInt => BigInt) => BigInt => BigInt) => (BigInt => BigInt) => BigInt => BigInt)
-         (z: (BigInt => BigInt) => BigInt => BigInt) = {
+  def two(
+      f: ((BigInt => BigInt) => BigInt => BigInt) => (BigInt => BigInt) => BigInt => BigInt
+  )(z: (BigInt => BigInt) => BigInt => BigInt) = {
     f(f(z))
   }
 

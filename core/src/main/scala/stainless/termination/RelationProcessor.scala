@@ -41,40 +41,48 @@ trait RelationProcessor extends OrderingProcessor {
     val api = getAPI
 
     reporter.debug("- Searching for size decrease")
-    val decreasing = formulas.map({ case (fd, formulas) =>
-      val solved = formulas.map({ case (fid, (gt, ge)) =>
-        if (api.solveVALID(gt).contains(true)) Success
-        else if (api.solveVALID(ge).contains(true)) Dep(Set(fid))
-        else Failure
-      })
+    val decreasing = formulas.map({
+      case (fd, formulas) =>
+        val solved = formulas.map({
+          case (fid, (gt, ge)) =>
+            if (api.solveVALID(gt).contains(true)) Success
+            else if (api.solveVALID(ge).contains(true)) Dep(Set(fid))
+            else Failure
+        })
 
-      val result = if(solved.contains(Failure)) Failure else {
-        val deps = solved.collect({ case Dep(fds) => fds }).flatten
-        if (deps.isEmpty) Success
-        else Dep(deps)
-      }
-      fd -> result
+        val result =
+          if (solved.contains(Failure)) Failure
+          else {
+            val deps = solved.collect({ case Dep(fds) => fds }).flatten
+            if (deps.isEmpty) Success
+            else Dep(deps)
+          }
+        fd -> result
     })
 
     val (terminating, nonTerminating) = {
-      def currentReducing(fds: Set[FunDef], deps: List[(FunDef, Set[FunDef])]): (Set[FunDef], List[(FunDef, Set[FunDef])]) = {
+      def currentReducing(
+          fds: Set[FunDef],
+          deps: List[(FunDef, Set[FunDef])]
+      ): (Set[FunDef], List[(FunDef, Set[FunDef])]) = {
         val (okDeps, nokDeps) = deps.partition({ case (fd, deps) => deps.subsetOf(fds) })
         val newFds = fds ++ okDeps.map(_._1)
         (newFds, nokDeps)
       }
 
-      def fix[A,B](f: (A,B) => (A,B), a: A, b: B): (A,B) = {
+      def fix[A, B](f: (A, B) => (A, B), a: A, b: B): (A, B) = {
         val (na, nb) = f(a, b)
-        if(na == a && nb == b) (a,b) else fix(f, na, nb)
+        if (na == a && nb == b) (a, b) else fix(f, na, nb)
       }
 
       val ok = decreasing.collect({ case (fd, Success) => fd })
       val nok = decreasing.collect({ case (fd, Dep(fds)) => fd -> fds }).toList
-      val (allOk, allNok) = fixpoint[(Set[FunDef], List[(FunDef, Set[FunDef])])] { case (fds, deps) =>
-        val (okDeps, nokDeps) = deps.partition({ case (fd, deps) => deps.subsetOf(fds) })
-        val newFds = fds ++ okDeps.map(_._1)
-        (newFds, nokDeps)
-      } ((ok.toSet, nok))
+      val (allOk, allNok) = fixpoint[(Set[FunDef], List[(FunDef, Set[FunDef])])] {
+        case (fds, deps) =>
+          val (okDeps, nokDeps) = deps.partition({ case (fd, deps) => deps.subsetOf(fds) })
+          val newFds = fds ++ okDeps.map(_._1)
+          (newFds, nokDeps)
+      }((ok.toSet, nok))
 
       (allOk, allNok.map(_._1).toSet ++ decreasing.collect({ case (fd, Failure) => fd }))
     }

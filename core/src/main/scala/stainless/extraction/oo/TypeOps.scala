@@ -9,66 +9,67 @@ trait TypeOps extends imperative.TypeOps {
   import trees._
   import symbols._
 
-  protected def typeBound(tp1: Type, tp2: Type, upper: Boolean): Type = ((tp1, tp2) match {
-    case (Untyped, _) => Some(Untyped)
-    case (_, Untyped) => Some(Untyped)
+  protected def typeBound(tp1: Type, tp2: Type, upper: Boolean): Type =
+    ((tp1, tp2) match {
+      case (Untyped, _) => Some(Untyped)
+      case (_, Untyped) => Some(Untyped)
 
-    case (ct: ClassType, _) if ct.lookupClass.isEmpty => Some(Untyped)
-    case (_, ct: ClassType) if ct.lookupClass.isEmpty => Some(Untyped)
-    case (ct1: ClassType, ct2: ClassType) =>
-      if (upper) {
-        leastUpperClassBound(ct1, ct2)
-      } else {
-        greatestLowerClassBound(ct1, ct2)
-      }
+      case (ct: ClassType, _) if ct.lookupClass.isEmpty => Some(Untyped)
+      case (_, ct: ClassType) if ct.lookupClass.isEmpty => Some(Untyped)
+      case (ct1: ClassType, ct2: ClassType) =>
+        if (upper) {
+          leastUpperClassBound(ct1, ct2)
+        } else {
+          greatestLowerClassBound(ct1, ct2)
+        }
 
-    case (adt: ADTType, _) if adt.lookupSort.isEmpty => Some(Untyped)
-    case (_, adt: ADTType) if adt.lookupSort.isEmpty => Some(Untyped)
-    case (adt1: ADTType, adt2: ADTType) if adt1 == adt2 => Some(adt1)
+      case (adt: ADTType, _) if adt.lookupSort.isEmpty => Some(Untyped)
+      case (_, adt: ADTType) if adt.lookupSort.isEmpty => Some(Untyped)
+      case (adt1: ADTType, adt2: ADTType) if adt1 == adt2 => Some(adt1)
 
-    case (rt: RefinementType, _) => Some(typeBound(rt.getType, tp2, upper))
-    case (_, rt: RefinementType) => Some(typeBound(tp1, rt.getType, upper))
+      case (rt: RefinementType, _) => Some(typeBound(rt.getType, tp2, upper))
+      case (_, rt: RefinementType) => Some(typeBound(tp1, rt.getType, upper))
 
-    case (pi: PiType, _) => Some(typeBound(pi.getType, tp2, upper))
-    case (_, pi: PiType) => Some(typeBound(tp1, pi.getType, upper))
+      case (pi: PiType, _) => Some(typeBound(pi.getType, tp2, upper))
+      case (_, pi: PiType) => Some(typeBound(tp1, pi.getType, upper))
 
-    case (sigma: SigmaType, _) => Some(typeBound(sigma.getType, tp2, upper))
-    case (_, sigma: SigmaType) => Some(typeBound(tp1, sigma.getType, upper))
+      case (sigma: SigmaType, _) => Some(typeBound(sigma.getType, tp2, upper))
+      case (_, sigma: SigmaType) => Some(typeBound(tp1, sigma.getType, upper))
 
-    case (TypeBounds(lo, hi), tpe) => Some(typeBound(if (upper) hi else lo, tpe, upper))
-    case (tpe, TypeBounds(lo, hi)) => Some(typeBound(tpe, if (upper) hi else lo, upper))
+      case (TypeBounds(lo, hi), tpe) => Some(typeBound(if (upper) hi else lo, tpe, upper))
+      case (tpe, TypeBounds(lo, hi)) => Some(typeBound(tpe, if (upper) hi else lo, upper))
 
-    case (tp1: TypeParameter, tp2: TypeParameter) if tp1 == tp2 => Some(tp1)
-    case (tp: TypeParameter, tpe) if upper && isSubtypeOf(tpe, tp.lowerBound) => Some(tp)
-    case (tp: TypeParameter, tpe) if !upper && isSubtypeOf(tp.upperBound, tpe) => Some(tp)
-    case (tpe, tp: TypeParameter) if upper && isSubtypeOf(tpe, tp.lowerBound) => Some(tp)
-    case (tpe, tp: TypeParameter) if !upper && isSubtypeOf(tp.upperBound, tpe) => Some(tp)
+      case (tp1: TypeParameter, tp2: TypeParameter) if tp1 == tp2 => Some(tp1)
+      case (tp: TypeParameter, tpe) if upper && isSubtypeOf(tpe, tp.lowerBound) => Some(tp)
+      case (tp: TypeParameter, tpe) if !upper && isSubtypeOf(tp.upperBound, tpe) => Some(tp)
+      case (tpe, tp: TypeParameter) if upper && isSubtypeOf(tpe, tp.lowerBound) => Some(tp)
+      case (tpe, tp: TypeParameter) if !upper && isSubtypeOf(tp.upperBound, tpe) => Some(tp)
 
-    case (tp: TypeParameter, tpe) => Some(typeBound(tp.bounds, tpe, upper))
-    case (tpe, tp: TypeParameter) => Some(typeBound(tpe, tp.bounds, upper))
+      case (tp: TypeParameter, tpe) => Some(typeBound(tp.bounds, tpe, upper))
+      case (tpe, tp: TypeParameter) => Some(typeBound(tpe, tp.bounds, upper))
 
-    case (tp, AnyType()) if tp.getType.isTyped => Some(if (upper) AnyType() else tp)
-    case (AnyType(), tp) if tp.getType.isTyped => Some(if (upper) AnyType() else tp)
-    case (NothingType(), tp) if tp.getType.isTyped => Some(if (upper) tp else NothingType())
-    case (tp, NothingType()) if tp.getType.isTyped => Some(if (upper) tp else NothingType())
+      case (tp, AnyType()) if tp.getType.isTyped => Some(if (upper) AnyType() else tp)
+      case (AnyType(), tp) if tp.getType.isTyped => Some(if (upper) AnyType() else tp)
+      case (NothingType(), tp) if tp.getType.isTyped => Some(if (upper) tp else NothingType())
+      case (tp, NothingType()) if tp.getType.isTyped => Some(if (upper) tp else NothingType())
 
-    case (FunctionType(from1, to1), FunctionType(from2, to2)) if from1.size == from2.size =>
-      val in = (from1 zip from2).map { case (tp1, tp2) => typeBound(tp1, tp2, !upper) }
-      val out = typeBound(to1, to2, upper)
-      Some(FunctionType(in, out))
+      case (FunctionType(from1, to1), FunctionType(from2, to2)) if from1.size == from2.size =>
+        val in = (from1 zip from2).map { case (tp1, tp2) => typeBound(tp1, tp2, !upper) }
+        val out = typeBound(to1, to2, upper)
+        Some(FunctionType(in, out))
 
-    case (TupleType(ts1), TupleType(ts2)) if ts1.size == ts2.size =>
-      val tps = (ts1 zip ts2).map { case (tp1, tp2) => typeBound(tp1, tp2, upper) }
-      Some(TupleType(tps))
+      case (TupleType(ts1), TupleType(ts2)) if ts1.size == ts2.size =>
+        val tps = (ts1 zip ts2).map { case (tp1, tp2) => typeBound(tp1, tp2, upper) }
+        Some(TupleType(tps))
 
-    case (t1, t2) if t1 == t2 => Some(t1)
+      case (t1, t2) if t1 == t2 => Some(t1)
 
-    // maps are covariant in the OO type system
-    case (MapType(f1, t1), MapType(f2, t2)) if f1 == f2 =>
-      Some(MapType(f1, typeBound(t1, t2, upper)))
+      // maps are covariant in the OO type system
+      case (MapType(f1, t1), MapType(f2, t2)) if f1 == f2 =>
+        Some(MapType(f1, typeBound(t1, t2, upper)))
 
-    case _ => None
-  }).getOrElse(if (upper) AnyType() else NothingType()).getType
+      case _ => None
+    }).getOrElse(if (upper) AnyType() else NothingType()).getType
 
   /** Computes the tightest bound (upper or lower) of a sequence of types */
   private def typeBound(tps: Seq[Type], upper: Boolean): Type = {
@@ -135,50 +136,52 @@ trait TypeOps extends imperative.TypeOps {
 
   /** Collects the constraints that need to be solved for [[unify]].
     * Note: this is an override point. */
-  protected def unificationConstraints(t1: Type, t2: Type, free: Seq[TypeParameter]): List[(TypeParameter, Type)] = (t1, t2) match {
-    case (ct: ClassType, _) if ct.lookupClass.isEmpty => unsolvable
-    case (_, ct: ClassType) if ct.lookupClass.isEmpty => unsolvable
+  protected def unificationConstraints(t1: Type, t2: Type, free: Seq[TypeParameter]): List[(TypeParameter, Type)] =
+    (t1, t2) match {
+      case (ct: ClassType, _) if ct.lookupClass.isEmpty => unsolvable
+      case (_, ct: ClassType) if ct.lookupClass.isEmpty => unsolvable
 
-    case (adt: ADTType, _) if adt.lookupSort.isEmpty => unsolvable
-    case (_, adt: ADTType) if adt.lookupSort.isEmpty => unsolvable
+      case (adt: ADTType, _) if adt.lookupSort.isEmpty => unsolvable
+      case (_, adt: ADTType) if adt.lookupSort.isEmpty => unsolvable
 
-    case _ if t1 == t2 => Nil
+      case _ if t1 == t2 => Nil
 
-    case (ct1: ClassType, ct2: ClassType) if ct1.tcd.cd == ct2.tcd.cd =>
-      (ct1.tps zip ct2.tps).toList flatMap (p => unificationConstraints(p._1, p._2, free))
+      case (ct1: ClassType, ct2: ClassType) if ct1.tcd.cd == ct2.tcd.cd =>
+        (ct1.tps zip ct2.tps).toList flatMap (p => unificationConstraints(p._1, p._2, free))
 
-    case (adt1: ADTType, adt2: ADTType) if adt1.id == adt2.id =>
-      (adt1.tps zip adt2.tps).toList flatMap (p => unificationConstraints(p._1, p._2, free))
+      case (adt1: ADTType, adt2: ADTType) if adt1.id == adt2.id =>
+        (adt1.tps zip adt2.tps).toList flatMap (p => unificationConstraints(p._1, p._2, free))
 
-    case (rt: RefinementType, _) => unificationConstraints(rt.getType, t2, free)
-    case (_, rt: RefinementType) => unificationConstraints(t1, rt.getType, free)
+      case (rt: RefinementType, _) => unificationConstraints(rt.getType, t2, free)
+      case (_, rt: RefinementType) => unificationConstraints(t1, rt.getType, free)
 
-    case (pi: PiType, _) => unificationConstraints(pi.getType, t2, free)
-    case (_, pi: PiType) => unificationConstraints(t1, pi.getType, free)
+      case (pi: PiType, _) => unificationConstraints(pi.getType, t2, free)
+      case (_, pi: PiType) => unificationConstraints(t1, pi.getType, free)
 
-    case (sigma: SigmaType, _) => unificationConstraints(sigma.getType, t2, free)
-    case (_, sigma: SigmaType) => unificationConstraints(t1, sigma.getType, free)
+      case (sigma: SigmaType, _) => unificationConstraints(sigma.getType, t2, free)
+      case (_, sigma: SigmaType) => unificationConstraints(t1, sigma.getType, free)
 
-    case (TypeBounds(lo, hi), tpe) if lo == hi => unificationConstraints(hi, tpe, free)
-    case (tpe, TypeBounds(lo, hi)) if lo == hi => unificationConstraints(hi, tpe, free)
+      case (TypeBounds(lo, hi), tpe) if lo == hi => unificationConstraints(hi, tpe, free)
+      case (tpe, TypeBounds(lo, hi)) if lo == hi => unificationConstraints(hi, tpe, free)
 
-    case (tp: TypeParameter, _) if !(typeOps.typeParamsOf(t2) contains tp) && (free contains tp) => List(tp -> t2)
-    case (_, tp: TypeParameter) if !(typeOps.typeParamsOf(t1) contains tp) && (free contains tp) => List(tp -> t1)
-    case (_: TypeParameter, _) => unsolvable
-    case (_, _: TypeParameter) => unsolvable
+      case (tp: TypeParameter, _) if !(typeOps.typeParamsOf(t2) contains tp) && (free contains tp) => List(tp -> t2)
+      case (_, tp: TypeParameter) if !(typeOps.typeParamsOf(t1) contains tp) && (free contains tp) => List(tp -> t1)
+      case (_: TypeParameter, _) => unsolvable
+      case (_, _: TypeParameter) => unsolvable
 
-    case typeOps.Same(NAryType(ts1, _), NAryType(ts2, _)) if ts1.size == ts2.size =>
-      (ts1 zip ts2).toList flatMap (p => unificationConstraints(p._1, p._2, free))
-    case _ => unsolvable
-  }
+      case typeOps.Same(NAryType(ts1, _), NAryType(ts2, _)) if ts1.size == ts2.size =>
+        (ts1 zip ts2).toList flatMap (p => unificationConstraints(p._1, p._2, free))
+      case _ => unsolvable
+    }
 
   /** Solves the constraints collected by [[unificationConstraints]].
     * Note: this is an override point. */
   protected def unificationSolution(const: List[(Type, Type)]): List[(TypeParameter, Type)] = const match {
     case Nil => Nil
     case (tp: TypeParameter, t) :: tl =>
-      val replaced = tl map { case (t1, t2) =>
-        (typeOps.instantiateType(t1, Map(tp -> t)), typeOps.instantiateType(t2, Map(tp -> t)))
+      val replaced = tl map {
+        case (t1, t2) =>
+          (typeOps.instantiateType(t1, Map(tp -> t)), typeOps.instantiateType(t2, Map(tp -> t)))
       }
       (tp -> t) :: unificationSolution(replaced)
     case (adt: ADTType, _) :: tl if adt.lookupSort.isEmpty => unsolvable
@@ -214,7 +217,8 @@ trait TypeOps extends imperative.TypeOps {
     case TuplePattern(_, subs) => TupleType(subs map patternInType)
     case ClassPattern(_, ct, subs) => ct
     case UnapplyPattern(_, recs, id, tps, _) =>
-      lookupFunction(id).filter(fd => fd.tparams.size == tps.size)
+      lookupFunction(id)
+        .filter(fd => fd.tparams.size == tps.size)
         .filter(_.params.size == recs.size - 1)
         .map(_.typed(tps).params.last.getType)
         .getOrElse(Untyped)
@@ -224,17 +228,18 @@ trait TypeOps extends imperative.TypeOps {
   override def patternIsTyped(in: Type, pat: Pattern): Boolean = (in, pat) match {
     case (_, _) if !isSubtypeOf(patternInType(pat), in) =>
       pat.binder.forall(vd => isSubtypeOf(in, vd.getType)) &&
-      patternIsTyped(patternInType(pat), pat)
+        patternIsTyped(patternInType(pat), pat)
 
-    case (_, ClassPattern(ob, ct, subs)) => in match {
-      case ct2 @ ClassType(id, tps) if isSubtypeOf(ct, ct2) =>
-        lookupClass(ct.id).exists { cls =>
-          cls.fields.size == subs.size &&
-          cls.tparams.size == ct.tps.size &&
-          (cls.typed(ct.tps).fields zip subs).forall { case (vd, sub) => patternIsTyped(vd.getType, sub) }
-        }
-      case _ => patternIsTyped(patternInType(pat), pat)
-    }
+    case (_, ClassPattern(ob, ct, subs)) =>
+      in match {
+        case ct2 @ ClassType(id, tps) if isSubtypeOf(ct, ct2) =>
+          lookupClass(ct.id).exists { cls =>
+            cls.fields.size == subs.size &&
+            cls.tparams.size == ct.tps.size &&
+            (cls.typed(ct.tps).fields zip subs).forall { case (vd, sub) => patternIsTyped(vd.getType, sub) }
+          }
+        case _ => patternIsTyped(patternInType(pat), pat)
+      }
 
     case (_, InstanceOfPattern(ob, tpe)) =>
       ob.forall(vd => isSubtypeOf(tpe.getType, vd.getType))
@@ -249,4 +254,3 @@ trait TypeOps extends imperative.TypeOps {
     case _ => super.patternIsTyped(in, pat)
   }
 }
-

@@ -12,4 +12,3 @@ package object io {
   @library
   def newState: State = State(0)
 }
-

@@ -7,10 +7,10 @@ package xlang
 import scala.language.existentials
 
 trait PartialFunctions
-  extends oo.SimplePhase
-     with SimplyCachedFunctions
-     with SimplyCachedSorts
-     with oo.SimplyCachedClasses { self =>
+    extends oo.SimplePhase
+    with SimplyCachedFunctions
+    with SimplyCachedSorts
+    with oo.SimplyCachedClasses { self =>
 
   val t: self.s.type
   import s._
@@ -24,10 +24,10 @@ trait PartialFunctions
     val optPFClass = symbols.lookup.get[ClassDef]("stainless.lang.$tilde$greater")
 
     /** Infer the partial function's precondition, by replacing every
-     *  right-hand side of the pattern match with `true`.
-     *  If there is only a single case, and it is a wildcard,
-     *  we don't need to infer any precondition.
-     */
+      *  right-hand side of the pattern match with `true`.
+      *  If there is only a single case, and it is a wildcard,
+      *  we don't need to infer any precondition.
+      */
     def inferPrecondition(body: MatchExpr): Option[Expr] = {
       val MatchExpr(scrut, cases) = body
       val rewrittenCases = cases map { c =>
@@ -37,10 +37,17 @@ trait PartialFunctions
       rewrittenCases match {
         case Seq(MatchCase(_: WildcardPattern, None, _)) => None
 
-        case cases => Some(MatchExpr(scrut, cases :+ MatchCase(
-          WildcardPattern(None).copiedFrom(body), None,
-          BooleanLiteral(false).copiedFrom(body)
-        ).copiedFrom(body)).copiedFrom(body))
+        case cases =>
+          Some(
+            MatchExpr(
+              scrut,
+              cases :+ MatchCase(
+                WildcardPattern(None).copiedFrom(body),
+                None,
+                BooleanLiteral(false).copiedFrom(body)
+              ).copiedFrom(body)
+            ).copiedFrom(body)
+          )
       }
     }
 
@@ -78,7 +85,8 @@ trait PartialFunctions
             }
 
             val subst = (vds zip funArgs).toMap
-            val pre = Lambda(Seq(vd), exprOps.replaceFromSymbols(subst, preOpt getOrElse BooleanLiteral(true))).setPos(fi)
+            val pre =
+              Lambda(Seq(vd), exprOps.replaceFromSymbols(subst, preOpt getOrElse BooleanLiteral(true))).setPos(fi)
             val body = Lambda(Seq(vd), exprOps.replaceFromSymbols(subst, modifiedBody)).setPos(modifiedBody)
             (pre, body)
 
@@ -86,7 +94,8 @@ trait PartialFunctions
             throw new frontend.UnsupportedCodeException(
               fun.getPos,
               s"Unexpected $x [${x.getClass}] instead of a lambda when " +
-              "unapply syntactic sugar for partial function creation.")
+                "unapply syntactic sugar for partial function creation."
+            )
         }
 
         ClassConstructor(ct, Seq(pre, body)).setPos(fi)

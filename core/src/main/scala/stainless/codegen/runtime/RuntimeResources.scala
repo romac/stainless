@@ -8,19 +8,19 @@ import java.util.WeakHashMap
 import java.lang.ref.WeakReference
 
 /**
- * This class allows an evaluator to statically register a resource, identified
- * by an integer. This identifier can be stored in bytecode, allowing .class to
- * access the resource at runtime.
- *
- * The user/evaluator should keep hold of the returned Token, otherwise the
- * resource may be garbage-collected.
- *
- * This is not statically-typed, but
- *
- *   get[A]( register[A]( ... ) )
- *
- *  should always be safe.
- */
+  * This class allows an evaluator to statically register a resource, identified
+  * by an integer. This identifier can be stored in bytecode, allowing .class to
+  * access the resource at runtime.
+  *
+  * The user/evaluator should keep hold of the returned Token, otherwise the
+  * resource may be garbage-collected.
+  *
+  * This is not statically-typed, but
+  *
+  *   get[A]( register[A]( ... ) )
+  *
+  *  should always be safe.
+  */
 object RuntimeResources {
   case class Token(id: Int)
 

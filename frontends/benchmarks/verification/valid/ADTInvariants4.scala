@@ -9,8 +9,9 @@ object ADTInvariants4 {
     require(bar.isDefined)
   }
 
-  def test(foo: Foo): Boolean = (foo match {
-    case Bar(b) => b.nonEmpty
-    case _ => true
-  }).holds
+  def test(foo: Foo): Boolean =
+    (foo match {
+      case Bar(b) => b.nonEmpty
+      case _ => true
+    }).holds
 }

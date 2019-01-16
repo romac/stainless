@@ -24,8 +24,9 @@ trait TerminationAnalysis extends AbstractAnalysis {
 
   override def toReport = new TerminationReport(records, sources)
 
-  private lazy val records = results.toSeq map { case (fd, (g, time)) =>
-    TerminationReport.Record(fd.id, fd.getPos, time, status(g), verdict(g), derivedFrom = fd.source)
+  private lazy val records = results.toSeq map {
+    case (fd, (g, time)) =>
+      TerminationReport.Record(fd.id, fd.getPos, time, status(g), verdict(g), derivedFrom = fd.source)
   }
 
   private def verdict(g: TerminationGuarantee): String = g match {
@@ -45,4 +46,3 @@ trait TerminationAnalysis extends AbstractAnalysis {
   }
 
 }
-

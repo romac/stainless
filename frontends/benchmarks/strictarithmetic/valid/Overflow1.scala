@@ -1,4 +1,3 @@
-
 object Overflow1 {
 
   def foo1(x: Int): Int = {
@@ -6,36 +5,36 @@ object Overflow1 {
     x + 1
   }
 
-  def bab1(x: Byte): Int  = x + 1
+  def bab1(x: Byte): Int = x + 1
   def bas1(x: Short): Int = x + 1
-  def bal1(x: Int): Long  = x + 1L
+  def bal1(x: Int): Long = x + 1L
 
   def foo2(x: Int): Int = {
     require(x > -100)
     x + (-1)
   }
 
-  def bab2(x: Byte): Int  = x + (-1)
+  def bab2(x: Byte): Int = x + (-1)
   def bas2(x: Short): Int = x + (-1)
-  def bal2(x: Int): Long  = x + (-1L)
+  def bal2(x: Int): Long = x + (-1L)
 
   def foo3(x: Int): Int = {
     require(x > -100)
     x - 1
   }
 
-  def bab3(x: Byte): Int  = x - 1
+  def bab3(x: Byte): Int = x - 1
   def bas3(x: Short): Int = x - 1
-  def bal3(x: Int): Long  = x - 1L
+  def bal3(x: Int): Long = x - 1L
 
   def foo4(x: Int): Int = {
     require(x < 100)
     x - (-1)
   }
 
-  def bab4(x: Byte): Int  = x - (-1)
+  def bab4(x: Byte): Int = x - (-1)
   def bas4(x: Short): Int = x - (-1)
-  def bal4(x: Int): Long  = x - (-1L)
+  def bal4(x: Int): Long = x - (-1L)
 
   def foo5(x: Int, y: Int): Int = {
     require(x < 0 && y > 0)

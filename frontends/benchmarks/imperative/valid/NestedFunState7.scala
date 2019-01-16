@@ -12,9 +12,9 @@ object NestedFunState7 {
       a = 100
     }
 
-    if(x >= 0) {
-      a = 2*x
-      if(a < 100) {
+    if (x >= 0) {
+      a = 2 * x
+      if (a < 100) {
         a = 100 - a
       } else {
         defCase()
@@ -24,6 +24,6 @@ object NestedFunState7 {
     }
 
     a
-  } ensuring(res => res >= 0 && res <= 100)
+  } ensuring (res => res >= 0 && res <= 100)
 
 }

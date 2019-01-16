@@ -1,4 +1,3 @@
-
 object Overflow11 {
 
   def foo11(): Int = {

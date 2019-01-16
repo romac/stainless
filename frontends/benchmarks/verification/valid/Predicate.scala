@@ -12,14 +12,14 @@ object Predicate {
 
   // Monadic bind
   @inline
-  def flatMap[A,B](p: A => Boolean, f: A => (B => Boolean)): B => Boolean = {
-    (b: B) => exists[A](a => p(a) && f(a)(b))
+  def flatMap[A, B](p: A => Boolean, f: A => (B => Boolean)): B => Boolean = { (b: B) =>
+    exists[A](a => p(a) && f(a)(b))
   }
 
   // All monads are also functors, and they define the map function
   @inline
-  def map[A,B](p: A => Boolean, f: A => B): B => Boolean = {
-    (b: B) => exists[A](a => p(a) && f(a) == b)
+  def map[A, B](p: A => Boolean, f: A => B): B => Boolean = { (b: B) =>
+    exists[A](a => p(a) && f(a) == b)
   }
 
   /*
@@ -33,21 +33,20 @@ object Predicate {
   def withFilter(f: A => Boolean): Predicate[A] = {
     Predicate { a => p(a) && f(a) }
   }
-  */
+   */
 
   def equals[A](p: A => Boolean, that: A => Boolean): Boolean = {
     forall[A](a => p(a) == that(a))
   }
 
-  def test[A,B,C](p: A => Boolean, f: A => B, g: B => C): Boolean = {
-    equals[C](map[B,C](map[A,B](p, f), g), map[A,C](p, (a: A) => g(f(a))))
+  def test[A, B, C](p: A => Boolean, f: A => B, g: B => C): Boolean = {
+    equals[C](map[B, C](map[A, B](p, f), g), map[A, C](p, (a: A) => g(f(a))))
   }.holds
 
   /* Disabled
-   * Nested quantification is not really a supported feature anyway...
+ * Nested quantification is not really a supported feature anyway...
   def testInt(p: BigInt => Boolean, f: BigInt => BigInt, g: BigInt => BigInt): Boolean = {
     equals(map(map(p, f), g), map(p, (x: BigInt) => g(f(x))))
   }.holds
-  */
+ */
 }
-

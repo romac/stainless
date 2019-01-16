@@ -70,7 +70,6 @@ class GhostRewriteSuite extends FunSpec {
     assert(errors.isEmpty, errors.mkString("\n\n"))
   }
 
-
   describe("Rewrite suite should remove all ghosts") {
     it("should not leave ghost code around in ghost-methods.scala") {
       compileFile("frontends/benchmarks/extraction/valid/ghost-methods.scala")

@@ -20,4 +20,3 @@ object EvaluatorCheckFilter {
     override val trees: t.type = t
   }
 }
-

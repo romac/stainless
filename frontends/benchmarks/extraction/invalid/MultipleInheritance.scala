@@ -1,4 +1,3 @@
-
 import stainless.lang._
 import stainless.annotation._
 

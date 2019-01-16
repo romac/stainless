@@ -4,9 +4,9 @@ object HigherOrderFunctionsMutableParams5 {
 
   def repeat(f: (A, BigInt) => Unit, n: BigInt, a: A): Unit = {
     require(n >= 0)
-    if(n > 0) {
+    if (n > 0) {
       f(a, n)
-      repeat(f, n-1, a)
+      repeat(f, n - 1, a)
     }
   }
 
@@ -18,6 +18,6 @@ object HigherOrderFunctionsMutableParams5 {
     val a = A(0)
     repeat(fImpl, 3, a)
     a.x
-  } ensuring(_ == 3)
+  } ensuring (_ == 3)
 
 }

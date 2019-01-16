@@ -9,11 +9,11 @@ object InstanceOf1 {
   def foo(): Int = {
     require(C(3).isInstanceOf[C])
     val b: A = B(2)
-    if(b.isInstanceOf[B])
+    if (b.isInstanceOf[B])
       0
     else
       -1
-  } ensuring(_ == 0)
+  } ensuring (_ == 0)
 
   def bar(): Int = foo()
 

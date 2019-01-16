@@ -8,10 +8,10 @@ object Array3 {
     val a = Array.fill(5)(3)
     var i = 0
     var sum = 0
-    (while(i <= a.length) {
+    (while (i <= a.length) {
       sum = sum + a(i)
       i = i + 1
-    }) invariant(i >= 0 && a.length < 100)
+    }) invariant (i >= 0 && a.length < 100)
     sum
   } //ensuring(_ == 15)
 

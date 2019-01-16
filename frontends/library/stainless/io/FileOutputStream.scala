@@ -18,9 +18,9 @@ import stainless.lang.Option
 object FileOutputStream {
 
   /**
-   * Open a new stream to write into `filename`, erasing any previous
-   * content of the file or creating a new one if needed.
-   */
+    * Open a new stream to write into `filename`, erasing any previous
+    * content of the file or creating a new one if needed.
+    */
   @extern
   def open(filename: String): FileOutputStream = {
     // FIXME Importing stainless.lang.Option doesn't mean it is imported, why?
@@ -42,28 +42,28 @@ object FileOutputStream {
 case class FileOutputStream(var filename: Option[String]) {
 
   /**
-   * Close the stream; return `true` on success.
-   *
-   * NOTE The stream must not be used afterward, even on failure.
-   */
+    * Close the stream; return `true` on success.
+    *
+    * NOTE The stream must not be used afterward, even on failure.
+    */
   def close(): Boolean = {
     filename = stainless.lang.None[String]
     true // This implementation never fails
   }
 
   /**
-   * Test whether the stream is opened or not.
-   *
-   * NOTE This is a requirement for all write operations.
-   */
+    * Test whether the stream is opened or not.
+    *
+    * NOTE This is a requirement for all write operations.
+    */
   // We assume the stream to be opened if and only if the filename is defined.
   def isOpen(): Boolean = filename.isDefined
 
   /**
-   * Append an integer to the stream and return `true` on success.
-   *
-   * NOTE The stream must be opened first.
-   */
+    * Append an integer to the stream and return `true` on success.
+    *
+    * NOTE The stream must be opened first.
+    */
   @extern
   def write(x: Int): Boolean = {
     require(isOpen)
@@ -78,10 +78,10 @@ case class FileOutputStream(var filename: Option[String]) {
   }
 
   /**
-   * Append a character to the stream and return `true` on success.
-   *
-   * NOTE The stream must be opened first.
-   */
+    * Append a character to the stream and return `true` on success.
+    *
+    * NOTE The stream must be opened first.
+    */
   @extern
   def write(c: Char): Boolean = {
     require(isOpen)
@@ -96,10 +96,10 @@ case class FileOutputStream(var filename: Option[String]) {
   }
 
   /**
-   * Append a string to the stream and return `true` on success.
-   *
-   * NOTE The stream must be opened first.
-   */
+    * Append a string to the stream and return `true` on success.
+    *
+    * NOTE The stream must be opened first.
+    */
   @extern
   def write(s: String): Boolean = {
     require(isOpen)
@@ -114,4 +114,3 @@ case class FileOutputStream(var filename: Option[String]) {
   }
 
 }
-

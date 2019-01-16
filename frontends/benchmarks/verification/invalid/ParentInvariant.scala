@@ -1,4 +1,3 @@
-
 import stainless.lang._
 
 object ParentInvariant {
@@ -19,6 +18,6 @@ object ParentInvariant {
   }
 
   def fail = Bar(12)
-  def ok   = Baz(0)
+  def ok = Baz(0)
 
 }

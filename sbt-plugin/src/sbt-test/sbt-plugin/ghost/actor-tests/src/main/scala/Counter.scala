@@ -9,8 +9,7 @@ object Counter {
   case class PrimBehav(backup: ActorRef, counter: Counter) extends Behavior {
     require(backup.name == "backup")
 
-    override
-    def processMsg(msg: Msg)(implicit ctx: ActorContext): Behavior = msg match {
+    override def processMsg(msg: Msg)(implicit ctx: ActorContext): Behavior = msg match {
       case Inc() =>
         backup ! Inc()
         PrimBehav(backup, counter.increment)
@@ -19,15 +18,14 @@ object Counter {
 
   case class BackBehav(counter: Counter) extends Behavior {
 
-    override
-    def processMsg(msg: Msg)(implicit ctx: ActorContext): Behavior = msg match {
+    override def processMsg(msg: Msg)(implicit ctx: ActorContext): Behavior = msg match {
       case Inc() =>
         BackBehav(counter.increment)
     }
   }
 
   val Primary = ActorRef("primary", akka.actor.ActorRef.noSender)
-  val Backup  = ActorRef("backup", akka.actor.ActorRef.noSender)
+  val Backup = ActorRef("backup", akka.actor.ActorRef.noSender)
 
   case class Inc() extends Msg
 

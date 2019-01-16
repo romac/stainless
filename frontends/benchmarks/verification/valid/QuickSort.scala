@@ -36,7 +36,7 @@ object QuickSort {
   def par(x: BigInt, l: List[BigInt], r: List[BigInt], ls: List[BigInt]): List[BigInt] = {
     require(
       forall((a: BigInt) => l.contains(a) ==> a <= x) &&
-      forall((a: BigInt) => r.contains(a) ==> x < a)
+        forall((a: BigInt) => r.contains(a) ==> x < a)
     )
     decreases(l.size + r.size + ls.size, ls.size + 1)
 

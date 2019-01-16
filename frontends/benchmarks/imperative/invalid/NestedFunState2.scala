@@ -9,7 +9,7 @@ object NestedFunState2 {
 
     def iter(): Unit = {
       require(res >= i && i >= 0)
-      if(i < n) {
+      if (i < n) {
         i += 1
         res += i
         iter()
@@ -18,6 +18,6 @@ object NestedFunState2 {
 
     iter()
     res
-  } ensuring(_ < 0)
+  } ensuring (_ < 0)
 
 }

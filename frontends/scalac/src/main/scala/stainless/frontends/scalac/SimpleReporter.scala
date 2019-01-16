@@ -14,9 +14,9 @@ class SimpleReporter(val settings: Settings, reporter: inox.Reporter) extends Ab
   final val ERROR_LIMIT = 5
 
   private def label(severity: Severity): String = severity match {
-    case ERROR   => "error"
+    case ERROR => "error"
     case WARNING => "warning"
-    case INFO    => null
+    case INFO => null
   }
 
   private def clabel(severity: Severity): String = {
@@ -41,12 +41,13 @@ class SimpleReporter(val settings: Settings, reporter: inox.Reporter) extends Ab
 
   /** Prints the message with the given position indication. */
   def printMessage(posIn: Position, msg: String, severity: Severity) {
-    val pos = if (posIn eq null) NoPosition
-              else if (posIn.isDefined) posIn.finalPosition
-              else posIn
+    val pos =
+      if (posIn eq null) NoPosition
+      else if (posIn.isDefined) posIn.finalPosition
+      else posIn
     pos match {
       case FakePos(fmsg) =>
-        printMessage(fmsg+" "+msg, inox.utils.NoPosition, severity)
+        printMessage(fmsg + " " + msg, inox.utils.NoPosition, severity)
       case NoPosition =>
         printMessage(msg, inox.utils.NoPosition, severity)
       case _ =>

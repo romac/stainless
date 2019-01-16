@@ -12,10 +12,11 @@ trait Traverser extends inox.transformers.Traverser {
   override def traverse(e: Expr, env: Env): Unit = e match {
     case MatchExpr(scrut, cases) =>
       traverse(scrut, env)
-      cases.foreach { case MatchCase(pat, optGuard, rhs) =>
-        traverse(pat, env)
-        optGuard.foreach(traverse(_, env))
-        traverse(rhs, env)
+      cases.foreach {
+        case MatchCase(pat, optGuard, rhs) =>
+          traverse(pat, env)
+          optGuard.foreach(traverse(_, env))
+          traverse(rhs, env)
       }
 
     case _ => super.traverse(e, env)

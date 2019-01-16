@@ -20,9 +20,10 @@ class StainlessPlugin(override val global: Global) extends Plugin {
 }
 
 class StainlessPluginComponent(
-  val global: Global,
-  val stainlessContext: inox.Context = inox.Context.empty
-) extends PluginComponent with StainlessExtraction {
+    val global: Global,
+    val stainlessContext: inox.Context = inox.Context.empty
+) extends PluginComponent
+    with StainlessExtraction {
   override implicit val ctx: inox.Context = {
     val adapter = new ReporterAdapter(global.reporter, Set())
     stainlessContext.copy(reporter = adapter)
@@ -40,8 +41,8 @@ class GhostPluginComponent(val global: Global) extends PluginComponent with Ghos
   override val runsAfter = List[String]("pickler")
 }
 
-
-class ReporterAdapter(underlying: ScalacReporter, debugSections: Set[DebugSection]) extends inox.DefaultReporter(debugSections) {
+class ReporterAdapter(underlying: ScalacReporter, debugSections: Set[DebugSection])
+    extends inox.DefaultReporter(debugSections) {
   // FIXME: Mapping of stainless -> scalac positions
   override def emit(msg: Message): Unit = {
     // FIXME: Reporting the message through the inox reporter shouldn't be needed. But without it the compilation error is

@@ -11,7 +11,10 @@ trait TypeOps extends oo.TypeOps { self =>
 
   override def unapplyAccessorResultType(id: Identifier, inType: Type): Option[Type] =
     lookupFunction(id)
-      .filter(_.flags exists { case IsMethodOf(_) => true case _ => false })
+      .filter(_.flags exists {
+        case IsMethodOf(_) => true
+        case _ => false
+      })
       .filter(_.params.isEmpty)
       .flatMap { fd =>
         lookupClass(fd.flags.collectFirst { case IsMethodOf(id) => id }.get).flatMap { cd =>
@@ -19,11 +22,13 @@ trait TypeOps extends oo.TypeOps { self =>
             .filter(tpMap => cd.tparams forall (tpd => tpMap contains tpd.tp))
             .map(tpMap => typeOps.instantiateType(fd.returnType, tpMap))
         }
-      }.orElse(super.unapplyAccessorResultType(id, inType))
+      }
+      .orElse(super.unapplyAccessorResultType(id, inType))
 
   def firstSuper(id: SymbolIdentifier): Option[SymbolIdentifier] = {
     def rec(cd: ClassDef): Option[SymbolIdentifier] = {
-      cd.methods.find(_.symbol == id.symbol)
+      cd.methods
+        .find(_.symbol == id.symbol)
         .orElse(cd.parents.headOption.flatMap(ct => rec(symbols.getClass(ct.id))))
     }
 

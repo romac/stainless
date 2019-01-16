@@ -3,8 +3,8 @@
 import stainless.lang._
 
 /**
- * Check that &, | and ^ works on Boolean like it does on Int, with no shortcutting
- */
+  * Check that &, | and ^ works on Boolean like it does on Int, with no shortcutting
+  */
 object BooleanOps {
 
   def foo1(b: Boolean, d: Boolean): Boolean = {
@@ -47,4 +47,3 @@ object BooleanOps {
   }
 
 }
-

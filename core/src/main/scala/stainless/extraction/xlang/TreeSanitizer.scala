@@ -25,8 +25,10 @@ trait TreeSanitizer {
       if !symbols.getFunction(id).isSetter
       sid <- symbols.firstSuper(id)
       if symbols.getFunction(sid).isSetter
-    } throw MissformedStainlessCode(symbols.getFunction(id),
-      "Cannot override a `var` accessor with a non-accessor method.")
+    } throw MissformedStainlessCode(
+      symbols.getFunction(id),
+      "Cannot override a `var` accessor with a non-accessor method."
+    )
 
     // check that sealed traits have children
     for {
@@ -52,7 +54,10 @@ trait TreeSanitizer {
       case wh @ While(cond, body, optInv) =>
         traverse(cond)
         val (specs, without) = exprOps.deconstructSpecs(body)
-        val (measures, otherSpecs) = specs.partition { case exprOps.Measure(_) => true case _ => false }
+        val (measures, otherSpecs) = specs.partition {
+          case exprOps.Measure(_) => true
+          case _ => false
+        }
         measures.foreach(s => traverse(s.expr))
         traverse(exprOps.reconstructSpecs(otherSpecs, without, body.getType))
         optInv.foreach(traverse)
@@ -65,15 +70,16 @@ trait TreeSanitizer {
 
       case e: LetRec =>
         // Traverse LocalFunDef independently
-        e.fds.foreach { case LocalFunDef(id, tparams, params, returnType, fullBody, flags) =>
-          traverse(id)
-          tparams.foreach(traverse)
-          params.foreach(traverse)
-          traverse(returnType)
-          val (specs, body) = exprOps.deconstructSpecs(fullBody)
-          specs.foreach(s => traverse(s.expr))
-          body.foreach(traverse)
-          flags.foreach(traverse)
+        e.fds.foreach {
+          case LocalFunDef(id, tparams, params, returnType, fullBody, flags) =>
+            traverse(id)
+            tparams.foreach(traverse)
+            params.foreach(traverse)
+            traverse(returnType)
+            val (specs, body) = exprOps.deconstructSpecs(fullBody)
+            specs.foreach(s => traverse(s.expr))
+            body.foreach(traverse)
+            flags.foreach(traverse)
         }
 
         traverse(e.body)
@@ -81,7 +87,10 @@ trait TreeSanitizer {
       case e: Lambda =>
         e.params.foreach(traverse)
         val (specs, body) = exprOps.deconstructSpecs(e.body)
-        val (preconditions, otherSpecs) = specs.partition { case exprOps.Precondition(_) => true case _ => false }
+        val (preconditions, otherSpecs) = specs.partition {
+          case exprOps.Precondition(_) => true
+          case _ => false
+        }
         preconditions.foreach(s => traverse(s.expr))
         traverse(exprOps.reconstructSpecs(otherSpecs, body, e.body.getType))
 
@@ -94,7 +103,10 @@ trait TreeSanitizer {
     private implicit val printerOpts = PrinterOptions.fromSymbols(symbols, ctx)
 
     private def isFieldAccessor(id: Identifier): Boolean =
-      symbols.getFunction(id).flags exists { case IsAccessor(_) => true case _ => false }
+      symbols.getFunction(id).flags exists {
+        case IsAccessor(_) => true
+        case _ => false
+      }
 
     override def traverse(e: Expr): Unit = e match {
       case ClassSelector(obj, selector) =>
@@ -103,7 +115,10 @@ trait TreeSanitizer {
           case None =>
             throw MissformedStainlessCode(e, s"Cannot find field `${selector.asString}` of class ${ct.asString}.")
           case Some(field) if field.flags contains Ignore =>
-            throw MissformedStainlessCode(e, s"Cannot access ignored field `${selector.asString}` from non-extern context.")
+            throw MissformedStainlessCode(
+              e,
+              s"Cannot access ignored field `${selector.asString}` from non-extern context."
+            )
           case _ =>
             super.traverse(e)
         }
@@ -114,9 +129,15 @@ trait TreeSanitizer {
             val ct = rec.getType.asInstanceOf[ClassType]
             ct.getField(id) match {
               case Some(field) if field.flags contains Ignore =>
-                throw MissformedStainlessCode(e, s"Cannot access ignored field `${id.asString}` from non-extern context.")
+                throw MissformedStainlessCode(
+                  e,
+                  s"Cannot access ignored field `${id.asString}` from non-extern context."
+                )
               case None if symbols.lookupFunction(id).exists(_.flags contains Ignore) =>
-                throw MissformedStainlessCode(e, s"Cannot access ignored field `${id.asString}` from non-extern context.")
+                throw MissformedStainlessCode(
+                  e,
+                  s"Cannot access ignored field `${id.asString}` from non-extern context."
+                )
               case _ =>
                 super.traverse(e)
             }
@@ -131,9 +152,10 @@ trait TreeSanitizer {
 
           case Some(tcd) if tcd.fields.exists(_.flags contains Ignore) =>
             val ignoredFields = tcd.fields.filter(_.flags contains Ignore).map(_.id.asString).mkString(", ")
-            throw MissformedStainlessCode(e,
+            throw MissformedStainlessCode(
+              e,
               s"Cannot build an instance of a class with ignored fields in non-extern context " +
-              s"(${ct.asString} has ignored fields: $ignoredFields)."
+                s"(${ct.asString} has ignored fields: $ignoredFields)."
             )
 
           case _ => super.traverse(e)

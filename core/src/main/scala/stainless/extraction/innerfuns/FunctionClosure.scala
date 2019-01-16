@@ -4,10 +4,7 @@ package stainless
 package extraction
 package innerfuns
 
-trait FunctionClosure
-  extends CachingPhase
-     with SimplyCachedFunctions
-     with IdentitySorts { self =>
+trait FunctionClosure extends CachingPhase with SimplyCachedFunctions with IdentitySorts { self =>
 
   val s: Trees
   val t: ast.Trees
@@ -26,16 +23,17 @@ trait FunctionClosure
     // Represents a substitution to a new function, along with parameter and type parameter
     // mappings
     case class FunSubst(
-      fd: FunDef,
-      paramsMap: Map[ValDef, ValDef],
-      tparamsMap: Map[TypeParameter, TypeParameter]
+        fd: FunDef,
+        paramsMap: Map[ValDef, ValDef],
+        tparamsMap: Map[TypeParameter, TypeParameter]
     )
 
     def filterByIds(path: Path, ids: Set[Identifier]): Path = {
-      def containsIds(e: Expr): Boolean = exprOps.exists {
-        case Variable(id, _, _) => ids contains id
-        case _ => false
-      }(e)
+      def containsIds(e: Expr): Boolean =
+        exprOps.exists {
+          case Variable(id, _, _) => ids contains id
+          case _ => false
+        }(e)
 
       import Path._
       path.elements.foldLeft(Path.empty) {
@@ -51,7 +49,7 @@ trait FunctionClosure
       val reqPC = filterByIds(pc, free.map(_.id).toSet)
 
       val tpFresh = outer.tparams map { _.freshen }
-      val tparamsMap = outer.typeArgs.zip(tpFresh map {_.tp}).toMap
+      val tparamsMap = outer.typeArgs.zip(tpFresh map { _.tp }).toMap
 
       val inst = new typeOps.TypeInstantiator(tparamsMap)
       val freshVals = (params ++ free).map { vd =>
@@ -91,11 +89,11 @@ trait FunctionClosure
     }
 
     /** Takes a FunDef and returns a Seq of all internal FunDef's contained in fd in closed form
-     * (and fd itself, without inned FunDef's).
-     *
-     * The strategy is as follows: Remove one layer of nested FunDef's, then call
-     * close recursively on the new functions.
-     */
+      * (and fd itself, without inned FunDef's).
+      *
+      * The strategy is as follows: Remove one layer of nested FunDef's, then call
+      * close recursively on the new functions.
+      */
     def close(fd: FunDef): Seq[t.FunDef] = {
 
       // Directly nested functions with their p.c.
@@ -106,7 +104,7 @@ trait FunctionClosure
         }
       }
 
-      val nestedWithPaths = (for((fds, path) <- nestedWithPathsFull; fd <- fds) yield (fd, path)).toMap
+      val nestedWithPaths = (for ((fds, path) <- nestedWithPathsFull; fd <- fds) yield (fd, path)).toMap
       val nestedFuns = nestedWithPaths.keys.toSeq
       val nestedFunsIds = nestedFuns.map(_.id).toSet
 
@@ -137,7 +135,7 @@ trait FunctionClosure
         inox.utils.fixpoint(step)(init)
       }
 
-      val transFree: Map[Identifier, Seq[Variable]] = 
+      val transFree: Map[Identifier, Seq[Variable]] =
         //transFreeWithBindings.map(p => (p._1, p._2 -- nestedWithPaths(p._1).bindings.map(_._1))).map(p => (p._1, p._2.toSeq))
         transFreeWithBindings.map(p => (p._1, p._2.toSeq.sortBy(_.id.name)))
 
@@ -173,10 +171,11 @@ trait FunctionClosure
             }
 
             t.FunctionInvocation(
-              newCallee.id,
-              tps.map(transform) ++ tFinalExtra.map(transform),
-              args.map(transform) ++ extraArgs.map(transform)
-            ).copiedFrom(app)
+                newCallee.id,
+                tps.map(transform) ++ tFinalExtra.map(transform),
+                args.map(transform) ++ extraArgs.map(transform)
+              )
+              .copiedFrom(app)
 
           case _ => super.transform(e)
         }
@@ -201,11 +200,12 @@ trait FunctionClosure
 
       val newFd = closing.transform(fd)
 
-      val closedFds = closed.values.toList.map { case fs @ FunSubst(fd, _, _) =>
-        fd.copy(fullBody = new ClosingTransformer {
-          val t: self.s.type = self.s
-          val subst = fs
-        }.transform(fd.fullBody))
+      val closedFds = closed.values.toList.map {
+        case fs @ FunSubst(fd, _, _) =>
+          fd.copy(fullBody = new ClosingTransformer {
+            val t: self.s.type = self.s
+            val subst = fs
+          }.transform(fd.fullBody))
       }
 
       // Recursively close new functions

@@ -7,8 +7,8 @@ import org.scalatest._
 
 class ImperativeSuite extends ComponentTestSuite {
 
-  override def configurations = super.configurations.map {
-    seq => optFailEarly(true) +: seq
+  override def configurations = super.configurations.map { seq =>
+    optFailEarly(true) +: seq
   }
 
   override protected def optionsString(options: inox.Options): String = ""

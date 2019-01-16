@@ -4,8 +4,8 @@ import stainless.lang._
 
 object ToChurch {
 
-  def compose[T,U,V](f: U => V, g: T => U): T => V = {
-    (x: T) => f(g(x))
+  def compose[T, U, V](f: U => V, g: T => U): T => V = { (x: T) =>
+    f(g(x))
   }
 
   def id[T](x: T) = x
@@ -23,4 +23,3 @@ object ToChurch {
     else 0
   }
 }
-

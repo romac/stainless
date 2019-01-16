@@ -29,16 +29,16 @@ object Lists2 {
     })
   }.holds
 
-  def remove[T](list: List[T], e: T) : List[T] = {
+  def remove[T](list: List[T], e: T): List[T] = {
     list match {
       case Nil() => Nil()
       case Cons(x, xs) if x == e => remove(xs, e)
-      case Cons(x, xs)           => Cons(x, remove(xs, e))
+      case Cons(x, xs) => Cons(x, remove(xs, e))
     }
   } //ensuring { (res: List[T]) => forall(res, (x : T) => x != e) }
 
   def remove_lemma[T](list: List[T], e: T): Boolean = {
-    forall(remove(list, e), (x : T) => x != e)
+    forall(remove(list, e), (x: T) => x != e)
   }
 
   def remove_lemma_induct[T](list: List[T], e: T): Boolean = {

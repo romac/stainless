@@ -8,9 +8,9 @@ object NestedFunParamsMutation1 {
       a(0) = 10
     }
 
-    val a = Array(1,2,3,4)
+    val a = Array(1, 2, 3, 4)
     g(a)
     a(0)
-  } ensuring(_ == 10)
+  } ensuring (_ == 10)
 
 }

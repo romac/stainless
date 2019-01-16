@@ -24,4 +24,3 @@ object PatternMatchingAliasingMutation6 {
   } ensuring { _ == 0 }
 
 }
-

@@ -7,17 +7,20 @@ object FunctionCaching {
 
   def fun(x: BigInt)(implicit funCache: FunCache): BigInt = {
     funCache.cached.get(x) match {
-      case None() => 
-        val res = 2*x + 42
+      case None() =>
+        val res = 2 * x + 42
         funCache.cached = funCache.cached.updated(x, res)
         res
       case Some(cached) =>
         cached
     }
-  } ensuring(res => old(funCache).cached.get(x) match {
-    case None() => true
-    case Some(v) => v == res
-  })
+  } ensuring (
+      res =>
+        old(funCache).cached.get(x) match {
+          case None() => true
+          case Some(v) => v == res
+        }
+    )
 
   def funProperlyCached(x: BigInt, trash: List[BigInt]): Boolean = {
     implicit val cache = FunCache(Map())
@@ -28,13 +31,13 @@ object FunctionCaching {
   } holds
 
   def multipleCalls(args: List[BigInt], x: BigInt)(implicit funCache: FunCache): Unit = {
-    require(funCache.cached.get(x).forall(_ == 2*x + 42))
+    require(funCache.cached.get(x).forall(_ == 2 * x + 42))
     args match {
       case Nil() => ()
-      case y::ys => 
+      case y :: ys =>
         fun(y)
         multipleCalls(ys, x)
     }
-  } ensuring(_ => funCache.cached.get(x).forall(_ == 2*x + 42))
+  } ensuring (_ => funCache.cached.get(x).forall(_ == 2 * x + 42))
 
 }

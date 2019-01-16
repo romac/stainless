@@ -24,12 +24,15 @@ trait Trees extends imperative.Trees with Definitions { self =>
   case class ClassSelector(expr: Expr, selector: Identifier) extends Expr with CachingTyped {
     protected def computeType(implicit s: Symbols): Type = expr.getType match {
       case ct: ClassType =>
-        ct.getField(selector).map(_.tpe).orElse((s.lookupFunction(selector), s.lookupClass(ct.id, ct.tps)) match {
-          case (Some(fd), Some(tcd)) =>
-            Some(typeOps.instantiateType(fd.returnType, (tcd.cd.tparams.map(_.tp) zip tcd.tps).toMap))
-          case _ =>
-            None
-        }).getOrElse(Untyped)
+        ct.getField(selector)
+          .map(_.tpe)
+          .orElse((s.lookupFunction(selector), s.lookupClass(ct.id, ct.tps)) match {
+            case (Some(fd), Some(tcd)) =>
+              Some(typeOps.instantiateType(fd.returnType, (tcd.cd.tparams.map(_.tp) zip tcd.tps).toMap))
+            case _ =>
+              None
+          })
+          .getOrElse(Untyped)
       case _ => Untyped
     }
   }
@@ -48,7 +51,6 @@ trait Trees extends imperative.Trees with Definitions { self =>
     }
   }
 
-
   /* ========================================
    *              PATTERNS
    * ======================================== */
@@ -60,13 +62,12 @@ trait Trees extends imperative.Trees with Definitions { self =>
   case class ClassPattern(binder: Option[ValDef], tpe: ClassType, subPatterns: Seq[Pattern]) extends Pattern
 
   /** Pattern encoding `case binder: ct`
-   *      *
-   *          * If [[binder]] is empty, consider a wildcard `_` in its place.
-   *              */
+    *      *
+    *          * If [[binder]] is empty, consider a wildcard `_` in its place.
+    *              */
   case class InstanceOfPattern(binder: Option[ValDef], tpe: Type) extends Pattern {
     val subPatterns = Seq()
   }
-
 
   /* ========================================
    *                 TYPES
@@ -78,13 +79,14 @@ trait Trees extends imperative.Trees with Definitions { self =>
   }
 
   /** Type associated to instances of [[ClassConstructor]] */
-   case class ClassType(id: Identifier, tps: Seq[Type]) extends Type {
+  case class ClassType(id: Identifier, tps: Seq[Type]) extends Type {
     def lookupClass(implicit s: Symbols): Option[TypedClassDef] = s.lookupClass(id, tps)
     def tcd(implicit s: Symbols): TypedClassDef = s.getClass(id, tps)
 
     def getField(selector: Identifier)(implicit s: Symbols): Option[ValDef] = {
       def rec(tcd: TypedClassDef): Option[ValDef] =
-        tcd.fields.collectFirst { case vd @ ValDef(`selector`, _, _) => vd }
+        tcd.fields
+          .collectFirst { case vd @ ValDef(`selector`, _, _) => vd }
           .orElse(tcd.parents.reverse.view.flatMap(rec).headOption)
       lookupClass.flatMap(rec)
     }
@@ -125,20 +127,21 @@ trait Trees extends imperative.Trees with Definitions { self =>
       case _ => Untyped
     }
 
-
   /* ========================================
    *              EXTRACTORS
    * ======================================== */
 
-  override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
-    case tree: Trees => new TreeDeconstructor {
-      protected val s: self.type = self
-      protected val t: tree.type = tree
-    }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
+  override def getDeconstructor(
+      that: inox.ast.Trees
+  ): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
+    case tree: Trees =>
+      new TreeDeconstructor {
+        protected val s: self.type = self
+        protected val t: tree.type = tree
+      }.asInstanceOf[TreeDeconstructor { val s: self.type; val t: that.type }]
 
     case _ => super.getDeconstructor(that)
   }
-
 
   /* ========================================
    *            TREE TRANSFORMERS
@@ -153,23 +156,32 @@ trait Printer extends imperative.Printer {
   protected val trees: Trees
   import trees._
 
-  protected def withSymbols[T <: Tree](elems: Seq[Either[T, Identifier]], header: String)
-                                      (implicit ctx: PrinterContext): Unit = {
-    new StringContext("" +: (List.fill(elems.size - 1)("\n\n") :+ "") : _*).p((for (e <- elems) yield e match {
-      case Left(d) => d
-      case Right(id) => {
-        implicit pctx2: PrinterContext =>
-          p"<unknown> $header $id"(pctx2)
-      }: PrintWrapper
-    }) : _*)
+  protected def withSymbols[T <: Tree](elems: Seq[Either[T, Identifier]], header: String)(
+      implicit ctx: PrinterContext
+  ): Unit = {
+    new StringContext("" +: (List.fill(elems.size - 1)("\n\n") :+ ""): _*).p(
+      (for (e <- elems)
+        yield
+          e match {
+            case Left(d) => d
+            case Right(id) => { implicit pctx2: PrinterContext =>
+              p"<unknown> $header $id" (pctx2)
+            }: PrintWrapper
+          }): _*
+    )
   }
 
-  protected def functions(funs: Seq[Identifier]): PrintWrapper = {
-    implicit pctx: PrinterContext =>
-      withSymbols(funs.map(id => pctx.opts.symbols.flatMap(_.lookupFunction(id)) match {
-        case Some(cd) => Left(cd)
-        case None => Right(id)
-      }), "def")
+  protected def functions(funs: Seq[Identifier]): PrintWrapper = { implicit pctx: PrinterContext =>
+    withSymbols(
+      funs.map(
+        id =>
+          pctx.opts.symbols.flatMap(_.lookupFunction(id)) match {
+            case Some(cd) => Left(cd)
+            case None => Right(id)
+          }
+      ),
+      "def"
+    )
   }
 
   override def ppBody(tree: Tree)(implicit ctx: PrinterContext): Unit = tree match {
@@ -203,9 +215,10 @@ trait Printer extends imperative.Printer {
     case tpd: TypeParameterDef =>
       tpd.tp.flags collectFirst { case Variance(v) => v } foreach (if (_) p"+" else p"-")
       p"${tpd.tp}"
-      tpd.tp.flags collectFirst { case Bounds(lo, hi) => (lo, hi) } foreach { case (lo, hi) =>
-        if (lo != NothingType()) p" >: $lo"
-        if (hi != AnyType()) p" <: $hi"
+      tpd.tp.flags collectFirst { case Bounds(lo, hi) => (lo, hi) } foreach {
+        case (lo, hi) =>
+          if (lo != NothingType()) p" >: $lo"
+          if (hi != AnyType()) p" <: $hi"
       }
 
     case TypeParameter(id, flags) =>
@@ -259,10 +272,11 @@ trait ExprOps extends imperative.ExprOps {
       }
     }
 
-    val tpMap = tps.foldLeft(Map[TypeParameter, TypeParameter]()) { case (tpMap, tp) =>
-      val freshener = new Freshener(tpMap)
-      val freshTp = freshener.transform(tp.freshen).asInstanceOf[TypeParameter]
-      tpMap + (tp -> freshTp)
+    val tpMap = tps.foldLeft(Map[TypeParameter, TypeParameter]()) {
+      case (tpMap, tp) =>
+        val freshener = new Freshener(tpMap)
+        val freshTp = freshener.transform(tp.freshen).asInstanceOf[TypeParameter]
+        tpMap + (tp -> freshTp)
     }
 
     tps.map(tpMap)
@@ -275,7 +289,14 @@ trait TreeDeconstructor extends imperative.TreeDeconstructor {
 
   override def deconstruct(e: s.Expr): Deconstructed[t.Expr] = e match {
     case s.ClassConstructor(ct, args) =>
-      (Seq(), Seq(), args, Seq(ct), Seq(), (_, _, es, tps, _) => t.ClassConstructor(tps.head.asInstanceOf[t.ClassType], es))
+      (
+        Seq(),
+        Seq(),
+        args,
+        Seq(ct),
+        Seq(),
+        (_, _, es, tps, _) => t.ClassConstructor(tps.head.asInstanceOf[t.ClassType], es)
+      )
 
     case s.ClassSelector(expr, selector) =>
       (Seq(selector), Seq(), Seq(expr), Seq(), Seq(), (ids, _, es, _, _) => t.ClassSelector(es.head, ids.head))
@@ -305,14 +326,15 @@ trait TreeDeconstructor extends imperative.TreeDeconstructor {
     case s.ClassType(id, tps) => (Seq(id), Seq(), Seq(), tps, Seq(), (ids, _, _, tps, _) => t.ClassType(ids.head, tps))
     case s.AnyType() => (Seq(), Seq(), Seq(), Seq(), Seq(), (_, _, _, _, _) => t.AnyType())
     case s.NothingType() => (Seq(), Seq(), Seq(), Seq(), Seq(), (_, _, _, _, _) => t.NothingType())
-    case s.TypeBounds(lo, hi) => (Seq(), Seq(), Seq(), Seq(lo, hi), Seq(), (_, _, _, tps, _) => t.TypeBounds(tps(0), tps(1)))
+    case s.TypeBounds(lo, hi) =>
+      (Seq(), Seq(), Seq(), Seq(lo, hi), Seq(), (_, _, _, tps, _) => t.TypeBounds(tps(0), tps(1)))
     case _ => super.deconstruct(tpe)
   }
 
   override def deconstruct(f: s.Flag): DeconstructedFlag = f match {
     case s.IsCaseObject => (Seq(), Seq(), Seq(), (_, _, _) => t.IsCaseObject)
     case s.IsInvariant => (Seq(), Seq(), Seq(), (_, _, _) => t.IsInvariant)
-    case s.IsAbstract => (Seq(), Seq(), Seq() ,(_, _, _) => t.IsAbstract)
+    case s.IsAbstract => (Seq(), Seq(), Seq(), (_, _, _) => t.IsAbstract)
     case s.IsSealed => (Seq(), Seq(), Seq(), (_, _, _) => t.IsSealed)
     case s.Bounds(lo, hi) => (Seq(), Seq(), Seq(lo, hi), (_, _, tps) => t.Bounds(tps(0), tps(1)))
     case s.Variance(v) => (Seq(), Seq(), Seq(), (_, _, _) => t.Variance(v))
@@ -361,8 +383,10 @@ trait SimpleSymbolTransformer extends inox.transformers.SimpleSymbolTransformer 
 
   protected def transformClass(cd: s.ClassDef): t.ClassDef
 
-  override def transform(syms: s.Symbols): t.Symbols = super.transform(syms)
-    .withClasses(syms.classes.values.toSeq.map(transformClass))
+  override def transform(syms: s.Symbols): t.Symbols =
+    super
+      .transform(syms)
+      .withClasses(syms.classes.values.toSeq.map(transformClass))
 }
 
 object SymbolTransformer {

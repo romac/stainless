@@ -26,7 +26,7 @@ object Lists1 {
       case Nil() => true
       case Cons(head, tail) => exists_lemma_induct(tail, f)
     })
-  }.holds 
+  }.holds
 
 }
 

@@ -12,12 +12,12 @@ object Knapscak {
         case Cons(_, tail) => 1 + tail.size
         case Nil() => BigInt(0)
       }
-    } ensuring(_ >= 0)
+    } ensuring (_ >= 0)
   }
   case class Cons(x: (BigInt, BigInt), tail: IList) extends IList { // a list of pairs of weights and values
     @extern
     override def toString: String = {
-      if(tail == Nil()) x.toString
+      if (tail == Nil()) x.toString
       else x.toString + "," + tail.toString
     }
   }
@@ -62,8 +62,8 @@ object Knapscak {
   }
 
   /**
-   * Computes the list of optimal solutions of all weights up to 'w'
-   */
+    * Computes the list of optimal solutions of all weights up to 'w'
+    */
   def knapSackSol(w: BigInt, items: IList) = {
     require(w >= 0)
     bottomup(w, items)

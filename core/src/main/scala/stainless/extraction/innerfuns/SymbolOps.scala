@@ -11,13 +11,11 @@ trait SymbolOps extends ast.SymbolOps { self: TypeOps =>
   import symbols._
 
   override protected def transformerWithPC[P <: PathLike[P]](
-    path: P,
-    exprOp: (Expr, P, TransformerOp[Expr, P, Expr]) => Expr,
-    typeOp: (Type, P, TransformerOp[Type, P, Type]) => Type
+      path: P,
+      exprOp: (Expr, P, TransformerOp[Expr, P, Expr]) => Expr,
+      typeOp: (Type, P, TransformerOp[Type, P, Type]) => Type
   )(implicit pp: PathProvider[P]): TransformerWithPC[P] = {
-    new TransformerWithPC[P](path, exprOp, typeOp)
-      with innerfuns.TransformerWithPC
-      with TransformerWithExprOp
-      with TransformerWithTypeOp
+    new TransformerWithPC[P](path, exprOp, typeOp) with innerfuns.TransformerWithPC with TransformerWithExprOp
+    with TransformerWithTypeOp
   }
 }

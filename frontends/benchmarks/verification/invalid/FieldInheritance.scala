@@ -18,7 +18,6 @@ object FieldInheritance {
     val y = thisIsIt + 1
   }
 
-
   def foo[A](f: Foo[A]) = (f.thisIsIt == 1).holds
 
 }

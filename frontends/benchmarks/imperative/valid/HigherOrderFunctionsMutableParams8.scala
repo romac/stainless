@@ -1,7 +1,7 @@
 import stainless.lang._
 
 object HigherOrderFunctionsMutableParams8 {
-  
+
   case class A(var x: Int)
 
   case class FunctionWrapper(f: (A) => Int)
@@ -21,7 +21,6 @@ object HigherOrderFunctionsMutableParams8 {
     app(wrap, a)
     app(wrap, a)
     a.x
-  } ensuring(_ == 2)
-
+  } ensuring (_ == 2)
 
 }

@@ -3,7 +3,7 @@
 package stainless
 package ast
 
-class Symbol private[stainless](val path: Seq[String], private[stainless] val id: Int) {
+class Symbol private[stainless] (val path: Seq[String], private[stainless] val id: Int) {
   def this(name: String, id: Int) = this(name.split("\\.").toSeq, id)
 
   val name: String = path.mkString(".")
@@ -22,8 +22,8 @@ object Symbol {
   def apply(name: String) = new Symbol(name, counter.nextGlobal)
 }
 
-class SymbolIdentifier private[stainless](id: Identifier, val symbol: Symbol)
-  extends Identifier(id.name, id.globalId, id.id, alwaysShowUniqueID = false)
+class SymbolIdentifier private[stainless] (id: Identifier, val symbol: Symbol)
+    extends Identifier(id.name, id.globalId, id.id, alwaysShowUniqueID = false)
 
 object SymbolIdentifier {
   def apply(name: String): SymbolIdentifier = {

@@ -16,12 +16,11 @@ trait ExtractionCaches { self: ExtractionContext =>
 
   /** A super type for all cache key generators.
     * This typeclass is used for instantiating extraction caches by key type. */
-  protected abstract class Keyable[T] { 
-    def apply(key: T): CacheKey 
+  protected abstract class Keyable[T] {
+    def apply(key: T): CacheKey
   }
 
-
-  private final class FunctionKey private(private val fd: s.FunDef) extends CacheKey {
+  private final class FunctionKey private (private val fd: s.FunDef) extends CacheKey {
     override def dependencies = Set(fd.id)
 
     // We can't use the `FunDef` as a key directly here as its equality is
@@ -50,7 +49,7 @@ trait ExtractionCaches { self: ExtractionContext =>
     def apply(fd: s.FunDef): CacheKey = new FunctionKey(fd)
   }
 
-  private final class SortKey private(private val sort: s.ADTSort) extends CacheKey {
+  private final class SortKey private (private val sort: s.ADTSort) extends CacheKey {
     override def dependencies = Set(sort.id)
 
     // We again can't use the `ADTSort` as a key for the same reasons as exposed
@@ -83,16 +82,18 @@ trait ExtractionCaches { self: ExtractionContext =>
     * This is an override point for [[ExtractionCaches]] sub-classes where symbols
     * may contain different definitions (such as class definitions). */
   protected def getSimpleKey(id: Identifier)(implicit symbols: s.Symbols): CacheKey =
-    symbols.lookupFunction(id).map(FunctionKey(_))
+    symbols
+      .lookupFunction(id)
+      .map(FunctionKey(_))
       .orElse(symbols.lookupSort(id).map(SortKey(_)))
-      .getOrElse(throw new RuntimeException(
-        "Couldn't find symbol " + id.asString + " in symbols\n\n" + symbols.asString))
+      .getOrElse(
+        throw new RuntimeException("Couldn't find symbol " + id.asString + " in symbols\n\n" + symbols.asString)
+      )
 
   /** Returns a [[CacheKey]] given some identifier and the symbols from which
     * it was taken (uses `symbols.dependencies` to compute the set of dependencies). */
   protected def getDependencyKey(id: Identifier)(implicit symbols: s.Symbols): CacheKey =
     getSimpleKey(id) + SetKey(symbols.dependencies(id))
-
 
   /** A [[CacheKey]] that simply composes a sequence of sub-keys. */
   protected sealed class SeqKey(private val keys: Seq[CacheKey]) extends CacheKey {
@@ -134,7 +135,6 @@ trait ExtractionCaches { self: ExtractionContext =>
     }
   }
 
-
   /** A [[CacheKey]] that relies on the equality of the underlying value.
     * Note that the value should not contain any definitions as they will
     * not register as dependencies of this key! */
@@ -159,7 +159,7 @@ trait ExtractionCaches { self: ExtractionContext =>
 
   /** An extraction cache that gets added to the collection `caches`.
     * Can be invalidated from specific identifiers */
-  protected sealed class ExtractionCache[A, B](gen: (A,TransformerContext) => CacheKey) {
+  protected sealed class ExtractionCache[A, B](gen: (A, TransformerContext) => CacheKey) {
     val cache = new utils.ConcurrentCache[CacheKey, B]
 
     def cached(key: A, c: TransformerContext)(builder: => B): B = cache.cached(gen(key, c))(builder)
@@ -168,7 +168,6 @@ trait ExtractionCaches { self: ExtractionContext =>
     def get(key: A, c: TransformerContext): Option[B] = cache.get(gen(key, c))
     def apply(key: A, c: TransformerContext): B = cache(gen(key, c))
 
-
     def invalidate(id: Identifier): Unit =
       this.cache.retain(key => !(key.dependencies contains id))
 
@@ -176,9 +175,10 @@ trait ExtractionCaches { self: ExtractionContext =>
   }
 
   /** A simple extraction cache that ignores the `TransformerContext` */
-  protected final class SimpleCache[A: Keyable, B] extends ExtractionCache[A, B](
-    (a, _) => implicitly[Keyable[A]].apply(a)
-  ) {
+  protected final class SimpleCache[A: Keyable, B]
+      extends ExtractionCache[A, B](
+        (a, _) => implicitly[Keyable[A]].apply(a)
+      ) {
     val gen = implicitly[Keyable[A]]
     def cached(key: A)(builder: => B): B = cache.cached(gen(key))(builder)
     def contains(key: A): Boolean = cache contains gen(key)

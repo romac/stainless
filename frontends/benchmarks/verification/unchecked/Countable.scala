@@ -4,7 +4,7 @@ object Countable {
   abstract class Countable[T] {
     require(
       forall((t: T) => g(f(t)) == t) &&
-      forall((h: BigInt) => f(g(h)) == h)
+        forall((h: BigInt) => f(g(h)) == h)
     )
 
     def f(x: T): BigInt

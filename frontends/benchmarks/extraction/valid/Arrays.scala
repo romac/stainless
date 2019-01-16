@@ -17,7 +17,6 @@ object Arrays {
     a.update(i, t)
   }
 
-
   // ArraySeq not supported.
   /*
    * import scala.collection.mutable.ArraySeq
@@ -47,4 +46,3 @@ object Arrays {
   }
 
 }
-

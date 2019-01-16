@@ -6,7 +6,7 @@ package verification
 import inox.Options
 import inox.solvers._
 
-import scala.util.{ Success, Failure }
+import scala.util.{Success, Failure}
 import scala.concurrent.Future
 import scala.collection.mutable
 
@@ -87,47 +87,53 @@ trait VerificationChecker { self =>
     val initMap: Map[VC, VCResult] = vcs.map(vc => vc -> unknownResult).toMap
 
     import MainHelpers._
-    val results = Future.traverse(vcs)(vc => Future {
-      if (stop) None else {
-        val simplifiedVC: VC = (vc.copy(
-          condition = simplifyExpr(simplifyLets(simplifyAssertions(vc.condition)))
-        ): VC).setPos(vc)
-        val sf = getFactoryForVC(vc)
-        val res = checkVC(simplifiedVC, sf)
+    val results = Future
+      .traverse(vcs)(
+        vc =>
+          Future {
+            if (stop) None
+            else {
+              val simplifiedVC: VC = (vc.copy(
+                condition = simplifyExpr(simplifyLets(simplifyAssertions(vc.condition)))
+              ): VC).setPos(vc)
+              val sf = getFactoryForVC(vc)
+              val res = checkVC(simplifiedVC, sf)
 
-        val shouldStop = stopWhen(res)
-        interruptManager.synchronized { // Make sure that we only interrupt the manager once.
-          if (shouldStop && !stop && !interruptManager.isInterrupted) {
-            stop = true
-            interruptManager.interrupt()
+              val shouldStop = stopWhen(res)
+              interruptManager.synchronized { // Make sure that we only interrupt the manager once.
+                if (shouldStop && !stop && !interruptManager.isInterrupted) {
+                  stop = true
+                  interruptManager.interrupt()
+                }
+              }
+
+              if (interruptManager.isInterrupted) interruptManager.reset()
+              Some(vc -> res)
+            }
           }
-        }
-
-        if (interruptManager.isInterrupted) interruptManager.reset()
-        Some(vc -> res)
-      }
-    }).map(_.flatten)
+      )
+      .map(_.flatten)
 
     results.map(initMap ++ _)
   }
 
   /** Check whether the model for the ADT invariant specified by the given (invalid) VC is
-   *  valid, ie. whether evalutating the invariant with the given model actually returns `false`.
-   *
-   *  One needs to be careful, because simply evaluating the invariant over the model
-   *  returned by Inox fails with a 'adt invariant' violation. While this is expected,
-   *  we cannot know whether it was the invariant that we are interested in at this point
-   *  or some other invariant that failed.
-   *
-   *  Instead, we need to put the constructed ADT value in the model when evaluating the
-   *  condition, in order for the evaluator to not attempt to re-construct it.
-   *
-   *  As such, we instead need to:
-   *  - evaluate the ADT's arguments to figure out whether those are valid.
-   *  - rebuild the ADT over its evaluated arguments, and add it to the model under a fresh name.
-   *  - rewrite the invariant's invocation to be applied to this new variable instead.
-   *  - evaluate the resulting condition under the new model.
-   */
+    *  valid, ie. whether evalutating the invariant with the given model actually returns `false`.
+    *
+    *  One needs to be careful, because simply evaluating the invariant over the model
+    *  returned by Inox fails with a 'adt invariant' violation. While this is expected,
+    *  we cannot know whether it was the invariant that we are interested in at this point
+    *  or some other invariant that failed.
+    *
+    *  Instead, we need to put the constructed ADT value in the model when evaluating the
+    *  condition, in order for the evaluator to not attempt to re-construct it.
+    *
+    *  As such, we instead need to:
+    *  - evaluate the ADT's arguments to figure out whether those are valid.
+    *  - rebuild the ADT over its evaluated arguments, and add it to the model under a fresh name.
+    *  - rewrite the invariant's invocation to be applied to this new variable instead.
+    *  - evaluate the resulting condition under the new model.
+    */
   protected def checkAdtInvariantModel(vc: VC, invId: Identifier, model: Model): VCStatus = {
     import inox.evaluators.EvaluationResults._
 
@@ -184,7 +190,7 @@ trait VerificationChecker { self =>
         exprOps.postMap {
           case Assert(_, _, e) => Some(e)
           case _ => None
-        } (e)
+        }(e)
       case Operator(es, recons) => recons(es map rec)
     }
 
@@ -217,33 +223,39 @@ trait VerificationChecker { self =>
         case _ if interruptManager.isInterrupted =>
           VCResult(VCStatus.Cancelled, Some(s), Some(time))
 
-        case Success(res) => res match {
-          case Unknown =>
-            VCResult(s match {
-              case ts: inox.solvers.combinators.TimeoutSolver => ts.optTimeout match {
-                case Some(t) if t < time => VCStatus.Timeout
-                case _ => VCStatus.Unknown
-              }
-              case _ => VCStatus.Unknown
-            }, Some(s), Some(time))
+        case Success(res) =>
+          res match {
+            case Unknown =>
+              VCResult(
+                s match {
+                  case ts: inox.solvers.combinators.TimeoutSolver =>
+                    ts.optTimeout match {
+                      case Some(t) if t < time => VCStatus.Timeout
+                      case _ => VCStatus.Unknown
+                    }
+                  case _ => VCStatus.Unknown
+                },
+                Some(s),
+                Some(time)
+              )
 
-          case Unsat if !vc.satisfiability =>
-            VCResult(VCStatus.Valid, s.getResultSolver, Some(time))
+            case Unsat if !vc.satisfiability =>
+              VCResult(VCStatus.Valid, s.getResultSolver, Some(time))
 
-          case SatWithModel(model) if checkModels && vc.kind.isInstanceOf[VCKind.AdtInvariant] =>
-            val VCKind.AdtInvariant(invId) = vc.kind
-            val status = checkAdtInvariantModel(vc, invId, model)
-            VCResult(status, s.getResultSolver, Some(time))
+            case SatWithModel(model) if checkModels && vc.kind.isInstanceOf[VCKind.AdtInvariant] =>
+              val VCKind.AdtInvariant(invId) = vc.kind
+              val status = checkAdtInvariantModel(vc, invId, model)
+              VCResult(status, s.getResultSolver, Some(time))
 
-          case SatWithModel(model) if !vc.satisfiability =>
-            VCResult(VCStatus.Invalid(VCStatus.CounterExample(model)), s.getResultSolver, Some(time))
+            case SatWithModel(model) if !vc.satisfiability =>
+              VCResult(VCStatus.Invalid(VCStatus.CounterExample(model)), s.getResultSolver, Some(time))
 
-          case Sat if vc.satisfiability =>
-            VCResult(VCStatus.Valid, s.getResultSolver, Some(time))
+            case Sat if vc.satisfiability =>
+              VCResult(VCStatus.Valid, s.getResultSolver, Some(time))
 
-          case Unsat if vc.satisfiability =>
-            VCResult(VCStatus.Invalid(VCStatus.Unsatisfiable), s.getResultSolver, Some(time))
-        }
+            case Unsat if vc.satisfiability =>
+              VCResult(VCStatus.Invalid(VCStatus.Unsatisfiable), s.getResultSolver, Some(time))
+          }
 
         case Failure(u: inox.Unsupported) =>
           reporter.warning(u.getMessage)
@@ -287,8 +299,9 @@ trait VerificationChecker { self =>
 }
 
 object VerificationChecker {
-  def verify(p: StainlessProgram, ctx: inox.Context)
-            (vcs: Seq[VC[p.trees.type]]): Future[Map[VC[p.trees.type], VCResult[p.Model]]] = {
+  def verify(p: StainlessProgram, ctx: inox.Context)(
+      vcs: Seq[VC[p.trees.type]]
+  ): Future[Map[VC[p.trees.type], VCResult[p.Model]]] = {
     class Checker extends VerificationChecker {
       val program: p.type = p
       val context = ctx

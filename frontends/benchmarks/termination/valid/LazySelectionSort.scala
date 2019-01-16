@@ -6,10 +6,10 @@ import annotation._
 import collection._
 
 /**
-* A lazy selection sorting algorithm that allows accessing the kth minimum
-* in O(k.n) time, where `n` is the number of elements in the list.
-* See file BottomUpMergeSort for a more optimal algorithm for accessing
-* the kth element.
+  * A lazy selection sorting algorithm that allows accessing the kth minimum
+  * in O(k.n) time, where `n` is the number of elements in the list.
+  * See file BottomUpMergeSort for a more optimal algorithm for accessing
+  * the kth element.
 **/
 object LazySelectionSort {
 
@@ -44,7 +44,7 @@ object LazySelectionSort {
   }
 
   // a lazy concat method
-  def concat(l1: List[BigInt], l2: LList) : LList = {
+  def concat(l1: List[BigInt], l2: LList): LList = {
     l1 match {
       case Cons(x, xs) => SCons(x, Stream(() => concat(xs, l2)))
       case Nil() => SNil()

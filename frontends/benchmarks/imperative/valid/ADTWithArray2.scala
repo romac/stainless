@@ -8,9 +8,9 @@ object ADTWithArray2 {
   }
 
   def test(): Int = {
-    val a = A(Array(1,2,3), 3)
+    val a = A(Array(1, 2, 3), 3)
     foo(a)
     a.a(0)
-  } ensuring(_ == 10)
+  } ensuring (_ == 10)
 
 }

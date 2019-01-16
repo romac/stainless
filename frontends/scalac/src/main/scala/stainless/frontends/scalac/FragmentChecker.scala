@@ -4,21 +4,21 @@ import scala.collection.mutable
 import scala.tools.nsc.SubComponent
 
 /**
- * This class contains a traverser that rejects Scala programs that don't fit in the
- * PureScala or ImperativeScala fragments.
- *
- * Some interesting cases:
- *
- *  - pattern match variables are fresh variables that have to "inherit" the @ghost annotation
- *    from the corresponding case class field
- *  - case classes generate a large number of synthetic methods that need to be patched with @ghost
- *    in cases where there are @ghost parameters
- *  - some case class synthetics will contain invalid accesses to ghost code (i.e. methods equals and unapply)
- *    but we don't report the errors in synthetic code. This is harmless and the ghost code will be
- *    removed as usual
- *
- * This class mutates some symbols by adding the @ghost annotation (see cases above). The AST is not changed.
- */
+  * This class contains a traverser that rejects Scala programs that don't fit in the
+  * PureScala or ImperativeScala fragments.
+  *
+  * Some interesting cases:
+  *
+  *  - pattern match variables are fresh variables that have to "inherit" the @ghost annotation
+  *    from the corresponding case class field
+  *  - case classes generate a large number of synthetic methods that need to be patched with @ghost
+  *    in cases where there are @ghost parameters
+  *  - some case class synthetics will contain invalid accesses to ghost code (i.e. methods equals and unapply)
+  *    but we don't report the errors in synthetic code. This is harmless and the ghost code will be
+  *    removed as usual
+  *
+  * This class mutates some symbols by adding the @ghost annotation (see cases above). The AST is not changed.
+  */
 trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
   import global._
 
@@ -31,8 +31,8 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
   private val erroneousPositions = mutable.Set.empty[Int]
 
   /**
-   * Report an error, unless there is already an error reported at the same position.
-   */
+    * Report an error, unless there is already an error reported at the same position.
+    */
   def reportError(pos: Position, msg: String): Unit = {
     if (!erroneousPositions(pos.start)) {
       ctx.reporter.error(pos, msg)
@@ -66,18 +66,17 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
       res
     }
 
-
     /**
-     * Synthetics introduced by typer for case classes won't propagate the @ghost annotation
-     * to the copy method or for default arguments, leading to invalid accesses from non-ghost
-     * code to ghost code. We fix it here by adding @ghost to these synthetics
-     */
+      * Synthetics introduced by typer for case classes won't propagate the @ghost annotation
+      * to the copy method or for default arguments, leading to invalid accesses from non-ghost
+      * code to ghost code. We fix it here by adding @ghost to these synthetics
+      */
     private def propagateGhostAnnotation(m: MemberDef): Unit = {
       val sym = m.symbol
 
       if (sym.isCaseCopy) {
         val caseClassParams = sym.owner.primaryConstructor.info.params
-        for ((copyParam, caseParam) <-sym.info.params.zip(caseClassParams) if caseParam.hasAnnotation(ghostAnnotation))
+        for ((copyParam, caseParam) <- sym.info.params.zip(caseClassParams) if caseParam.hasAnnotation(ghostAnnotation))
           copyParam.addAnnotation(ghostAnnotation)
       } else if (sym.isDefaultGetter) m match {
         case DefDef(mods, name, tparams, vparamss, tpt, field @ Select(This(_), f)) =>
@@ -96,10 +95,10 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
     }
 
     /**
-     * Methods that should be considered as part of a ghost context, even though they are not
-     * explicitly ghost. They are typically synthetic methods for case classes that are harmless
-     * if they touch ghost code
-     */
+      * Methods that should be considered as part of a ghost context, even though they are not
+      * explicitly ghost. They are typically synthetic methods for case classes that are harmless
+      * if they touch ghost code
+      */
     private def effectivelyGhost(sym: Symbol): Boolean = {
       sym.isSynthetic &&
       (
@@ -128,7 +127,7 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
           reportError(tree.pos, s"Cannot access a ghost symbol outside of a ghost context. [ $currentOwner ]")
           super.traverse(tree)
 
-        case m: MemberDef  =>
+        case m: MemberDef =>
           if (m.symbol.isSynthetic || m.symbol.isAccessor)
             propagateGhostAnnotation(m)
 
@@ -156,7 +155,7 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
           for ((param, arg) <- fun.tpe.params.zip(args))
             if (param.hasAnnotation(ghostAnnotation)) {
               arg match {
-                case b@Bind(_, body) =>
+                case b @ Bind(_, body) =>
                   b.symbol.addAnnotation(ghostAnnotation)
                   traverse(body)
                 case _ =>
@@ -192,12 +191,11 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
 
     val BigInt_ApplyMethods =
       (StainlessLangPackage.info.decl(newTermName("BigInt")).info.decl(nme.apply).alternatives
-      ++ rootMirror.getRequiredModule("scala.math.BigInt").info.decl(nme.apply).alternatives).toSet
+        ++ rootMirror.getRequiredModule("scala.math.BigInt").info.decl(nme.apply).alternatives).toSet
 
     val RequireMethods =
       (definitions.PredefModule.info.decl(newTermName("require")).alternatives.toSet
         + rootMirror.getRequiredModule("stainless.lang.StaticChecks").info.decl(newTermName("require")))
-
 
     private val stainlessReplacement = mutable.Map(
       definitions.ListClass -> "stainless.collection.List",
@@ -274,7 +272,10 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
           val parents = impl.parents.map(_.tpe).filterNot(ignoredClasses)
 
           if (parents.length > 1)
-            reportError(tree.pos, s"Stainless supports only simple type hierarchies: Classes can only inherit from a single class/trait")
+            reportError(
+              tree.pos,
+              s"Stainless supports only simple type hierarchies: Classes can only inherit from a single class/trait"
+            )
 
           tparams.foreach(checkVariance)
           atOwner(sym)(traverse(impl))
@@ -290,7 +291,8 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
           // recurse only inside `rhs`, as parameter/type parameters have been checked already in `checkType`
           atOwner(sym)(traverse(rhs))
 
-        case vd @ ValDef(mods, _, _, _) if sym.owner.isClass && !sym.owner.isAbstractClass && mods.isMutable && !mods.isCaseAccessor =>
+        case vd @ ValDef(mods, _, _, _)
+            if sym.owner.isClass && !sym.owner.isAbstractClass && mods.isMutable && !mods.isCaseAccessor =>
           reportError(tree.pos, "Vars are not allowed in class bodies in Stainless.")
 
         case t: TypeDef =>
@@ -310,9 +312,9 @@ trait FragmentChecker extends SubComponent { _: StainlessExtraction =>
           if (args.size != 1 || !args.head.isInstanceOf[Literal])
             reportError(args.head.pos, "Only literal arguments are allowed for BigInt.")
 
-      case ExCall(Some(s @ Select(rec: Super, _)), _, _, _) =>
-        if (s.symbol.isAbstract && !s.symbol.isConstructor)
-          reportError(tree.pos, "Cannot issue a super call to an abstract method.")
+        case ExCall(Some(s @ Select(rec: Super, _)), _, _, _) =>
+          if (s.symbol.isAbstract && !s.symbol.isConstructor)
+            reportError(tree.pos, "Cannot issue a super call to an abstract method.")
 
         case Apply(fun, args) =>
           if (stainlessReplacement.contains(sym))

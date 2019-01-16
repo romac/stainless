@@ -4,13 +4,13 @@ package stainless
 
 import scala.language.existentials
 
-import extraction.xlang.{ trees => xt }
-import frontend.{ Frontend, CallBack }
+import extraction.xlang.{trees => xt}
+import frontend.{Frontend, CallBack}
 import utils.CheckFilter
 
 import inox.utils.ASCIIHelpers.Row
 
-import java.io.{ File, BufferedWriter, FileWriter }
+import java.io.{File, BufferedWriter, FileWriter}
 import java.nio.file.Files
 
 import scala.collection.mutable.ListBuffer
@@ -21,13 +21,13 @@ import _root_.io.circe.Json
 import org.scalatest._
 
 /**
- * Test suite for [[Registry]]. This suite used the specific [[Main]]
- * implementations. This therefore also tests the extraction from the underlying
- * Scala compiler, making sure symbols are properly mapped to stainless/inox
- * identifiers.
- *
- * See [[testScenario]] for the details of this suite.
- */
+  * Test suite for [[Registry]]. This suite used the specific [[Main]]
+  * implementations. This therefore also tests the extraction from the underlying
+  * Scala compiler, making sure symbols are properly mapped to stainless/inox
+  * identifiers.
+  *
+  * See [[testScenario]] for the details of this suite.
+  */
 class RegistryTestSuite extends FunSuite {
 
   type Content = String
@@ -47,53 +47,62 @@ class RegistryTestSuite extends FunSuite {
   case class UpdateEvent(contents: Map[FileName, Content], expected: Expectation)
 
   protected def testExtractionFailure(name: String, contents: Map[FileName, Content]): Unit = {
-    common(name, contents.keySet) { case (fileMapping, compiler, _) =>
-      writeContents(fileMapping, contents)
-      intercept[inox.FatalError] {
-        compiler.run()
-        compiler.join()
-      }
+    common(name, contents.keySet) {
+      case (fileMapping, compiler, _) =>
+        writeContents(fileMapping, contents)
+        intercept[inox.FatalError] {
+          compiler.run()
+          compiler.join()
+        }
     }
   }
 
   /**
-   * Test a scenario.
-   *
-   *  - [[name]]:         The scenario's name.
-   *  - [[initialState]]: The initial state: should contain the content of every file
-   *                      used in this scenario.
-   *  - [[events]]:       A sequence of updates with the expected classes and
-   *                      functions that should be re-processed.
-   */
+    * Test a scenario.
+    *
+    *  - [[name]]:         The scenario's name.
+    *  - [[initialState]]: The initial state: should contain the content of every file
+    *                      used in this scenario.
+    *  - [[events]]:       A sequence of updates with the expected classes and
+    *                      functions that should be re-processed.
+    */
   protected def testScenario(name: String, initialState: UpdateEvent, events: Seq[UpdateEvent]): Unit = {
-    common(name, initialState.contents.keySet) { case (fileMapping, compiler, run) =>
-      // Process all events
-      val allEvents = initialState +: events
-      allEvents.zipWithIndex foreach { case (event, i) =>
-        info(s"Event ${i + 1}/${allEvents.size}")
+    common(name, initialState.contents.keySet) {
+      case (fileMapping, compiler, run) =>
+        // Process all events
+        val allEvents = initialState +: events
+        allEvents.zipWithIndex foreach {
+          case (event, i) =>
+            info(s"Event ${i + 1}/${allEvents.size}")
 
-        writeContents(fileMapping, event.contents)
-        compiler.run()
-        compiler.join()
-        val report = run.popReport()
+            writeContents(fileMapping, event.contents)
+            compiler.run()
+            compiler.join()
+            val report = run.popReport()
 
-        if (event.expected.strict) {
-          assert(report.functions === event.expected.functions, "Collected functions mismatch expectation (strict)")
-          assert(report.classes === event.expected.classes, "Collected classes mismatch expectation (strict)")
-        } else {
-          assert((report.functions & event.expected.functions) === event.expected.functions,
-                 "Collected functions mismatch expectation")
-          assert((report.classes & event.expected.classes) === event.expected.classes,
-                 "Collected classes mismatch expectation")
+            if (event.expected.strict) {
+              assert(report.functions === event.expected.functions, "Collected functions mismatch expectation (strict)")
+              assert(report.classes === event.expected.classes, "Collected classes mismatch expectation (strict)")
+            } else {
+              assert(
+                (report.functions & event.expected.functions) === event.expected.functions,
+                "Collected functions mismatch expectation"
+              )
+              assert(
+                (report.classes & event.expected.classes) === event.expected.classes,
+                "Collected classes mismatch expectation"
+              )
+            }
         }
-      }
     }
   }
 
-  private class MockCallBack(run: ComponentRun)(implicit ctx: inox.Context) extends frontend.StainlessCallBack(Seq(MockComponent))
+  private class MockCallBack(run: ComponentRun)(implicit ctx: inox.Context)
+      extends frontend.StainlessCallBack(Seq(MockComponent))
 
-  private def common(name: String, filenames: Set[FileName])
-                    (body: (Map[FileName, File], Frontend, MockComponentRun) => Unit): Unit = test(name) {
+  private def common(name: String, filenames: Set[FileName])(
+      body: (Map[FileName, File], Frontend, MockComponentRun) => Unit
+  ): Unit = test(name) {
     val basedir = Files.createTempDirectory("RegistryTestSuite").toFile
     basedir.deleteOnExit()
 
@@ -114,15 +123,17 @@ class RegistryTestSuite extends FunSuite {
   }
 
   private def writeContents(fileMapping: Map[FileName, File], contents: Map[FileName, Content]): Unit = {
-    contents foreach { case (fn, content) =>
-      val file = fileMapping(fn)
-      val out = new BufferedWriter(new FileWriter(file))
-      out.write(content)
-      out.close()
+    contents foreach {
+      case (fn, content) =>
+        val file = fileMapping(fn)
+        val out = new BufferedWriter(new FileWriter(file))
+        out.write(content)
+        out.close()
     }
   }
 
-  private case class MockReport(functions: Set[FunctionName], classes: Set[ClassName]) extends AbstractReport[MockReport] {
+  private case class MockReport(functions: Set[FunctionName], classes: Set[ClassName])
+      extends AbstractReport[MockReport] {
     override val name = "dummy"
 
     override def emitJson = ???
@@ -144,14 +155,14 @@ class RegistryTestSuite extends FunSuite {
   }
 
   /**
-   * Mock component for the purpose of testing the [[Registry]].
-   *
-   * [[filter]] needs to be set/updated before every frontend run.
-   * It also provides a way to clear previously generated reports with [[popReports]].
-   *
-   * NOTE here we don't use the report from [[StainlessCallBack]] because it
-   *      is not cleared upon new compilation.
-   */
+    * Mock component for the purpose of testing the [[Registry]].
+    *
+    * [[filter]] needs to be set/updated before every frontend run.
+    * It also provides a way to clear previously generated reports with [[popReports]].
+    *
+    * NOTE here we don't use the report from [[StainlessCallBack]] because it
+    *      is not cleared upon new compilation.
+    */
   private object MockComponent extends Component {
     val name = "mockcomponent"
     val description = "componing for testing stainless callback"
@@ -171,9 +182,9 @@ class RegistryTestSuite extends FunSuite {
   }
 
   /** Mock component run associated to [[MockComponent]]. */
-  private class MockComponentRun(override val pipeline: extraction.StainlessPipeline)
-                                (override implicit val context: inox.Context)
-  extends {
+  private class MockComponentRun(override val pipeline: extraction.StainlessPipeline)(
+      override implicit val context: inox.Context
+  ) extends {
     val component = MockComponent
     val trees: extraction.xlang.trees.type = extraction.xlang.trees
   } with ComponentRun {
@@ -324,28 +335,48 @@ class RegistryTestSuite extends FunSuite {
        |}
        |""".stripMargin
 
-  testScenario("one run",
+  testScenario(
+    "one run",
     UpdateEvent(
       Map("Options" -> sourceOptions, "AAA" -> sourceAv0, "BBB" -> sourceBv0),
       Expectation(
         classes = Set("Top", "Bottom", "MyOption", "MySome", "MyNone"),
         functions = Set(
-          "foo", "foobar", "bar", "fun", "gun", "hun", "iun", "prop", "inv", // functions
-          "x", "p" // accessors
+          "foo",
+          "foobar",
+          "bar",
+          "fun",
+          "gun",
+          "hun",
+          "iun",
+          "prop",
+          "inv", // functions
+          "x",
+          "p" // accessors
         )
       )
     ),
     Seq.empty
   )
 
-  testScenario("two identical runs",
+  testScenario(
+    "two identical runs",
     UpdateEvent(
       Map("Options" -> sourceOptions, "AAA" -> sourceAv0, "BBB" -> sourceBv0),
       Expectation(
         classes = Set("Top", "Bottom", "MyOption", "MySome", "MyNone"),
         functions = Set(
-          "foo", "foobar", "bar", "fun", "gun", "hun", "iun", "prop", "inv", // functions
-          "x", "p" // accessors
+          "foo",
+          "foobar",
+          "bar",
+          "fun",
+          "gun",
+          "hun",
+          "iun",
+          "prop",
+          "inv", // functions
+          "x",
+          "p" // accessors
         )
       )
     ),
@@ -354,14 +385,24 @@ class RegistryTestSuite extends FunSuite {
     )
   )
 
-  testScenario("watch",
+  testScenario(
+    "watch",
     UpdateEvent(
       Map("Options" -> sourceOptions, "AAA" -> sourceAv0, "BBB" -> sourceBv0),
       Expectation(
         classes = Set("Top", "Bottom", "MyOption", "MySome", "MyNone"),
         functions = Set(
-          "foo", "foobar", "bar", "fun", "gun", "hun", "iun", "prop", "inv", // functions
-          "x", "p" // accessors
+          "foo",
+          "foobar",
+          "bar",
+          "fun",
+          "gun",
+          "hun",
+          "iun",
+          "prop",
+          "inv", // functions
+          "x",
+          "p" // accessors
         )
       )
     ),
@@ -413,4 +454,3 @@ class RegistryTestSuite extends FunSuite {
   testExtractionFailure("ClassTag not supported", Map("Unsupported" -> classTag))
 
 }
-

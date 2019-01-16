@@ -34,31 +34,24 @@ object Internal {
   }
 
   @library
-  case class WithProof[A, B](
-    x: A, r: (A, B) => Boolean, proof: Boolean, prop: Boolean) {
+  case class WithProof[A, B](x: A, r: (A, B) => Boolean, proof: Boolean, prop: Boolean) {
 
     /** Close a proof. */
     def |[C](that: WithProof[B, C]): WithProof[B, C] = {
       require(this.prop && this.proof ==> this.r(this.x, that.x))
-      WithProof(
-        that.x, that.r, that.proof,
-        this.prop && this.proof && this.r(this.x, that.x))
+      WithProof(that.x, that.r, that.proof, this.prop && this.proof && this.r(this.x, that.x))
     }
 
     /** Close a proof. */
     def |[C](that: WithRel[B, C]): WithRel[B, C] = {
       require(this.prop && this.proof ==> this.r(this.x, that.x))
-      WithRel(
-        that.x, that.r,
-        this.prop && this.proof && this.r(this.x, that.x))
+      WithRel(that.x, that.r, this.prop && this.proof && this.r(this.x, that.x))
     }
 
     /** Close a proof. */
     def |(that: RelReasoning[B]): RelReasoning[B] = {
       require(this.prop && this.proof ==> this.r(this.x, that.x))
-      RelReasoning(
-        that.x,
-        this.prop && this.proof && this.r(this.x, that.x))
+      RelReasoning(that.x, this.prop && this.proof && this.r(this.x, that.x))
     }
   }
 }

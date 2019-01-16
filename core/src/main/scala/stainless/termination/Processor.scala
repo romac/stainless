@@ -19,4 +19,3 @@ trait OrderingProcessor extends Processor {
     val checker: OrderingProcessor.this.checker.type
   }
 }
-

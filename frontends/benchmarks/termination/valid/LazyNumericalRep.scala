@@ -35,7 +35,7 @@ object LazyNumericalRep {
       decreases(this.size)
       this match {
         case c @ Spine(_, rear, sz) =>
-          sz >= 0 && sz > rear.size && rear.finite  //  Note here the exact value of size is not important it should just increase
+          sz >= 0 && sz > rear.size && rear.finite //  Note here the exact value of size is not important it should just increase
         case _ => true
       }
     }
@@ -48,7 +48,7 @@ object LazyNumericalRep {
 
     def isSusp = this match {
       case _: Susp => true
-      case _       => false
+      case _ => false
     }
 
     lazy val fval = {
@@ -62,7 +62,7 @@ object LazyNumericalRep {
     def get: NumList = {
       this match {
         case Susp(f) => fval
-        case Val(x)  => x
+        case Val(x) => x
       }
     }
 
@@ -86,7 +86,7 @@ object LazyNumericalRep {
         Spine(One(), xs, BigInt(1))
       case s @ Spine(Zero(), rear, sz) =>
         Spine(One(), rear, sz)
-      case s @ Spine(_, _,_) =>
+      case s @ Spine(_, _, _) =>
         incLazy(xs)
     }
   }
@@ -110,7 +110,9 @@ object LazyNumericalRep {
             Spine(Zero(), Susp(() => incLazy(rear)), sz + 1)
         }
     }
-  } ensuring { res => res.finite && res.size <= xs.size + 1 }
+  } ensuring { res =>
+    res.finite && res.size <= xs.size + 1
+  }
 
   def incNum(w: Number): (NumStream, List[NumStream]) = {
     require(w.valid)
@@ -129,22 +131,24 @@ object LazyNumericalRep {
       case c @ Cons(head, rest) =>
         head.get match {
           case Spine(Zero(), rear: Susp, _) => Cons(rear, rest)
-          case _                         => rest
+          case _ => rest
         }
       case Nil() => scheds
     }
   }
 
   /**
-   * Pushing an element to the left of the queue preserves the data-structure invariants
-   */
+    * Pushing an element to the left of the queue preserves the data-structure invariants
+    */
   def incAndPay(w: Number) = {
     require(w.valid)
     val (q, scheds) = incNum(w)
     val nscheds = Pay(q, scheds)
     Number(q, nscheds)
 
-  } ensuring { res => res.valid }
+  } ensuring { res =>
+    res.valid
+  }
 
   def firstDigit(w: Number): Digit = {
     require(!w.digs.get.isTip)

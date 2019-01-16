@@ -1,4 +1,3 @@
-
 import stainless.lang._
 
 object SuperCall2 {

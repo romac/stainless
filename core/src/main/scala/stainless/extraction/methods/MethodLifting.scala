@@ -1,4 +1,3 @@
-
 package stainless
 package extraction
 package methods
@@ -17,24 +16,34 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
   // Note that we actually use the set of transitive overrides here as computing
   // the set of direct overrides is significantly more expensive and shouldn't improve
   // the cache hit rate that much.
-  private[this] final val funCache = new ExtractionCache[s.FunDef, t.FunDef]({ (fd, symbols) =>
-    FunctionKey(fd) + SetKey(fd.flags
-      .collectFirst { case s.IsMethodOf(id) => symbols.getClass(id) }.toSeq
-      .flatMap { cd =>
-        val descendants = cd.descendants(symbols)
-        val descendantIds = descendants.map(_.id).toSet
+  private[this] final val funCache = new ExtractionCache[s.FunDef, t.FunDef]({
+    (fd, symbols) =>
+      FunctionKey(fd) + SetKey(
+        fd.flags
+          .collectFirst { case s.IsMethodOf(id) => symbols.getClass(id) }
+          .toSeq
+          .flatMap { cd =>
+            val descendants = cd.descendants(symbols)
+            val descendantIds = descendants.map(_.id).toSet
 
-        val isInvariant = fd.flags contains s.IsInvariant
+            val isInvariant = fd.flags contains s.IsInvariant
 
-        def symbolOf(fd: s.FunDef): Symbol = fd.id.asInstanceOf[SymbolIdentifier].symbol
+            def symbolOf(fd: s.FunDef): Symbol = fd.id.asInstanceOf[SymbolIdentifier].symbol
 
-        symbols.functions.values
-          .filter(_.flags exists { case s.IsMethodOf(id) => descendantIds(id) case _ => false })
-          .filter { ofd =>
-            if (isInvariant) ofd.flags contains s.IsInvariant
-            else symbolOf(ofd) == symbolOf(fd) // casts are sound after checking `IsMethodOf`
-          }.map(FunctionKey(_): CacheKey).toSet
-      }.toSet)
+            symbols.functions.values
+              .filter(_.flags exists {
+                case s.IsMethodOf(id) => descendantIds(id)
+                case _ => false
+              })
+              .filter { ofd =>
+                if (isInvariant) ofd.flags contains s.IsInvariant
+                else symbolOf(ofd) == symbolOf(fd) // casts are sound after checking `IsMethodOf`
+              }
+              .map(FunctionKey(_): CacheKey)
+              .toSet
+          }
+          .toSet
+      )
   })
 
   // The class cache must consider all direct overrides of a potential invariant function
@@ -44,10 +53,16 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
     (cd, symbols) =>
       val ids = cd.descendants(symbols).map(_.id).toSet + cd.id
 
-      val invariants = symbols.functions.values.filter { fd =>
-        (fd.flags contains s.IsInvariant) &&
-        (fd.flags exists { case s.IsMethodOf(id) => ids(id) case _ => false })
-      }.map(FunctionKey(_)).toSet
+      val invariants = symbols.functions.values
+        .filter { fd =>
+          (fd.flags contains s.IsInvariant) &&
+          (fd.flags exists {
+            case s.IsMethodOf(id) => ids(id)
+            case _ => false
+          })
+        }
+        .map(FunctionKey(_))
+        .toSet
 
       ClassKey(cd) + SetKey(invariants)
   })
@@ -75,8 +90,10 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
   }
 
   override final def extract(symbols: s.Symbols): t.Symbols = {
-    assert(symbols.sorts.isEmpty,
-      "Unexpected sorts in method lifting: " + symbols.sorts.keys.map(_.asString).mkString(", "))
+    assert(
+      symbols.sorts.isEmpty,
+      "Unexpected sorts in method lifting: " + symbols.sorts.keys.map(_.asString).mkString(", ")
+    )
 
     val classes = new scala.collection.mutable.ListBuffer[t.ClassDef]
     val functions = new scala.collection.mutable.ListBuffer[t.FunDef]
@@ -91,7 +108,8 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
         makeFunction(o.cid, fd.id, o.children)(syms)
       }
 
-      val funs = cd.methods(symbols)
+      val funs = cd
+        .methods(symbols)
         .map(symbols.functions)
         .map { fd =>
           funCache.cached(fd, symbols)(transformMethod(fd)(symbols))
@@ -113,7 +131,10 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
     }
 
     functions ++= symbols.functions.values
-      .filterNot(_.flags exists { case IsMethodOf(_) => true case _ => false })
+      .filterNot(_.flags exists {
+        case IsMethodOf(_) => true
+        case _ => false
+      })
       .map { fd =>
         funCache.cached(fd, symbols)(default.transform(fd))
       }
@@ -129,12 +150,15 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
         val children = cd.children(symbols)
         val ctrees = children.map(ccd => rec(ccd.id))
 
-        val newOverrides = cd.methods(symbols).map { fid =>
-          fid.symbol -> Override(id, Some(fid), ctrees.flatMap(_.get(fid.symbol)))
-        }.toMap
+        val newOverrides = cd
+          .methods(symbols)
+          .map { fid =>
+            fid.symbol -> Override(id, Some(fid), ctrees.flatMap(_.get(fid.symbol)))
+          }
+          .toMap
 
-        val noOverrides = ctrees.flatMap(_.keys.toSet).filterNot(newOverrides contains _).map {
-          sym => sym -> Override(id, None, ctrees.flatMap(_.get(sym)))
+        val noOverrides = ctrees.flatMap(_.keys.toSet).filterNot(newOverrides contains _).map { sym =>
+          sym -> Override(id, None, ctrees.flatMap(_.get(sym)))
         }
 
         newOverrides ++ noOverrides
@@ -183,7 +207,11 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
     val cd = symbols.getClass(cid)
     val fd = symbols.getFunction(fid)
     val tpSeq = exprOps.freshenTypeParams(cd.typeArgs).map { tp =>
-      tp.copy(flags = tp.flags.filter { case Variance(_) => false case _ => true }).copiedFrom(tp)
+      tp.copy(flags = tp.flags.filter {
+          case Variance(_) => false
+          case _ => true
+        })
+        .copiedFrom(tp)
     }
     val tpMap = (cd.typeArgs zip tpSeq).toMap
 
@@ -209,48 +237,62 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
     }
 
     val subCalls = (for (co <- cos) yield {
-      firstOverrides(co).map { case (cid, nfd) =>
-        val descendant = tcd.descendants.find(_.id == cid).get
-        val descType = identity.transform(descendant.toType.copiedFrom(nfd)).asInstanceOf[t.ClassType]
+      firstOverrides(co).map {
+        case (cid, nfd) =>
+          val descendant = tcd.descendants.find(_.id == cid).get
+          val descType = identity.transform(descendant.toType.copiedFrom(nfd)).asInstanceOf[t.ClassType]
 
-        def unchecked(expr: t.Expr): t.Expr = t.Annotated(expr, Seq(t.Unchecked)).copiedFrom(expr)
-        val thiss = unchecked(t.AsInstanceOf(arg.toVariable, descType).copiedFrom(arg))
+          def unchecked(expr: t.Expr): t.Expr = t.Annotated(expr, Seq(t.Unchecked)).copiedFrom(expr)
+          val thiss = unchecked(t.AsInstanceOf(arg.toVariable, descType).copiedFrom(arg))
 
-        def wrap(e: t.Expr, tpe: s.Type, expected: s.Type): t.Expr =
-          if (symbols.isSubtypeOf(tpe, expected)) e else (e match {
-            case v: t.Variable =>
-              val expectedType = transformer.transform(expected.getType(symbols))
-              t.Assume(t.IsInstanceOf(e, expectedType).copiedFrom(e),
-                unchecked(t.AsInstanceOf(e, expectedType).copiedFrom(e))).copiedFrom(e)
-            case _ =>
-              val vd = t.ValDef.fresh("x", transformer.transform(tpe), true).copiedFrom(e)
-              val expectedType = transformer.transform(expected.getType(symbols))
-              t.Let(vd, e,
-                t.Assume(t.IsInstanceOf(vd.toVariable, expectedType).copiedFrom(e),
-                  unchecked(t.AsInstanceOf(vd.toVariable, expectedType).copiedFrom(e))).copiedFrom(e))
-          })
+          def wrap(e: t.Expr, tpe: s.Type, expected: s.Type): t.Expr =
+            if (symbols.isSubtypeOf(tpe, expected)) e
+            else
+              (e match {
+                case v: t.Variable =>
+                  val expectedType = transformer.transform(expected.getType(symbols))
+                  t.Assume(
+                      t.IsInstanceOf(e, expectedType).copiedFrom(e),
+                      unchecked(t.AsInstanceOf(e, expectedType).copiedFrom(e))
+                    )
+                    .copiedFrom(e)
+                case _ =>
+                  val vd = t.ValDef.fresh("x", transformer.transform(tpe), true).copiedFrom(e)
+                  val expectedType = transformer.transform(expected.getType(symbols))
+                  t.Let(
+                    vd,
+                    e,
+                    t.Assume(
+                        t.IsInstanceOf(vd.toVariable, expectedType).copiedFrom(e),
+                        unchecked(t.AsInstanceOf(vd.toVariable, expectedType).copiedFrom(e))
+                      )
+                      .copiedFrom(e)
+                  )
+              })
 
-        val (tpe, expr) = {
-          val ntpMap = descendant.tpSubst ++ (nfd.typeArgs zip fd.typeArgs)
-          val args = (fd.params zip nfd.params).map { case (vd1, vd2) =>
-            wrap(
-              transformer.transform(vd1.toVariable),
-              s.typeOps.instantiateType(vd1.tpe, tpMap),
-              s.typeOps.instantiateType(vd2.tpe, ntpMap)
+          val (tpe, expr) = {
+            val ntpMap = descendant.tpSubst ++ (nfd.typeArgs zip fd.typeArgs)
+            val args = (fd.params zip nfd.params).map {
+              case (vd1, vd2) =>
+                wrap(
+                  transformer.transform(vd1.toVariable),
+                  s.typeOps.instantiateType(vd1.tpe, tpMap),
+                  s.typeOps.instantiateType(vd2.tpe, ntpMap)
+                )
+            }
+            (
+              s.typeOps.instantiateType(nfd.returnType, ntpMap),
+              t.FunctionInvocation(
+                  nfd.id,
+                  descType.tps ++ fd.tparams.map(tdef => transformer.transform(tdef.tp)),
+                  thiss +: args
+                )
+                .copiedFrom(fd)
             )
           }
-          (
-            s.typeOps.instantiateType(nfd.returnType, ntpMap),
-            t.FunctionInvocation(
-              nfd.id,
-              descType.tps ++ fd.tparams.map(tdef => transformer.transform(tdef.tp)),
-              thiss +: args
-            ).copiedFrom(fd)
-          )
-        }
 
-        val expectedType = s.typeOps.instantiateType(fd.returnType, tpMap)
-        (t.IsInstanceOf(arg.toVariable, descType).copiedFrom(arg), wrap(expr, tpe, expectedType))
+          val expectedType = s.typeOps.instantiateType(fd.returnType, tpMap)
+          (t.IsInstanceOf(arg.toVariable, descType).copiedFrom(arg), wrap(expr, tpe, expectedType))
       }
     }).flatten
 
@@ -263,8 +305,8 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
       }
 
       val coMap = cos.map(co => co.cid -> co).toMap
-      cd.children(symbols).exists {
-        ccd => !(coMap contains ccd.id) || !rec(coMap(ccd.id))
+      cd.children(symbols).exists { ccd =>
+        !(coMap contains ccd.id) || !rec(coMap(ccd.id))
       }
     }
 
@@ -282,15 +324,18 @@ trait MethodLifting extends oo.ExtractionContext with oo.ExtractionCaches { self
     }
 
     val newSpecs = specs.map(_.map(t)(transformer.transform(_)))
-    val dispatchBody = conds.foldRight(elze) { case ((cond, res), elze) =>
-      t.IfExpr(cond, res, elze).setPos(Position.between(cond.getPos, elze.getPos))
+    val dispatchBody = conds.foldRight(elze) {
+      case ((cond, res), elze) =>
+        t.IfExpr(cond, res, elze).setPos(Position.between(cond.getPos, elze.getPos))
     }
 
-    val newBody = if (!(fd.flags contains IsInvariant)) dispatchBody else {
-      // If `fd` is an invariant, we need to conjoin both the constructor's and parent's invariants,
-      // otherwise we would only end up the checking the former.
-      t.and(dispatchBody, elze.copiedFrom(dispatchBody))
-    }
+    val newBody =
+      if (!(fd.flags contains IsInvariant)) dispatchBody
+      else {
+        // If `fd` is an invariant, we need to conjoin both the constructor's and parent's invariants,
+        // otherwise we would only end up the checking the former.
+        t.and(dispatchBody, elze.copiedFrom(dispatchBody))
+      }
 
     val fullBody = t.exprOps.reconstructSpecs(newSpecs, Some(newBody), returnType)
 

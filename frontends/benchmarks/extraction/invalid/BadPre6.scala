@@ -13,4 +13,3 @@ object BadPre6 {
     inner(x / 2)
   }
 }
-

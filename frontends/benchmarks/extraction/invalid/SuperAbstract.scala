@@ -1,4 +1,3 @@
-
 object SuperAbstract {
 
   sealed abstract class A {

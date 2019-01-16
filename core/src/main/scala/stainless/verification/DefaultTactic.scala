@@ -81,13 +81,14 @@ trait DefaultTactic extends Tactic {
       case (fi: FunctionInvocation, path) if fi.tfd.precondition.isDefined => (fi, path)
     }(fd.fullBody)
 
-    calls.flatMap { case (fi @ FunctionInvocation(_, _, args), path) =>
-      getPrecondition(fi.tfd.precondition.get).map { pred =>
-        val pre = fi.tfd.withParamSubst(args, pred)
-        val vc = path implies exprOps.freshenLocals(pre)
-        val fiS = sizeLimit(fi.asString, 40)
-        VC(vc, id, VCKind.Info(VCKind.Precondition, s"call $fiS"), false).setPos(fi)
-      }
+    calls.flatMap {
+      case (fi @ FunctionInvocation(_, _, args), path) =>
+        getPrecondition(fi.tfd.precondition.get).map { pred =>
+          val pre = fi.tfd.withParamSubst(args, pred)
+          val vc = path implies exprOps.freshenLocals(pre)
+          val fiS = sizeLimit(fi.asString, 40)
+          VC(vc, id, VCKind.Info(VCKind.Precondition, s"call $fiS"), false).setPos(fi)
+        }
     }
   }
 
@@ -104,17 +105,19 @@ trait DefaultTactic extends Tactic {
 
       case (a @ Assert(cond, optErr, _), path) =>
         val condition = path implies cond
-        val kind = optErr.map { err =>
-          if (err.startsWith("Array ")) VCKind.ArrayUsage
-          else if (err.startsWith("Map ")) VCKind.MapUsage
-          else if (err.endsWith("Overflow")) VCKind.Overflow
-          else if (err.startsWith("Shift")) VCKind.Shift
-          else if (err.startsWith("Division ")) VCKind.DivisionByZero
-          else if (err.startsWith("Modulo ")) VCKind.ModuloByZero
-          else if (err.startsWith("Remainder ")) VCKind.RemainderByZero
-          else if (err.startsWith("Cast ")) VCKind.CastError
-          else VCKind.AssertErr(err)
-        }.getOrElse(VCKind.Assert)
+        val kind = optErr
+          .map { err =>
+            if (err.startsWith("Array ")) VCKind.ArrayUsage
+            else if (err.startsWith("Map ")) VCKind.MapUsage
+            else if (err.endsWith("Overflow")) VCKind.Overflow
+            else if (err.startsWith("Shift")) VCKind.Shift
+            else if (err.startsWith("Division ")) VCKind.DivisionByZero
+            else if (err.startsWith("Modulo ")) VCKind.ModuloByZero
+            else if (err.startsWith("Remainder ")) VCKind.RemainderByZero
+            else if (err.startsWith("Cast ")) VCKind.CastError
+            else VCKind.AssertErr(err)
+          }
+          .getOrElse(VCKind.Assert)
         VC(condition, id, kind, false).setPos(a)
 
       case (c @ Choose(res, pred), path) if !(res.flags contains Unchecked) =>

@@ -4,7 +4,6 @@ import stainless.lang._
 
 object NestedFunState3 {
 
-
   def counterN(n: Int): Int = {
     require(n > 0)
 
@@ -15,12 +14,12 @@ object NestedFunState3 {
     }
 
     var i = 0
-    (while(i < n) {
+    (while (i < n) {
       inc()
       i += 1
-    }) invariant(i >= 0 && counter == i && i <= n)
+    }) invariant (i >= 0 && counter == i && i <= n)
 
     counter
-  } ensuring(_ == n)
+  } ensuring (_ == n)
 
 }

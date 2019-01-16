@@ -9,5 +9,5 @@ object BVDivisionByZero {
   def divByZero(x: Int): Boolean = {
     (x / 0 == 10)
   }
-  
+
 }

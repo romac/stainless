@@ -11,7 +11,7 @@ object GhostMethods {
   def ghostMethod2(@ghost x: BigInt, y: BigInt): BigInt = BigInt(1)
 
   def f(@ghost x: BigInt, p: BigInt): BigInt = BigInt(0)
-  def g(y: BigInt) : BigInt = BigInt(0)
+  def g(y: BigInt): BigInt = BigInt(0)
 
   def polyG[A](@ghost g: A, zero: A): A = zero
 

@@ -12,25 +12,27 @@ import scala.collection.mutable.{Map => MutableMap}
 trait Definitions extends imperative.Trees { self: Trees =>
 
   class ClassDef(
-    val id: Identifier,
-    val tparams: Seq[TypeParameterDef],
-    val parents: Seq[ClassType], // Set of direct parents
-    val fields: Seq[ValDef],
-    val flags: Seq[Flag]
+      val id: Identifier,
+      val tparams: Seq[TypeParameterDef],
+      val parents: Seq[ClassType], // Set of direct parents
+      val fields: Seq[ValDef],
+      val flags: Seq[Flag]
   ) extends Definition {
 
     def ancestors(implicit s: Symbols): Seq[TypedClassDef] = {
       val allAncestors = parents.flatMap(_.lookupClass).flatMap(tcd => tcd +: tcd.ancestors)
-      val typedMap = allAncestors.groupBy(_.cd).map { case (cd, tcds) =>
-        val tps = cd.typeArgs.zipWithIndex.map { case (tp, i) =>
-          val insts @ (head +: tail) = tcds.map(_.tps(i))
-          if (tp.isCovariant) s.greatestLowerBound(insts)
-          else if (tp.isContravariant) s.leastUpperBound(insts)
-          else if (tail.forall(_ == head)) head
-          else Untyped
-        }
+      val typedMap = allAncestors.groupBy(_.cd).map {
+        case (cd, tcds) =>
+          val tps = cd.typeArgs.zipWithIndex.map {
+            case (tp, i) =>
+              val insts @ (head +: tail) = tcds.map(_.tps(i))
+              if (tp.isCovariant) s.greatestLowerBound(insts)
+              else if (tp.isContravariant) s.leastUpperBound(insts)
+              else if (tail.forall(_ == head)) head
+              else Untyped
+          }
 
-        cd -> cd.typed(tps)
+          cd -> cd.typed(tps)
       }
       allAncestors.map(_.cd).distinct.map(typedMap)
     }
@@ -47,11 +49,11 @@ trait Definitions extends imperative.Trees { self: Trees =>
     def typed(implicit s: Symbols): TypedClassDef = typed(tparams.map(_.tp))
 
     def copy(
-      id: Identifier = this.id,
-      tparams: Seq[TypeParameterDef] = this.tparams,
-      parents: Seq[ClassType] = this.parents,
-      fields: Seq[ValDef] = this.fields,
-      flags: Seq[Flag] = this.flags
+        id: Identifier = this.id,
+        tparams: Seq[TypeParameterDef] = this.tparams,
+        parents: Seq[ClassType] = this.parents,
+        fields: Seq[ValDef] = this.fields,
+        flags: Seq[Flag] = this.flags
     ): ClassDef = new ClassDef(id, tparams, parents, fields, flags).setPos(this)
   }
 
@@ -64,13 +66,13 @@ trait Definitions extends imperative.Trees { self: Trees =>
     private[this] val _tpSubst = inox.utils.Lazy((cd.typeArgs zip tps).filter(p => p._1 != p._2).toMap)
 
     @inline def parents: Seq[TypedClassDef] = _parents.get
-    private[this] val _parents = inox.utils.Lazy(cd.parents.flatMap {
-      tpe => typeOps.instantiateType(tpe, tpSubst).asInstanceOf[ClassType].lookupClass
+    private[this] val _parents = inox.utils.Lazy(cd.parents.flatMap { tpe =>
+      typeOps.instantiateType(tpe, tpSubst).asInstanceOf[ClassType].lookupClass
     })
 
     @inline def ancestors: Seq[TypedClassDef] = _ancestors.get
-    private[this] val _ancestors = inox.utils.Lazy(cd.ancestors.map {
-      tcd => tcd.cd.typed(tcd.tps.map(typeOps.instantiateType(_, tpSubst)))
+    private[this] val _ancestors = inox.utils.Lazy(cd.ancestors.map { tcd =>
+      tcd.cd.typed(tcd.tps.map(typeOps.instantiateType(_, tpSubst)))
     })
 
     @inline def children: Seq[TypedClassDef] = _children.get
@@ -97,14 +99,10 @@ trait Definitions extends imperative.Trees { self: Trees =>
 
   case class ClassLookupException(id: Identifier) extends LookupException(id, "class")
 
-
   type Symbols >: Null <: AbstractSymbols
 
-  trait AbstractSymbols
-    extends super.AbstractSymbols
-       with DependencyGraph
-       with TypeOps
-       with SymbolOps { self0: Symbols =>
+  trait AbstractSymbols extends super.AbstractSymbols with DependencyGraph with TypeOps with SymbolOps {
+    self0: Symbols =>
 
     val classes: Map[Identifier, ClassDef]
 
@@ -114,7 +112,8 @@ trait Definitions extends imperative.Trees { self: Trees =>
       typedClassCache.getOrElseUpdate(id -> tps, lookupClass(id).map(_.typed(tps)))
 
     def getClass(id: Identifier): ClassDef = lookupClass(id).getOrElse(throw ClassLookupException(id))
-    def getClass(id: Identifier, tps: Seq[Type]): TypedClassDef = lookupClass(id, tps).getOrElse(throw ClassLookupException(id))
+    def getClass(id: Identifier, tps: Seq[Type]): TypedClassDef =
+      lookupClass(id, tps).getOrElse(throw ClassLookupException(id))
 
     override def asString(implicit opts: PrinterOptions): String = {
       classes.map(p => prettyPrint(p._2, opts)).mkString("\n\n") +
@@ -124,9 +123,10 @@ trait Definitions extends imperative.Trees { self: Trees =>
 
     override def transform(t: inox.transformers.DefinitionTransformer { val s: self.type }): t.t.Symbols =
       t.t match {
-        case tree: Trees => SymbolTransformer(
-          t.asInstanceOf[inox.transformers.DefinitionTransformer { val s: self.type; val t: tree.type }]
-        ).transform(this).asInstanceOf[t.t.Symbols]
+        case tree: Trees =>
+          SymbolTransformer(
+            t.asInstanceOf[inox.transformers.DefinitionTransformer { val s: self.type; val t: tree.type }]
+          ).transform(this).asInstanceOf[t.t.Symbols]
 
         case _ => super.transform(t)
       }
@@ -142,34 +142,36 @@ trait Definitions extends imperative.Trees { self: Trees =>
       }
 
       cd.parents.find(!_.tcd.cd.flags.contains(IsAbstract)).foreach { pcd =>
-        throw NotWellFormedException(cd, 
-          Some(s"a concrete class (${pcd.id}) cannot be extended (by ${cd.id}).")
-        )
+        throw NotWellFormedException(cd, Some(s"a concrete class (${pcd.id}) cannot be extended (by ${cd.id})."))
       }
-      
-      cd.fields.groupBy(_.id).find(_._2.size > 1).foreach { case (id, vds) =>
-        throw NotWellFormedException(cd, 
-          Some(s"there are at least two fields with the same id ($id) in ${cd.id} (${vds.mkString(",")}).")
-        )
+
+      cd.fields.groupBy(_.id).find(_._2.size > 1).foreach {
+        case (id, vds) =>
+          throw NotWellFormedException(
+            cd,
+            Some(s"there are at least two fields with the same id ($id) in ${cd.id} (${vds.mkString(",")}).")
+          )
       }
     }
 
-    override def equals(that: Any): Boolean = super.equals(that) && (that match {
-      case sym: AbstractSymbols => classes == sym.classes
-      case _ => false
-    })
+    override def equals(that: Any): Boolean =
+      super.equals(that) && (that match {
+        case sym: AbstractSymbols => classes == sym.classes
+        case _ => false
+      })
 
     override def hashCode: Int = super.hashCode + 31 * classes.hashCode
 
     def withClasses(classes: Seq[ClassDef]): Symbols
 
     protected class Lookup extends super.Lookup {
-      override def get[T <: Definition : ClassTag](name: String): Option[T] = ({
-        if (classTag[ClassDef].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) find(name, classes)
-        else super.get[T](name)
-      }).asInstanceOf[Option[T]]
+      override def get[T <: Definition: ClassTag](name: String): Option[T] =
+        ({
+          if (classTag[ClassDef].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) find(name, classes)
+          else super.get[T](name)
+        }).asInstanceOf[Option[T]]
 
-      override def apply[T <: Definition : ClassTag](name: String): T = {
+      override def apply[T <: Definition: ClassTag](name: String): T = {
         if (classTag[ClassDef].runtimeClass.isAssignableFrom(classTag[T].runtimeClass)) {
           find(name, classes).getOrElse(throw ClassLookupException(FreshIdentifier(name))).asInstanceOf[T]
         } else {
@@ -190,7 +192,8 @@ trait Definitions extends imperative.Trees { self: Trees =>
 
   implicit class TypeParameterWrapper(tp: TypeParameter) {
     def bounds: TypeBounds = {
-      tp.flags.collectFirst { case Bounds(lo, hi) => TypeBounds(lo, hi) }
+      tp.flags
+        .collectFirst { case Bounds(lo, hi) => TypeBounds(lo, hi) }
         .getOrElse(TypeBounds(NothingType(), AnyType()))
     }
 
@@ -199,6 +202,9 @@ trait Definitions extends imperative.Trees { self: Trees =>
 
     def isCovariant: Boolean = tp.flags contains Variance(true)
     def isContravariant: Boolean = tp.flags contains Variance(false)
-    def isInvariant: Boolean = tp.flags.forall { case Variance(_) => false case _ => true }
+    def isInvariant: Boolean = tp.flags.forall {
+      case Variance(_) => false
+      case _ => true
+    }
   }
 }

@@ -7,11 +7,11 @@ object Nested16 {
       require(j >= 0)
       def rec2(k: BigInt): BigInt = {
         require(j > 0 || j == k)
-        if(k == 0) 0 else rec1(j-1)
+        if (k == 0) 0 else rec1(j - 1)
       }
       rec2(j)
     }
     rec1(3)
-  } ensuring(0 == _)
+  } ensuring (0 == _)
 
 }

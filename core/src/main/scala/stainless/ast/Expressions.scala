@@ -14,7 +14,6 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     override def getType(implicit s: Symbols): Type = tpe.getType
   }
 
-
   /* Specifications */
 
   /** Computational errors (unmatched case, taking min of an empty set,
@@ -28,7 +27,6 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
   sealed case class Error(tpe: Type, description: String) extends Expr with Terminal {
     override def getType(implicit s: Symbols): Type = tpe.getType
   }
-
 
   /** Precondition of an [[Expressions.Expr]]. Corresponds to the Stainless keyword *require*
     *
@@ -66,11 +64,15 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     /** Converts this ensuring clause to the body followed by an assert statement */
     def toAssert(implicit s: Symbols): Expr = {
       val res = ValDef(FreshIdentifier("res", true), getType)
-      Let(res, body, Assert(
-        s.application(pred, Seq(res.toVariable)),
-        Some("Postcondition failed @" + this.getPos),
-        res.toVariable
-      ))
+      Let(
+        res,
+        body,
+        Assert(
+          s.application(pred, Seq(res.toVariable)),
+          Some("Postcondition failed @" + this.getPos),
+          res.toVariable
+        )
+      )
     }
   }
 
@@ -87,7 +89,6 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     }
   }
 
-
   /* Pattern-match expression */
 
   /** $encodingof `... match { ... }`
@@ -101,10 +102,11 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     require(cases.nonEmpty)
 
     override protected def computeType(implicit s: Symbols): Type =
-      if (cases forall { case MatchCase(pat, guard, rhs) =>
-        s.patternIsTyped(scrutinee.getType, pat) &&
-        guard.forall(_.getType == BooleanType())
-      }) {
+      if (cases forall {
+          case MatchCase(pat, guard, rhs) =>
+            s.patternIsTyped(scrutinee.getType, pat) &&
+              guard.forall(_.getType == BooleanType())
+        }) {
         s.leastUpperBound(cases.map(_.rhs.getType))
       } else {
         Untyped
@@ -141,7 +143,8 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     *
     * If [[binder]] is empty, consider a wildcard `_` in its place.
     */
-  sealed case class ADTPattern(binder: Option[ValDef], id: Identifier, tps: Seq[Type], subPatterns: Seq[Pattern]) extends Pattern
+  sealed case class ADTPattern(binder: Option[ValDef], id: Identifier, tps: Seq[Type], subPatterns: Seq[Pattern])
+      extends Pattern
 
   /** Pattern encoding tuple pattern `case binder @ (subPatterns...) =>`
     *
@@ -162,28 +165,39 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
   }
 
   protected def unapplyAccessor(unapplied: Expr, id: Identifier, up: UnapplyPattern)(implicit s: Symbols): Expr = {
-    val fd = s.lookupFunction(id)
+    val fd = s
+      .lookupFunction(id)
       .filter(_.params.size == 1)
       .getOrElse(throw extraction.MissformedStainlessCode(up, "Invalid unapply accessor"))
     val unapp = up.getFunction
-    val tpMap = s.instantiation(fd.params.head.getType, unapp.getType)
+    val tpMap = s
+      .instantiation(fd.params.head.getType, unapp.getType)
       .getOrElse(throw extraction.MissformedStainlessCode(up, "Unapply pattern failed type instantiation"))
     fd.typed(fd.typeArgs map tpMap).applied(Seq(unapplied))
   }
 
   /** A custom pattern defined through an object's `unapply` function */
-  sealed case class UnapplyPattern(binder: Option[ValDef], recs: Seq[Expr], id: Identifier, tps: Seq[Type], subPatterns: Seq[Pattern]) extends Pattern {
+  sealed case class UnapplyPattern(
+      binder: Option[ValDef],
+      recs: Seq[Expr],
+      id: Identifier,
+      tps: Seq[Type],
+      subPatterns: Seq[Pattern]
+  ) extends Pattern {
     def getFunction(implicit s: Symbols): TypedFunDef = s.getFunction(id, tps)
 
     private def getIsEmpty(implicit s: Symbols): Identifier =
-      getFunction.flags.collectFirst { case IsUnapply(isEmpty, _) => isEmpty }
+      getFunction.flags
+        .collectFirst { case IsUnapply(isEmpty, _) => isEmpty }
         .getOrElse(throw extraction.MissformedStainlessCode(this, "Unapply pattern on non-unapply method (isEmpty)"))
 
     private def getGet(implicit s: Symbols): Identifier =
-      getFunction.flags.collectFirst { case IsUnapply(_, get) => get }
+      getFunction.flags
+        .collectFirst { case IsUnapply(_, get) => get }
         .getOrElse(throw extraction.MissformedStainlessCode(this, "Unapply pattern on non-unapply method (get)"))
 
-    def isEmptyUnapplied(unapp: Expr)(implicit s: Symbols): Expr = unapplyAccessor(unapp, getIsEmpty, this).copiedFrom(this)
+    def isEmptyUnapplied(unapp: Expr)(implicit s: Symbols): Expr =
+      unapplyAccessor(unapp, getIsEmpty, this).copiedFrom(this)
     def getUnapplied(unapp: Expr)(implicit s: Symbols): Expr = unapplyAccessor(unapp, getGet, this).copiedFrom(this)
 
     def isEmpty(scrut: Expr)(implicit s: Symbols): Expr =
@@ -195,7 +209,6 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     def subTypes(in: Type)(implicit s: Symbols): Seq[Type] =
       unwrapTupleType(s.unapplyAccessorResultType(getGet, getFunction.getType).get, subPatterns.size)
   }
-
 
   /* Array Operations */
 
@@ -213,14 +226,20 @@ trait Expressions extends inox.ast.Expressions with inox.ast.Types { self: Trees
     * @param default Default value for indexes not in the [[elems]] map
     * @param size    Array length
     */
-  sealed case class LargeArray(elems: Map[Int, Expr], default: Expr, size: Expr, base: Type) extends Expr with CachingTyped {
+  sealed case class LargeArray(elems: Map[Int, Expr], default: Expr, size: Expr, base: Type)
+      extends Expr
+      with CachingTyped {
     override protected def computeType(implicit s: Symbols): Type = {
       if (s.isSubtypeOf(size.getType, Int32Type())) {
-        unveilUntyped(ArrayType(checkParamTypes(
-          (default +: elems.values.toSeq).map(_.getType),
-          List.fill(elems.size + 1)(base),
-          base
-        )))
+        unveilUntyped(
+          ArrayType(
+            checkParamTypes(
+              (default +: elems.values.toSeq).map(_.getType),
+              List.fill(elems.size + 1)(base),
+              base
+            )
+          )
+        )
       } else {
         Untyped
       }

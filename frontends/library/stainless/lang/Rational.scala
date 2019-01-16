@@ -12,11 +12,11 @@ case class Rational(numerator: BigInt, denominator: BigInt) {
   require(this.isRational)
 
   def +(that: Rational): Rational = {
-    Rational(this.numerator*that.denominator + that.numerator*this.denominator, this.denominator*that.denominator)
+    Rational(this.numerator * that.denominator + that.numerator * this.denominator, this.denominator * that.denominator)
   }
 
   def -(that: Rational): Rational = {
-    Rational(this.numerator*that.denominator - that.numerator*this.denominator, this.denominator*that.denominator)
+    Rational(this.numerator * that.denominator - that.numerator * this.denominator, this.denominator * that.denominator)
   }
 
   def unary_- : Rational = {
@@ -24,13 +24,13 @@ case class Rational(numerator: BigInt, denominator: BigInt) {
   }
 
   def *(that: Rational): Rational = {
-    Rational(this.numerator*that.numerator, this.denominator*that.denominator)
+    Rational(this.numerator * that.numerator, this.denominator * that.denominator)
   }
 
   def /(that: Rational): Rational = {
     require(that.nonZero)
-    val newNumerator = this.numerator*that.denominator
-    val newDenominator = this.denominator*that.numerator
+    val newNumerator = this.numerator * that.denominator
+    val newDenominator = this.denominator * that.numerator
     normalize(newNumerator, newDenominator)
   }
 
@@ -39,25 +39,24 @@ case class Rational(numerator: BigInt, denominator: BigInt) {
     normalize(this.denominator, this.numerator)
   }
 
-
   def ~(that: Rational): Boolean = {
-    this.numerator*that.denominator == that.numerator*this.denominator
+    this.numerator * that.denominator == that.numerator * this.denominator
   }
 
   def <(that: Rational): Boolean = {
-    this.numerator*that.denominator < that.numerator*this.denominator
+    this.numerator * that.denominator < that.numerator * this.denominator
   }
 
   def <=(that: Rational): Boolean = {
-    this.numerator*that.denominator <= that.numerator*this.denominator
+    this.numerator * that.denominator <= that.numerator * this.denominator
   }
 
   def >(that: Rational): Boolean = {
-    this.numerator*that.denominator > that.numerator*this.denominator
+    this.numerator * that.denominator > that.numerator * this.denominator
   }
 
   def >=(that: Rational): Boolean = {
-    this.numerator*that.denominator >= that.numerator*this.denominator
+    this.numerator * that.denominator >= that.numerator * this.denominator
   }
 
   def nonZero: Boolean = {
@@ -68,7 +67,7 @@ case class Rational(numerator: BigInt, denominator: BigInt) {
 
   private def normalize(num: BigInt, den: BigInt): Rational = {
     require(den != 0)
-    if(den < 0)
+    if (den < 0)
       Rational(-num, -den)
     else
       Rational(num, den)

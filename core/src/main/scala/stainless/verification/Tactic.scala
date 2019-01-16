@@ -17,24 +17,27 @@ trait Tactic {
   protected def VC(cond: program.trees.Expr, id: Identifier, kind: VCKind, satisfiability: Boolean): VC =
     verification.VC(cond, id, kind, satisfiability)
 
-  protected def collectForConditions[T](pf: PartialFunction[(Expr, Path),T])(e: Expr): Seq[T] = {
+  protected def collectForConditions[T](pf: PartialFunction[(Expr, Path), T])(e: Expr): Seq[T] = {
     val results: ListBuffer[T] = new ListBuffer
     val lifted = pf.lift
 
-    transformWithPC(e, true /* recurse into types */)((e, path, op) => e match {
-      case Annotated(_, flags) if flags contains Unchecked => e
-      case _ =>
-        lifted(e, path).foreach(results += _)
-        op.sup(e, path)
-    })
+    transformWithPC(e, true /* recurse into types */ )(
+      (e, path, op) =>
+        e match {
+          case Annotated(_, flags) if flags contains Unchecked => e
+          case _ =>
+            lifted(e, path).foreach(results += _)
+            op.sup(e, path)
+        }
+    )
 
     results.toList
   }
 
   def generateVCs(id: Identifier): Seq[VC] = {
     generatePostconditions(id) ++
-    generatePreconditions(id) ++
-    generateCorrectnessConditions(id)
+      generatePreconditions(id) ++
+      generateCorrectnessConditions(id)
   }
 
   def generatePostconditions(id: Identifier): Seq[VC]

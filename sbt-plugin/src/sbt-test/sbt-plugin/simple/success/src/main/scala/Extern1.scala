@@ -13,7 +13,7 @@ object Extern1 {
   }
 
   def test(b: BigInt): BigInt = {
-    plop(if (b <= 0) -b+1 else b)
+    plop(if (b <= 0) -b + 1 else b)
   } ensuring {
     _ > 0
   }

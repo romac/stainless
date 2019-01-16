@@ -7,10 +7,8 @@ import scala.concurrent.duration._
 
 object DebugSectionPartialEval extends inox.DebugSection("partial-eval")
 
-trait PartialEvaluation
-  extends extraction.CachingPhase
-     with extraction.IdentitySorts
-     with extraction.SimpleFunctions { self =>
+trait PartialEvaluation extends extraction.CachingPhase with extraction.IdentitySorts with extraction.SimpleFunctions {
+  self =>
 
   val s: extraction.Trees
   val t: s.type
@@ -22,9 +20,8 @@ trait PartialEvaluation
 
   protected val semantics: inox.SemanticsProvider { val trees: s.type }
 
-  override protected final val funCache = new ExtractionCache[s.FunDef, FunctionResult]((fd, context) => 
-    getDependencyKey(fd.id)(context.symbols)
-  )
+  override protected final val funCache =
+    new ExtractionCache[s.FunDef, FunctionResult]((fd, context) => getDependencyKey(fd.id)(context.symbols))
 
   override protected def getContext(symbols: s.Symbols) = new TransformerContext(symbols)
 
@@ -71,22 +68,28 @@ trait PartialEvaluation
     final def transform(fd: FunDef): FunDef = {
       val toEval = invocationsToEval(fd.id)
 
-      def eval(e: Expr): Expr = symbols.transformWithPC(e)((e, path, op) => e match {
-        case fi: FunctionInvocation if fi.id != fd.id && toEval(fi.id) =>
-          reporter.debug(s" - Partially evaluating call to '${toEval.mkString(", ")}' in '${fd.id}' at ${fd.getPos}...")
-          reporter.debug(s"   Path condition: $path")
-          reporter.debug(s"   Before: $fi")
+      def eval(e: Expr): Expr =
+        symbols.transformWithPC(e)(
+          (e, path, op) =>
+            e match {
+              case fi: FunctionInvocation if fi.id != fd.id && toEval(fi.id) =>
+                reporter.debug(
+                  s" - Partially evaluating call to '${toEval.mkString(", ")}' in '${fd.id}' at ${fd.getPos}..."
+                )
+                reporter.debug(s"   Path condition: $path")
+                reporter.debug(s"   Before: $fi")
 
-          val (elapsed, res) = timers.partialeval.runAndGetTime {
-            partialEval(fi, path, simple = isSynthetic(fi.id))
-          }
+                val (elapsed, res) = timers.partialeval.runAndGetTime {
+                  partialEval(fi, path, simple = isSynthetic(fi.id))
+                }
 
-          reporter.debug(s"   After: ${res.get}")
-          reporter.debug(s"   Time elapsed: " + "%.4f".format(elapsed.millis.toUnit(SECONDS)) + " seconds\n")
-          res.get
+                reporter.debug(s"   After: ${res.get}")
+                reporter.debug(s"   Time elapsed: " + "%.4f".format(elapsed.millis.toUnit(SECONDS)) + " seconds\n")
+                res.get
 
-        case _ => op.sup(e, path)
-      })
+              case _ => op.sup(e, path)
+            }
+        )
 
       fd.copy(fullBody = eval(fd.fullBody), flags = fd.flags filterNot (_ == PartialEval))
     }
@@ -99,7 +102,8 @@ trait PartialEvaluation
 
 object PartialEvaluation {
   def apply(tr: extraction.Trees)(
-    implicit ctx: inox.Context, sems: inox.SemanticsProvider { val trees: tr.type }
+      implicit ctx: inox.Context,
+      sems: inox.SemanticsProvider { val trees: tr.type }
   ): extraction.ExtractionPipeline {
     val s: tr.type
     val t: tr.type

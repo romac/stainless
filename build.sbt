@@ -2,13 +2,15 @@ import sbt.ScriptedPlugin
 
 enablePlugins(GitVersioning)
 git.baseVersion in ThisBuild := "0.1.0"
-git.formattedShaVersion in ThisBuild := git.gitHeadCommit.value map { sha => s"${git.baseVersion.value}-${sha}" }
+git.formattedShaVersion in ThisBuild := git.gitHeadCommit.value map { sha =>
+  s"${git.baseVersion.value}-${sha}"
+}
 
 val osInf = Option(System.getProperty("os.name")).getOrElse("")
 
-val isUnix    = osInf.indexOf("nix") >= 0 || osInf.indexOf("nux") >= 0
+val isUnix = osInf.indexOf("nix") >= 0 || osInf.indexOf("nux") >= 0
 val isWindows = osInf.indexOf("Win") >= 0
-val isMac     = osInf.indexOf("Mac") >= 0
+val isMac = osInf.indexOf("Mac") >= 0
 
 val osName = if (isWindows) "win" else if (isMac) "mac" else "unix"
 val osArch = System.getProperty("sun.arch.data.model")
@@ -56,20 +58,16 @@ lazy val commonSettings: Seq[Setting[_]] = artifactSettings ++ Seq(
     "-unchecked",
     "-feature"
   ),
-
-  scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value+"/src/main/scala/root-doc.txt"),
-
+  scalacOptions in (Compile, doc) ++= Seq("-doc-root-content", baseDirectory.value + "/src/main/scala/root-doc.txt"),
   unmanagedJars in Runtime += {
     root.base / "unmanaged" / s"scalaz3-$osName-$osArch-${scalaBinaryVersion.value}.jar"
   },
-
   resolvers ++= Seq(
     "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases",
     "uuverifiers" at "http://logicrunch.it.uu.se:4096/~wv/maven",
     Resolver.typesafeIvyRepo("releases")
   ),
-
   libraryDependencies ++= Seq(
     "ch.epfl.lara" %% "inox" % inoxVersion,
     "ch.epfl.lara" %% "inox" % inoxVersion % "test" classifier "tests",
@@ -79,21 +77,16 @@ lazy val commonSettings: Seq[Setting[_]] = artifactSettings ++ Seq(
     "io.circe" %% "circe-generic" % circeVersion,
     "io.circe" %% "circe-parser" % circeVersion
   ),
-
   concurrentRestrictions in Global += Tags.limit(Tags.Test, nParallel),
-
   sourcesInBase in Compile := false,
-
   Keys.fork in run := true,
-
   testOptions in Test := Seq(Tests.Argument("-oDF")),
-
   testOptions in IntegrationTest := Seq(Tests.Argument("-oDF"))
 )
 
 lazy val libraryFiles: Seq[(String, File)] = {
   val libFiles = ((root.base / "frontends" / "library") ** "*.scala").get
-  val dropCount = (libFiles.head.getPath indexOfSlice "library") + ("library".size + 1 /* for separator */)
+  val dropCount = (libFiles.head.getPath indexOfSlice "library") + ("library".size + 1 /* for separator */ )
   libFiles.map(file => (file.getPath drop dropCount, file)) // Drop the prefix of the path (i.e. everything before "library")
 }
 
@@ -102,7 +95,6 @@ lazy val commonFrontendSettings: Seq[Setting[_]] = Defaults.itSettings ++ Seq(
     "ch.epfl.lara" %% "inox" % inoxVersion % "it" classifier "tests" classifier "it",
     "org.scalatest" %% "scalatest" % "3.0.1" % "it" // FIXME: Does this override `% "test"` from commonSettings above?
   ),
-
   /**
     * NOTE: IntelliJ seems to have trouble including sources located outside the base directory of an
     *   sbt project. You can temporarily disable the following four lines when importing the project.
@@ -111,7 +103,6 @@ lazy val commonFrontendSettings: Seq[Setting[_]] = Defaults.itSettings ++ Seq(
   unmanagedSourceDirectories in Compile += (root.base.getAbsoluteFile / "frontends" / "common" / "src" / "main" / "scala"),
   unmanagedSourceDirectories in Test += (root.base.getAbsoluteFile / "frontends" / "common" / "src" / "test" / "scala"),
   unmanagedSourceDirectories in IntegrationTest += (root.base.getAbsoluteFile / "frontends" / "common" / "src" / "it" / "scala"),
-
   // We have to use managed resources here to keep sbt's source watcher happy
   resourceGenerators in Compile += Def.task {
     for ((libPath, libFile) <- libraryFiles) yield {
@@ -121,14 +112,14 @@ lazy val commonFrontendSettings: Seq[Setting[_]] = Defaults.itSettings ++ Seq(
     }
   }.taskValue,
   test in assembly := {}, // Skip the test during assembly
-
   sourceGenerators in Compile += Def.task {
     val main = (sourceManaged in Compile).value / "stainless" / "Main.scala"
     def removeSlashU(in: String): String =
       in.replaceAll("\\\\" + "u", "\\\\\"\"\"+\"\"\"u")
-      .replaceAll("\\\\" + "U", "\\\\\"\"\"+\"\"\"U")
+        .replaceAll("\\\\" + "U", "\\\\\"\"\"+\"\"\"U")
 
-    IO.write(main,
+    IO.write(
+      main,
       s"""|package stainless
           |
           |object Main extends MainHelpers {
@@ -142,21 +133,25 @@ lazy val commonFrontendSettings: Seq[Setting[_]] = Defaults.itSettings ++ Seq(
           |
           |  override val factory = new frontends.${frontendClass.value}.Factory(extraCompilerArguments, libraryPaths)
           |
-          |}""".stripMargin)
+          |}""".stripMargin
+    )
     Seq(main)
-  }) ++
-  inConfig(IntegrationTest)(Defaults.testTasks ++ Seq(
-    logBuffered := (nParallel > 1),
-    parallelExecution := (nParallel > 1)
-  ))
+  }
+) ++
+  inConfig(IntegrationTest)(
+    Defaults.testTasks ++ Seq(
+      logBuffered := (nParallel > 1),
+      parallelExecution := (nParallel > 1)
+    )
+  )
 
 val scriptSettings: Seq[Setting[_]] = Seq(
   extraClasspath := {
-    ((classDirectory in Compile).value.getAbsolutePath +: (dependencyClasspath in Compile).value.map(_.data.absolutePath))
+    ((classDirectory in Compile).value.getAbsolutePath +: (dependencyClasspath in Compile).value
+      .map(_.data.absolutePath))
       .mkString(System.getProperty("path.separator"))
   }
 )
-
 
 def ghProject(repo: String, version: String) = RootProject(uri(s"${repo}#${version}"))
 
@@ -164,7 +159,7 @@ def ghProject(repo: String, version: String) = RootProject(uri(s"${repo}#${versi
 //lazy val dotty = ghProject("git://github.com/lampepfl/dotty.git", "b3194406d8e1a28690faee12257b53f9dcf49506")
 
 // Allow integration test to use facilities from regular tests
-lazy val IntegrationTest = config("it") extend(Test)
+lazy val IntegrationTest = config("it") extend (Test)
 
 lazy val `stainless-core` = (project in file("core"))
   .disablePlugins(AssemblyPlugin)
@@ -172,7 +167,7 @@ lazy val `stainless-core` = (project in file("core"))
   .settings(commonSettings, publishMavenSettings)
   .settings(site.settings)
   .settings(site.sphinxSupport())
-  //.dependsOn(inox % "compile->compile;test->test")
+//.dependsOn(inox % "compile->compile;test->test")
 
 lazy val `stainless-library` = (project in file("frontends") / "library")
   .disablePlugins(AssemblyPlugin)
@@ -206,7 +201,7 @@ lazy val `stainless-scalac` = (project in file("frontends") / "scalac")
     assemblyExcludedJars in assembly := {
       val cp = (fullClasspath in assembly).value
       // Don't include scalaz3 dependency because it is OS dependent
-      cp filter {_.data.getName.startsWith("scalaz3")}
+      cp filter { _.data.getName.startsWith("scalaz3") }
     },
     publish := (),
     skip in publish := true // following https://github.com/sbt/sbt-assembly#q-despite-the-concerned-friends-i-still-want-publish-fat-jars-what-advice-do-you-have
@@ -257,9 +252,7 @@ lazy val `stainless-dotty` = (project in file("frontends") / "stainless-dotty")
   .enablePlugins(JavaAppPackaging)
   .enablePlugins(BuildInfoPlugin)
   .disablePlugins(AssemblyPlugin)
-  .settings(
-    name := "stainless-dotty",
-    frontendClass := "dotc.DottyCompiler")
+  .settings(name := "stainless-dotty", frontendClass := "dotc.DottyCompiler")
   .dependsOn(`stainless-dotty-frontend`)
   // Should truly depend on dotty, overriding the "provided" modifier above:
   .settings(libraryDependencies += "ch.epfl.lamp" % "dotty_2.11" % dottyVersion)
@@ -297,17 +290,20 @@ lazy val `sbt-stainless` = (project in file("sbt-plugin"))
     }
   )
 
-def scriptedSettings: Seq[Setting[_]] = ScriptedPlugin.scriptedSettings ++
-  Seq(
-    scripted := scripted.tag(Tags.Test).evaluated,
-    scriptedLaunchOpts ++= Seq(
-      "-Xmx768m",
-      "-XX:MaxMetaspaceSize=384m",
-      "-Dplugin.version=" + version.value,
-      "-Dscala.version=" + sys.props.get("scripted.scala.version").getOrElse((scalaVersion in `stainless-scalac`).value)
-    ),
-    scriptedBufferLog := false
-  )
+def scriptedSettings: Seq[Setting[_]] =
+  ScriptedPlugin.scriptedSettings ++
+    Seq(
+      scripted := scripted.tag(Tags.Test).evaluated,
+      scriptedLaunchOpts ++= Seq(
+        "-Xmx768m",
+        "-XX:MaxMetaspaceSize=384m",
+        "-Dplugin.version=" + version.value,
+        "-Dscala.version=" + sys.props
+          .get("scripted.scala.version")
+          .getOrElse((scalaVersion in `stainless-scalac`).value)
+      ),
+      scriptedBufferLog := false
+    )
 
 lazy val root = (project in file("."))
   .disablePlugins(AssemblyPlugin)
@@ -319,7 +315,14 @@ lazy val root = (project in file("."))
     publish := ()
   )
   .dependsOn(`stainless-scalac`, `stainless-library`, `stainless-dotty`, `sbt-stainless`)
-  .aggregate(`stainless-core`, `stainless-library`, `stainless-scalac`, `stainless-dotty`, `sbt-stainless`, `stainless-scalac-plugin`)
+  .aggregate(
+    `stainless-core`,
+    `stainless-library`,
+    `stainless-scalac`,
+    `stainless-dotty`,
+    `sbt-stainless`,
+    `stainless-scalac-plugin`
+  )
 
 def commonPublishSettings = Seq(
   bintrayOrganization := Some("epfl-lara")
@@ -337,4 +340,3 @@ def publishMavenSettings = commonPublishSettings ++ Seq(
 
 // FIXME assembly should be disabled at the top level, but isn't
 // FIXME assembly is not compatible with dotty -- some conflict with scala versions?
-

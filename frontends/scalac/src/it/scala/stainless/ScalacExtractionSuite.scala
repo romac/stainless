@@ -16,4 +16,3 @@ class ScalacExtractionSuite extends ExtractionSuite {
   testExtractAll("termination/looping")
 
 }
-

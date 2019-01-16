@@ -5,8 +5,8 @@ package stainless.lang
 import stainless.annotation._
 
 /**
- * @author Mikael
- */
+  * @author Mikael
+  */
 object StrOps {
   @ignore
   def concat(a: String, b: String): String = {
@@ -21,4 +21,3 @@ object StrOps {
     s.substring(start.toInt, end.toInt)
   }
 }
-

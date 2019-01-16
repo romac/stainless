@@ -4,7 +4,7 @@ package stainless.codegen.runtime
 
 import scala.collection.mutable.{Set => MutableSet}
 
-final class Set private(private val underlying: MutableSet[AnyRef]) {
+final class Set private (private val underlying: MutableSet[AnyRef]) {
   def this() = this(MutableSet.empty[AnyRef])
   def this(elements: Array[AnyRef]) = this(MutableSet.empty ++ elements)
 

@@ -3,21 +3,21 @@
 package stainless
 package verification
 
-import inox.utils.ASCIIHelpers.{ Cell, Row }
+import inox.utils.ASCIIHelpers.{Cell, Row}
 import stainless.utils.JsonConvertions._
 
 import io.circe._
 import io.circe.syntax._
 import io.circe.generic.semiauto._
 
-import scala.util.{ Right, Left }
+import scala.util.{Right, Left}
 
 object VerificationReport {
 
   /**
-   * Similar interface to [[VCStatus]], but with text only data and all
-   * inconclusive status mapped to [[Inconclusive]].
-   */
+    * Similar interface to [[VCStatus]], but with text only data and all
+    * inconclusive status mapped to [[Inconclusive]].
+    */
   sealed abstract class Status(val name: String) {
     def isValid = this == Status.Valid || isValidFromCache
     def isValidFromCache = this == Status.ValidFromCache
@@ -31,9 +31,9 @@ object VerificationReport {
     case class Inconclusive(reason: String) extends Status(reason)
     case class Invalid(reason: String) extends Status("invalid")
 
-    def apply[Model <: StainlessProgram#Model](program: inox.Program)
-                                              (status: VCStatus[program.Model])
-                                              (implicit opts: program.trees.PrinterOptions): Status = status match {
+    def apply[Model <: StainlessProgram#Model](
+        program: inox.Program
+    )(status: VCStatus[program.Model])(implicit opts: program.trees.PrinterOptions): Status = status match {
       case VCStatus.Invalid(VCStatus.CounterExample(model)) => Invalid("counter-example: " + model.asString)
       case VCStatus.Invalid(VCStatus.Unsatisfiable) => Invalid("unsatisfiable")
       case VCStatus.Valid => Valid
@@ -46,9 +46,13 @@ object VerificationReport {
   implicit val statusEncoder: Encoder[Status] = deriveEncoder
 
   case class Record(
-    id: Identifier, pos: inox.utils.Position, time: Long,
-    status: Status, solverName: Option[String], kind: String,
-    derivedFrom: Identifier
+      id: Identifier,
+      pos: inox.utils.Position,
+      time: Long,
+      status: Status,
+      solverName: Option[String],
+      kind: String,
+      derivedFrom: Identifier
   ) extends AbstractReportHelper.Record
 
   implicit val recordDecoder: Decoder[Record] = deriveDecoder
@@ -62,7 +66,7 @@ object VerificationReport {
 }
 
 class VerificationReport(val results: Seq[VerificationReport.Record], val sources: Set[Identifier])
-  extends BuildableAbstractReport[VerificationReport.Record, VerificationReport] {
+    extends BuildableAbstractReport[VerificationReport.Record, VerificationReport] {
   import VerificationReport._
 
   override val encoder = recordEncoder
@@ -98,4 +102,3 @@ class VerificationReport(val results: Seq[VerificationReport.Record], val source
     ReportStats(totalConditions, totalTime, totalValid, totalValidFromCache, totalInvalid, totalUnknown)
 
 }
-

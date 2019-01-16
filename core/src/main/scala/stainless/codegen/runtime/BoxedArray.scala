@@ -7,7 +7,7 @@ case class IntBox(array: Array[Int]) extends Box
 case class BooleanBox(array: Array[Boolean]) extends Box
 case class AnyRefBox(array: Array[AnyRef]) extends Box
 
-final class BoxedArray private(private val box: Box) {
+final class BoxedArray private (private val box: Box) {
   def this(intArray: Array[Int]) = this(IntBox(intArray))
   def this(boolArray: Array[Boolean]) = this(BooleanBox(boolArray))
   def this(objArray: Array[AnyRef]) = this(AnyRefBox(objArray))
@@ -37,4 +37,3 @@ final class BoxedArray private(private val box: Box) {
 
   override def toString: String = box.array.toSeq.mkString("[", ",", "]")
 }
-

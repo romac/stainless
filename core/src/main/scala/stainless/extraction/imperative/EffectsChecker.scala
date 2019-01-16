@@ -36,11 +36,12 @@ trait EffectsChecker { self: EffectsAnalyzer =>
       checkPurity(fd)
 
       exprOps.withoutSpecs(fd.fullBody).foreach { bd =>
-
         // check return value
         if (isMutableType(bd.getType) && !isExpressionFresh(bd)) {
-          throw ImperativeEliminationException(bd,
-            "Cannot return a shared reference to a mutable object: " + bd.asString)
+          throw ImperativeEliminationException(
+            bd,
+            "Cannot return a shared reference to a mutable object: " + bd.asString
+          )
         }
 
         object traverser extends SelfTreeTraverser {
@@ -74,22 +75,30 @@ trait EffectsChecker { self: EffectsAnalyzer =>
               super.traverse(l)
 
             case fi: FunctionInvocation if isMutableSynthetic(fi.id) =>
-              throw ImperativeEliminationException(fi, s"Cannot call '${fi.id.asString}' on a class with mutable fields")
+              throw ImperativeEliminationException(
+                fi,
+                s"Cannot call '${fi.id.asString}' on a class with mutable fields"
+              )
 
             case fi @ FunctionInvocation(id, tps, args) =>
               val fd = symbols.getFunction(id)
               for ((tpe, tp) <- tps zip fd.tparams if (isMutableType(tpe) && !tp.flags.contains(IsMutable))) {
-                throw ImperativeEliminationException(e,
-                  s"Cannot instantiate a non-mutable type parameter ${tp.asString} in $fd with the mutable type ${tpe.asString}")
+                throw ImperativeEliminationException(
+                  e,
+                  s"Cannot instantiate a non-mutable type parameter ${tp.asString} in $fd with the mutable type ${tpe.asString}"
+                )
               }
 
               super.traverse(fi)
 
             case adt @ ADT(id, tps, args) =>
-              (adt.getConstructor.sort.definition.tparams zip tps).foreach { case (tdef, instanceType) =>
-                if (isMutableType(instanceType) && !(tdef.flags contains IsMutable))
-                  throw ImperativeEliminationException(e,
-                    s"Cannot instantiate a non-mutable type parameter ${tdef.asString} with a mutable type ${instanceType.asString}")
+              (adt.getConstructor.sort.definition.tparams zip tps).foreach {
+                case (tdef, instanceType) =>
+                  if (isMutableType(instanceType) && !(tdef.flags contains IsMutable))
+                    throw ImperativeEliminationException(
+                      e,
+                      s"Cannot instantiate a non-mutable type parameter ${tdef.asString} with a mutable type ${instanceType.asString}"
+                    )
               }
 
               super.traverse(adt)
@@ -103,73 +112,104 @@ trait EffectsChecker { self: EffectsAnalyzer =>
     }
 
     def checkMutableField(fd: FunAbstraction): Unit = {
-      if (!fd.flags.exists { case IsField(_) => true case _ => false }) return ()
+      if (!fd.flags.exists {
+          case IsField(_) => true
+          case _ => false
+        }) return ()
 
       if (isMutableType(fd.returnType))
         throw ImperativeEliminationException(fd, "A global field cannot refer to a mutable object")
 
       if (effects(fd.fullBody).nonEmpty)
-        throw ImperativeEliminationException(fd, s"A global field must be pure, but ${fd.id.asString} has effects: ${effects(fd.fullBody).map(_.asString).mkString(", ")}")
+        throw ImperativeEliminationException(
+          fd,
+          s"A global field must be pure, but ${fd.id.asString} has effects: ${effects(fd.fullBody).map(_.asString).mkString(", ")}"
+        )
     }
 
-    def checkEffectsLocations(fd: FunAbstraction): Unit = exprOps.preTraversal {
-      case Require(pre, _) =>
-        val preEffects = effects(pre)
-        if (preEffects.nonEmpty)
-          throw ImperativeEliminationException(pre, "Precondition has effects on: " + preEffects.head.receiver.asString)
+    def checkEffectsLocations(fd: FunAbstraction): Unit =
+      exprOps.preTraversal {
+        case Require(pre, _) =>
+          val preEffects = effects(pre)
+          if (preEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              pre,
+              "Precondition has effects on: " + preEffects.head.receiver.asString
+            )
 
-      case Ensuring(_, post @ Lambda(_, body)) =>
-        val bodyEffects = effects(body)
-        if (bodyEffects.nonEmpty)
-          throw ImperativeEliminationException(post, "Postcondition has effects on: " + bodyEffects.head.receiver.asString)
+        case Ensuring(_, post @ Lambda(_, body)) =>
+          val bodyEffects = effects(body)
+          if (bodyEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              post,
+              "Postcondition has effects on: " + bodyEffects.head.receiver.asString
+            )
 
-        val oldEffects = effects(exprOps.postMap {
-          case Old(e) => Some(e)
-          case _ => None
-        } (body))
-        if (oldEffects.nonEmpty)
-          throw ImperativeEliminationException(post, s"Postcondition tries to mutate ${Old(oldEffects.head.receiver).asString}")
+          val oldEffects = effects(exprOps.postMap {
+            case Old(e) => Some(e)
+            case _ => None
+          }(body))
+          if (oldEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              post,
+              s"Postcondition tries to mutate ${Old(oldEffects.head.receiver).asString}"
+            )
 
-      case Decreases(meas, _) =>
-        val measEffects = effects(meas)
-        if (measEffects.nonEmpty)
-          throw ImperativeEliminationException(meas, "Decreases has effects on: " + measEffects.head.receiver.asString)
+        case Decreases(meas, _) =>
+          val measEffects = effects(meas)
+          if (measEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              meas,
+              "Decreases has effects on: " + measEffects.head.receiver.asString
+            )
 
-      case Assert(pred, _, _) =>
-        val predEffects = effects(pred)
-        if (predEffects.nonEmpty)
-          throw ImperativeEliminationException(pred, "Assertion has effects on: " + predEffects.head.receiver.asString)
+        case Assert(pred, _, _) =>
+          val predEffects = effects(pred)
+          if (predEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              pred,
+              "Assertion has effects on: " + predEffects.head.receiver.asString
+            )
 
-      case Forall(_, pred) =>
-        val predEffects = effects(pred)
-        if (predEffects.nonEmpty)
-          throw ImperativeEliminationException(pred, "Quantifier has effects on: " + predEffects.head.receiver.asString)
+        case Forall(_, pred) =>
+          val predEffects = effects(pred)
+          if (predEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              pred,
+              "Quantifier has effects on: " + predEffects.head.receiver.asString
+            )
 
-      case wh @ While(_, _, Some(invariant)) =>
-        val invEffects = effects(invariant)
-        if (invEffects.nonEmpty)
-          throw ImperativeEliminationException(invariant, "Loop invariant has effects on: " + invEffects.head.receiver.asString)
+        case wh @ While(_, _, Some(invariant)) =>
+          val invEffects = effects(invariant)
+          if (invEffects.nonEmpty)
+            throw ImperativeEliminationException(
+              invariant,
+              "Loop invariant has effects on: " + invEffects.head.receiver.asString
+            )
 
-      case m @ MatchExpr(_, cses) =>
-        cses.foreach { cse =>
-          cse.optGuard.foreach { guard =>
-            val guardEffects = effects(guard)
-            if (guardEffects.nonEmpty)
-              throw ImperativeEliminationException(guard, "Pattern guard has effects on: " + guardEffects.head.receiver.asString)
+        case m @ MatchExpr(_, cses) =>
+          cses.foreach { cse =>
+            cse.optGuard.foreach { guard =>
+              val guardEffects = effects(guard)
+              if (guardEffects.nonEmpty)
+                throw ImperativeEliminationException(
+                  guard,
+                  "Pattern guard has effects on: " + guardEffects.head.receiver.asString
+                )
+            }
+
+            patternOps.preTraversal {
+              case up: UnapplyPattern =>
+                val upEffects = effects(Outer(up.getFunction.fd))
+                if (upEffects.nonEmpty)
+                  throw ImperativeEliminationException(up, "Pattern unapply has effects on: " + upEffects.head.receiver)
+
+              case _ => ()
+            }(cse.pattern)
           }
 
-          patternOps.preTraversal {
-            case up: UnapplyPattern =>
-              val upEffects = effects(Outer(up.getFunction.fd))
-              if (upEffects.nonEmpty)
-                throw ImperativeEliminationException(up, "Pattern unapply has effects on: " + upEffects.head.receiver)
-
-            case _ => ()
-          }(cse.pattern)
-        }
-
-      case _ => ()
-    }(fd.fullBody)
+        case _ => ()
+      }(fd.fullBody)
 
     def checkPurity(fd: FunAbstraction): Unit = {
       val effs = effects(fd.fullBody)
@@ -189,33 +229,34 @@ trait EffectsChecker { self: EffectsAnalyzer =>
      * as it can not contains reference to a mutable object, by definition
      */
     def isExpressionFresh(expr: Expr): Boolean = {
-      def rec(expr: Expr, bindings: Set[ValDef]): Boolean = !isMutableType(expr.getType) || (expr match {
-        case v: Variable => bindings(v.toVal)
-        case ADT(_, _, args) => args.forall(rec(_, bindings))
+      def rec(expr: Expr, bindings: Set[ValDef]): Boolean =
+        !isMutableType(expr.getType) || (expr match {
+          case v: Variable => bindings(v.toVal)
+          case ADT(_, _, args) => args.forall(rec(_, bindings))
 
-        case FiniteArray(elems, _) => elems.forall(rec(_, bindings))
-        case LargeArray(elems, default, _, _) => elems.forall(p => rec(p._2, bindings)) && rec(default, bindings)
+          case FiniteArray(elems, _) => elems.forall(rec(_, bindings))
+          case LargeArray(elems, default, _, _) => elems.forall(p => rec(p._2, bindings)) && rec(default, bindings)
 
-        // We assume `old(.)` is fresh here, although such cases will probably be
-        // rejected later in `ImperativeCleanup`.
-        case Old(_) => true
+          // We assume `old(.)` is fresh here, although such cases will probably be
+          // rejected later in `ImperativeCleanup`.
+          case Old(_) => true
 
-        //function invocation always return a fresh expression, by hypothesis (global assumption)
-        case (_: FunctionInvocation | _: ApplyLetRec | _: Application) => true
+          //function invocation always return a fresh expression, by hypothesis (global assumption)
+          case (_: FunctionInvocation | _: ApplyLetRec | _: Application) => true
 
-        //ArrayUpdated returns a mutable array, which by definition is a clone of the original
-        case ArrayUpdated(IsTyped(_, ArrayType(base)), _, _) => !isMutableType(base)
+          //ArrayUpdated returns a mutable array, which by definition is a clone of the original
+          case ArrayUpdated(IsTyped(_, ArrayType(base)), _, _) => !isMutableType(base)
 
-        // These cases cover some limitations due to dotty inlining
-        case Let(vd, e, b) => rec(e, bindings) && rec(b, bindings + vd)
-        case LetVar(vd, e, b) => rec(e, bindings) && rec(b, bindings + vd)
+          // These cases cover some limitations due to dotty inlining
+          case Let(vd, e, b) => rec(e, bindings) && rec(b, bindings + vd)
+          case LetVar(vd, e, b) => rec(e, bindings) && rec(b, bindings + vd)
 
-        case Block(_, e) => rec(e, bindings)
+          case Block(_, e) => rec(e, bindings)
 
-        //any other expression is conservately assumed to be non-fresh if
-        //any sub-expression is non-fresh (i.e. an if-then-else with a reference in one branch)
-        case Operator(args, _) => args.forall(rec(_, bindings))
-      })
+          //any other expression is conservately assumed to be non-fresh if
+          //any sub-expression is non-fresh (i.e. an if-then-else with a reference in one branch)
+          case Operator(args, _) => args.forall(rec(_, bindings))
+        })
 
       rec(expr, Set.empty)
     }

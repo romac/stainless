@@ -31,9 +31,12 @@ trait PartialEvaluator extends SimplifierWithPC { self =>
           val pre = specs.collectFirst { case Precondition(e) => e }.get
           val l @ Lambda(Seq(res), post) = specs.collectFirst { case Postcondition(e) => e }.get
 
-          val newBody: Expr = Assert(pre, Some("Inlined precondition of " + tfd.id.name), Let(res, body,
-            Assert(post, Some("Inlined postcondition of " + tfd.id.name), res.toVariable).copiedFrom(l)
-          ).copiedFrom(body)).copiedFrom(pre)
+          val newBody: Expr = Assert(
+            pre,
+            Some("Inlined precondition of " + tfd.id.name),
+            Let(res, body, Assert(post, Some("Inlined postcondition of " + tfd.id.name), res.toVariable).copiedFrom(l))
+              .copiedFrom(body)
+          ).copiedFrom(pre)
 
           freshenLocals((tfd.params zip rargs).foldRight(newBody) {
             case ((vd, e), body) => Let(vd, e, body).copiedFrom(body)
@@ -41,10 +44,11 @@ trait PartialEvaluator extends SimplifierWithPC { self =>
         }
       }
 
-      def containsChoose(expr: Expr): Boolean = exists {
-        case (_: Choose) | (_: NoTree) => true
-        case _ => false
-      } (expr)
+      def containsChoose(expr: Expr): Boolean =
+        exists {
+          case (_: Choose) | (_: NoTree) => true
+          case _ => false
+        }(expr)
 
       def isProductiveUnfolding(inlined: Expr): Boolean = {
         def isKnown(expr: Expr): Boolean = expr match {
@@ -79,7 +83,7 @@ trait PartialEvaluator extends SimplifierWithPC { self =>
         .filter(!containsChoose(_))
         .filter(isProductiveUnfolding)
         .map(unfold)
-        .getOrElse (
+        .getOrElse(
           FunctionInvocation(id, tps, rargs).copiedFrom(fi),
           pargs.foldLeft(isPureFunction(id))(_ && _)
         )
@@ -96,4 +100,3 @@ trait PartialEvaluator extends SimplifierWithPC { self =>
 
   private[this] def isUnfoldable(id: Identifier): Boolean = !dynBlocked.get()(id) && (dynSteps.get()(id) > 0)
 }
-

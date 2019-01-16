@@ -12,9 +12,12 @@ trait InductionTactic extends DefaultTactic {
   import program.symbols._
 
   private def firstSort(args: Seq[ValDef]): Option[(TypedADTSort, ValDef)] = {
-    args.map(vd => (vd.getType, vd)).collect {
-      case (adt: ADTType, vd) if adt.getSort.definition.isInductive => (adt.getSort, vd)
-    }.headOption
+    args
+      .map(vd => (vd.getType, vd))
+      .collect {
+        case (adt: ADTType, vd) if adt.getSort.definition.isInductive => (adt.getSort, vd)
+      }
+      .headOption
   }
 
   private def selectorsOfParentType(tsort: TypedADTSort, tcons: TypedADTConstructor, expr: Expr): Seq[Expr] = {
@@ -36,10 +39,12 @@ trait InductionTactic extends DefaultTactic {
 
           val kind = VCKind.Info(VCKind.Postcondition, s"ind. on ${arg.asString} / ${tcons.id.asString}")
           getPostconditions(body, post).map { vc =>
-            val inductiveVC = exprOps.freshenLocals(implies(
-              and(IsConstructor(arg.toVariable, tcons.id), fd.precOrTrue),
-              implies(andJoin(subCases), vc)
-            ))
+            val inductiveVC = exprOps.freshenLocals(
+              implies(
+                and(IsConstructor(arg.toVariable, tcons.id), fd.precOrTrue),
+                implies(andJoin(subCases), vc)
+              )
+            )
 
             VC(inductiveVC, id, kind, false).setPos(fd)
           }
@@ -71,15 +76,18 @@ trait InductionTactic extends DefaultTactic {
           val selectors = selectorsOfParentType(tsort, tcons, arg.toVariable)
 
           val subCases = selectors.map { sel =>
-            exprOps.replace(Map(arg.toVariable -> sel),
+            exprOps.replace(
+              Map(arg.toVariable -> sel),
               exprOps.freshenLocals(path.implies(fi.tfd.withParamSubst(args, pre)))
             )
           }
 
           getPrecondition(pre).map { pred =>
-            val vc = exprOps.freshenLocals(path
-              .withConds(Seq(IsConstructor(arg.toVariable, tcons.id), fd.precOrTrue) ++ subCases)
-              .implies(fi.tfd.withParamSubst(args, pred)))
+            val vc = exprOps.freshenLocals(
+              path
+                .withConds(Seq(IsConstructor(arg.toVariable, tcons.id), fd.precOrTrue) ++ subCases)
+                .implies(fi.tfd.withParamSubst(args, pred))
+            )
 
             // Crop the call to display it properly
             val fiS = sizeLimit(fi.asString, 25)

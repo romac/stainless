@@ -8,14 +8,14 @@ object ArrayParamMutation7 {
 
     world(1) += 1 //global counter of f
 
-    val res = i*i
+    val res = i * i
     world(0) = res
     res
   }
 
   def mainProgram(): Unit = {
 
-    implicit val world: Array[BigInt] = Array(0,0,0)
+    implicit val world: Array[BigInt] = Array(0, 0, 0)
 
     f(1)
     assert(world(0) == 1)

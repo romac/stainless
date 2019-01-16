@@ -4,12 +4,12 @@ package stainless
 package frontend
 
 /**
- * Provide a generic implementation for frontends that require a thread-based
- * environment to be non-blocking.
- *
- * If an exception is thrown from within the compiler, it is re-thrown upon
- * stopping or joining.
- */
+  * Provide a generic implementation for frontends that require a thread-based
+  * environment to be non-blocking.
+  *
+  * If an exception is thrown from within the compiler, it is re-thrown upon
+  * stopping or joining.
+  */
 abstract class ThreadedFrontend(callback: CallBack, ctx: inox.Context) extends Frontend(callback) {
   private implicit val debugSection = DebugSectionFrontend
 
@@ -25,19 +25,20 @@ abstract class ThreadedFrontend(callback: CallBack, ctx: inox.Context) extends F
     assert(!isRunning)
 
     val runnable = new Runnable {
-      override def run(): Unit = try {
-        initRun()
-        callback.beginExtractions()
-        onRun()
-      } catch {
-        case e: Throwable =>
-          ctx.reporter.debug(s"Exception thrown during compilation: ${e.getMessage}")
-          callback.failed()
-          throw e
-      } finally {
-        callback.endExtractions()
-        onEnd()
-      }
+      override def run(): Unit =
+        try {
+          initRun()
+          callback.beginExtractions()
+          onRun()
+        } catch {
+          case e: Throwable =>
+            ctx.reporter.debug(s"Exception thrown during compilation: ${e.getMessage}")
+            callback.failed()
+            throw e
+        } finally {
+          callback.endExtractions()
+          onEnd()
+        }
     }
 
     thread = new Thread(runnable, "stainless frontend")
@@ -73,4 +74,3 @@ abstract class ThreadedFrontend(callback: CallBack, ctx: inox.Context) extends F
       throw ex
   }
 }
-

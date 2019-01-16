@@ -16,25 +16,25 @@ object Lists {
   //  case Cons(_, t) => 1 + sizeOverflow(t)
   //}) ensuring(res => res >= 0)
 
-  def sizeSpec[A](l: List[A]): BigInt = (l match {
-    case Nil() => BigInt(0)
-    case Cons(_, t) => 1 + sizeSpec(t)
-  }) //ensuring(res => res >= 0)
+  def sizeSpec[A](l: List[A]): BigInt =
+    (l match {
+      case Nil() => BigInt(0)
+      case Cons(_, t) => 1 + sizeSpec(t)
+    }) //ensuring(res => res >= 0)
 
   def size[A](l: List[A]): BigInt = {
     var res: BigInt = 0
     var lst: List[A] = l
-    (while(!isEmpty(lst)) {
+    (while (!isEmpty(lst)) {
       lst = tail(lst)
       res += 1
-    }) invariant(res + sizeSpec(lst) == sizeSpec(l))
+    }) invariant (res + sizeSpec(lst) == sizeSpec(l))
     res
-  } ensuring(res => res == sizeSpec(l))
-
+  } ensuring (res => res == sizeSpec(l))
 
   def isEmpty[A](l: List[A]): Boolean = l match {
-      case Nil() => true
-      case _ => false
+    case Nil() => true
+    case _ => false
   }
 
   def tail[A](l: List[A]): List[A] = {
@@ -45,7 +45,7 @@ object Lists {
   }
 
   def foreach[A, S](l: List[A], sf: SFun[A, S, Unit]): Unit = l match {
-    case Cons(x,xs) =>
+    case Cons(x, xs) =>
       sf(x)
       foreach(xs, sf)
     case Nil() =>
@@ -53,15 +53,13 @@ object Lists {
   }
 
   def testForeach(): Unit = {
-    val l: List[Int] = 1::2::3::4::5::6::7::8::9::10::Nil[Int]()
+    val l: List[Int] = 1 :: 2 :: 3 :: 4 :: 5 :: 6 :: 7 :: 8 :: 9 :: 10 :: Nil[Int]()
     val sum = State(0)
-    foreach(l, SFun[Int, Int, Unit](
-                 sum, (el: Int, s: State[Int]) => s.value += el))
+    foreach(l, SFun[Int, Int, Unit](sum, (el: Int, s: State[Int]) => s.value += el))
     assert(sum.value == 55)
   }
 
 }
-
 
 object Banking {
 
@@ -70,27 +68,32 @@ object Banking {
 
     def balance: BigInt = {
       checking + savings
-    } ensuring(_ >= 0)
+    } ensuring (_ >= 0)
 
     def save(amount: BigInt): Unit = {
       require(amount >= 0 && amount <= checking)
       checking = checking - amount
       savings = savings + amount
-    } ensuring(_ => balance == old(this).balance)
+    } ensuring (_ => balance == old(this).balance)
   }
 
   def transfer(from: BankAccount, to: BankAccount, amount: BigInt): Unit = {
     require(amount >= 0 && from.checking >= amount)
     from.checking -= amount
     to.checking += amount
-  } ensuring(_ => from.balance + to.balance == old(from).balance + old(to).balance &&
-                  from.checking == old(from).checking - amount &&
-                  to.checking == old(to).checking + amount)
+  } ensuring (
+      _ =>
+        from.balance + to.balance == old(from).balance + old(to).balance &&
+          from.checking == old(from).checking - amount &&
+          to.checking == old(to).checking + amount
+    )
 
   case class Transaction(
-    operation: (BankAccount, BigInt) => Boolean,
-    cancel: (BankAccount, BigInt) => Unit,
-    account: BankAccount, amount: BigInt, var executed: Boolean
+      operation: (BankAccount, BigInt) => Boolean,
+      cancel: (BankAccount, BigInt) => Unit,
+      account: BankAccount,
+      amount: BigInt,
+      var executed: Boolean
   ) {
 
     def execute(): Boolean = {
@@ -110,35 +113,40 @@ object Banking {
     require(times > 0 && !transaction.executed)
     var i = 0
     var success = false
-    (while(i < times && !success) {
+    (while (i < times && !success) {
       success = transaction.execute()
       i += 1
-    }) invariant(i >= 0 && i <= times && success == transaction.executed)
+    }) invariant (i >= 0 && i <= times && success == transaction.executed)
     success
-  } ensuring(status => status == transaction.executed)
+  } ensuring (status => status == transaction.executed)
 
   def execute(transaction1: Transaction, transaction2: Transaction): Boolean = {
     require(!transaction1.executed && !transaction2.executed)
-    if(transaction1.execute()) {
-      if(transaction2.execute()) true else {
+    if (transaction1.execute()) {
+      if (transaction2.execute()) true
+      else {
         transaction1.rollback()
         false
       }
     } else false
-  } ensuring(executed => (
-    (executed ==> (transaction1.executed && transaction2.executed)) &&
-    (!executed ==> (!transaction1.executed && !transaction2.executed))
-  ))
-
+  } ensuring (
+      executed =>
+        (
+          (executed ==> (transaction1.executed && transaction2.executed)) &&
+            (!executed ==> (!transaction1.executed && !transaction2.executed))
+        )
+    )
 
   def addOp(acc: BankAccount, amount: BigInt): Boolean = {
-    if(amount < 0) false else {
+    if (amount < 0) false
+    else {
       acc.checking += amount
       true
     }
   }
   def subOp(acc: BankAccount, amount: BigInt): Boolean = {
-    if(amount < 0 || amount > acc.checking) false else {
+    if (amount < 0 || amount > acc.checking) false
+    else {
       acc.checking -= amount
       true
     }
@@ -148,40 +156,42 @@ object Banking {
     require(amount >= 0 && from.checking >= amount)
 
     val status = execute(
-      Transaction((acc, amount) => subOp(acc, amount),
-                  (acc, amount) => addOp(acc, amount),
-                  from, amount, false),
-      Transaction((acc, amount) => addOp(acc, amount),
-                  (acc, amount) => subOp(acc, amount),
-                  to, amount, false)
+      Transaction((acc, amount) => subOp(acc, amount), (acc, amount) => addOp(acc, amount), from, amount, false),
+      Transaction((acc, amount) => addOp(acc, amount), (acc, amount) => subOp(acc, amount), to, amount, false)
     )
     assert(status)
-  } ensuring(_ => 
-      from.balance + to.balance == old(from).balance + old(to).balance &&
-      from.checking == old(from).checking - amount &&
-      to.checking == old(to).checking + amount
+  } ensuring (
+      _ =>
+        from.balance + to.balance == old(from).balance + old(to).balance &&
+          from.checking == old(from).checking - amount &&
+          to.checking == old(to).checking + amount
     )
 
   def test(): Unit = {
-    val add = Transaction((acc, amount) => {
-                            if(amount < 0) false else {
-                              acc.checking += amount
-                              true
-                            }
-                          },
-                          (acc, amount) => {
-                            if(amount < 0 || amount > acc.checking) () else {
-                              acc.checking -= amount
-                            }
-                          },
-                          BankAccount(1000, 2000), 500, false)
+    val add = Transaction(
+      (acc, amount) => {
+        if (amount < 0) false
+        else {
+          acc.checking += amount
+          true
+        }
+      },
+      (acc, amount) => {
+        if (amount < 0 || amount > acc.checking) ()
+        else {
+          acc.checking -= amount
+        }
+      },
+      BankAccount(1000, 2000),
+      500,
+      false
+    )
 
     add.execute()
     assert(add.account.checking == 1500)
     add.rollback()
     assert(add.account.checking == 1000)
   }
-
 
 }
 
@@ -194,11 +204,10 @@ object SFuns {
   }
 
   def makeCounter: SFun[Unit, BigInt, BigInt] = {
-    SFun(State(0),
-         (_: Unit, c: State[BigInt]) => { 
-           c.value += 1
-           c.value
-         })
+    SFun(State(0), (_: Unit, c: State[BigInt]) => {
+      c.value += 1
+      c.value
+    })
   }
 
   def test: Unit = {

@@ -11,13 +11,13 @@ object Sequencing6 {
     var x = 5
 
     f(
-      {x = x + 1; x},
-      {x = x * 2; x},
-      {x = x - 1; x}
+      { x = x + 1; x },
+      { x = x * 2; x },
+      { x = x - 1; x }
     )
 
     x
 
-  } ensuring(res => res == 11)
+  } ensuring (res => res == 11)
 
 }

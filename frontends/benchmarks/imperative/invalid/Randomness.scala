@@ -20,11 +20,11 @@ object Randomness {
    */
   def findPositive()(implicit state: State): BigInt = {
     val x = random()
-    if(x < 0) {
+    if (x < 0) {
       -random()
     } else {
       x
     }
-  } ensuring(res => res >= 0)
+  } ensuring (res => res >= 0)
 
 }

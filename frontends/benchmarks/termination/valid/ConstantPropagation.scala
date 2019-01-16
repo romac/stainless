@@ -9,10 +9,11 @@ object IntLattice {
   case class BigIntVal(x: BigInt) extends Element
 
   def height: BigInt = {
+
     /**
-     * A number that depends on the lattice definition.
-     * In simplest case it has height 3 (_|_ (bot) <= BigInts <= T (top))
-     */
+      * A number that depends on the lattice definition.
+      * In simplest case it has height 3 (_|_ (bot) <= BigInts <= T (top))
+      */
     3
   }
 
@@ -82,14 +83,14 @@ object ConstantPropagation {
   case class Identifier(id: BigInt) extends Expr
 
   /**
-   * Definition of a function AST
-   */
+    * Definition of a function AST
+    */
   case class Function(id: BigInt, params: List[Expr], body: Expr)
 
   /**
-   * Assuming that the functions are ordered from callee to
-   * caller and there is no mutual recursion, only self recursion
-   */
+    * Assuming that the functions are ordered from callee to
+    * caller and there is no mutual recursion, only self recursion
+    */
   case class Program(funcs: List[Function]) {
     def size: BigInt = funcs.map(_.body.size).sum
   }
@@ -101,9 +102,9 @@ object ConstantPropagation {
     }
   }
 
-  def initToBot(l: List[Function]): List[(BigInt /*function id*/ , Element)] = {
+  def initToBot(l: List[Function]): List[(BigInt /*function id*/, Element)] = {
     l match {
-      case Nil() => Nil[(BigInt /*function id*/ , Element)]()
+      case Nil() => Nil[(BigInt /*function id*/, Element)]()
       case Cons(fun, tail) => Cons((fun.id, Bot()), initToBot(tail))
     }
   } //ensuring (_ => steps <= ? * size(l) + ?)
@@ -116,10 +117,14 @@ object ConstantPropagation {
   } //ensuring(_ => steps <= ? * (progSize(p)*height) + ? * height + ? * size(p.funcs) + ?)
 
   /**
-   * The initVals is the initial values for the
-   * values of the functions
-   */
-  def computeSummaries(p: Program, initVals: List[(BigInt /*function id*/ , Element)], noIters: BigInt): List[(BigInt /*function id*/ , Element)] = {
+    * The initVals is the initial values for the
+    * values of the functions
+    */
+  def computeSummaries(
+      p: Program,
+      initVals: List[(BigInt /*function id*/, Element)],
+      noIters: BigInt
+  ): List[(BigInt /*function id*/, Element)] = {
     require(noIters >= 0)
     if (noIters <= 0) {
       initVals
@@ -128,16 +133,20 @@ object ConstantPropagation {
   } //ensuring(_ => steps <= ? * (progSize(p)*noIters) + ? * noIters + ?)
 
   /**
-   * Initial fvals and oldVals are the same
-   * but as the function progresses, fvals will only have the olds values
-   * of the functions that are yet to be processed, whereas oldVals will remain the same.
-   */
-  def analyzeFuns(funcs: List[Function], fvals: List[(BigInt, Element)], oldVals: List[(BigInt, Element)]): List[(BigInt, Element)] = {
+    * Initial fvals and oldVals are the same
+    * but as the function progresses, fvals will only have the olds values
+    * of the functions that are yet to be processed, whereas oldVals will remain the same.
+    */
+  def analyzeFuns(
+      funcs: List[Function],
+      fvals: List[(BigInt, Element)],
+      oldVals: List[(BigInt, Element)]
+  ): List[(BigInt, Element)] = {
     (funcs, fvals) match {
       case (Cons(f, otherFuns), Cons((fid, fval), otherVals)) =>
         val newval = analyzeFunction(f, oldVals)
         val approxVal = join(fval, newval) //creates an approximation of newVal to ensure convergence
-        Cons((fid, approxVal), analyzeFuns (otherFuns, otherVals, oldVals))
+        Cons((fid, approxVal), analyzeFuns(otherFuns, otherVals, oldVals))
       case _ =>
         Nil[(BigInt, Element)]() //this also handles precondition violations e.g. lists aren't of same size etc.
     }
@@ -153,7 +162,6 @@ object ConstantPropagation {
     }
   } //ensuring (_ => steps <= 1)
 
-
   def analyzeExprList(l: List[Expr], funcVals: List[(BigInt, Element)]): List[Element] = {
     l match {
       case Nil() => Nil[Element]()
@@ -162,9 +170,9 @@ object ConstantPropagation {
   } //ensuring (_ => steps <= ? * sizeExprList(l) + ?)
 
   /**
-   * Returns the value of the expression when "Abstractly Interpreted"
-   * using the lattice.
-   */
+    * Returns the value of the expression when "Abstractly Interpreted"
+    * using the lattice.
+    */
   def analyzeExpr(e: Expr, funcVals: List[(BigInt, Element)]): Element = {
     e match {
       case Times(lhs: Expr, rhs: Expr) => {
@@ -195,7 +203,6 @@ object ConstantPropagation {
     }
   } //ensuring (_ => steps <= ? * sizeExpr(e) + ?)
 
-
   def analyzeFunction(f: Function, oldVals: List[(BigInt, Element)]): Element = {
     // traverse the body of the function and simplify constants
     // for function calls assume the value given by oldVals
@@ -204,10 +211,9 @@ object ConstantPropagation {
     analyzeExpr(f.body, oldVals)
   } //ensuring (_ => steps <= ? * sizeExpr(f.body) + ?)
 
-
   /**
-   * Returns the folded expression
-   */
+    * Returns the folded expression
+    */
   def transformExpr(e: Expr, funcVals: List[(BigInt, Element)]): Expr = {
     e match {
       case Times(lhs: Expr, rhs: Expr) => {
@@ -254,7 +260,6 @@ object ConstantPropagation {
       case _ => e
     }
   } //ensuring (_ => steps <= ? * sizeExpr(e) + ?)
-
 
   def transformFuns(funcs: List[Function], fvals: List[(BigInt, Element)]): List[Function] = {
     funcs match {

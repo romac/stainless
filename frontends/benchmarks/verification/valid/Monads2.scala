@@ -7,7 +7,7 @@ object Monads2 {
   case class Some[T](t: T) extends Option[T]
   case class None[T]() extends Option[T]
 
-  def flatMap[T,U](opt: Option[T], f: T => Option[U]): Option[U] = opt match {
+  def flatMap[T, U](opt: Option[T], f: T => Option[U]): Option[U] = opt match {
     case Some(x) => f(x)
     case None() => None()
   }
@@ -17,23 +17,23 @@ object Monads2 {
     case None() => o2
   }
 
-  def associative_law[T,U,V](opt: Option[T], f: T => Option[U], g: U => Option[V]): Boolean = {
+  def associative_law[T, U, V](opt: Option[T], f: T => Option[U], g: U => Option[V]): Boolean = {
     flatMap(flatMap(opt, f), g) == flatMap(opt, (x: T) => flatMap(f(x), g))
   }.holds
 
-  def left_unit_law[T,U](x: T, f: T => Option[U]): Boolean = {
+  def left_unit_law[T, U](x: T, f: T => Option[U]): Boolean = {
     flatMap(Some(x), f) == f(x)
   }.holds
 
-  def right_unit_law[T,U](opt: Option[T]): Boolean = {
+  def right_unit_law[T, U](opt: Option[T]): Boolean = {
     flatMap(opt, (x: T) => Some(x)) == opt
   }.holds
 
-  def flatMap_zero_law[T,U](none: None[T], f: T => Option[U]): Boolean = {
+  def flatMap_zero_law[T, U](none: None[T], f: T => Option[U]): Boolean = {
     flatMap(none, f) == None[U]()
   }.holds
 
-  def flatMap_to_zero_law[T,U](opt: Option[T]): Boolean = {
+  def flatMap_to_zero_law[T, U](opt: Option[T]): Boolean = {
     flatMap(opt, (x: T) => None[U]()) == None[U]()
   }.holds
 

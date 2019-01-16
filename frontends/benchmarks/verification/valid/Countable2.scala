@@ -4,7 +4,7 @@ object Countable2 {
   abstract class Countable[T] {
     require(
       forall((t: T) => g(f(t)) == t) &&
-      forall((h: BigInt) => f(g(h)) == h)
+        forall((h: BigInt) => f(g(h)) == h)
     )
 
     def f(x: T): BigInt
@@ -29,5 +29,5 @@ object Countable2 {
     assert(forall((e: Empty) => lemma(e)))
     forall((e: Empty) => false)
   }.holds
-  */
+ */
 }

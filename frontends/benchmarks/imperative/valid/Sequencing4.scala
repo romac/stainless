@@ -5,8 +5,8 @@ object Sequencing4 {
   def test(): Int = {
     var x = 5
 
-    {x = x + 1; x} + {x = x * 2; x}
+    { x = x + 1; x } + { x = x * 2; x }
 
-  } ensuring(res => res == 18)
+  } ensuring (res => res == 18)
 
 }

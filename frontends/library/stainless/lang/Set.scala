@@ -9,11 +9,11 @@ object Set {
 
   @ignore
   def apply[T](elems: T*) = {
-    new Set[T](scala.collection.immutable.Set[T](elems : _*))
+    new Set[T](scala.collection.immutable.Set[T](elems: _*))
   }
-  
+
   @extern @library
-  def mkString[A](map: Set[A], infix: String, fA : A => String) = {
+  def mkString[A](map: Set[A], infix: String, fA: A => String) = {
     map.theSet.map(fA).toList.sorted.mkString(infix)
   }
 }
@@ -30,4 +30,3 @@ case class Set[T](val theSet: scala.collection.immutable.Set[T]) {
   def subsetOf(b: Set[T]): Boolean = theSet.subsetOf(b.theSet)
   def &(a: Set[T]): Set[T] = new Set[T](theSet & a.theSet)
 }
-

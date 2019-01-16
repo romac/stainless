@@ -48,7 +48,10 @@ object StainlessPlugin extends sbt.AutoPlugin {
       if !BuildInfo.supportedScalaVersions.contains(sv)
       projName <- (name in projRef).get(extracted.structure.data)
     } {
-      state.log.error(s"""[$projName] Project uses unsupported Scala version $sv. To use stainless use one of the following Scala versions: ${BuildInfo.supportedScalaVersions.mkString(",")}.""")
+      state.log.error(
+        s"""[$projName] Project uses unsupported Scala version $sv. To use stainless use one of the following Scala versions: ${BuildInfo.supportedScalaVersions
+          .mkString(",")}."""
+      )
     }
     state
   }
@@ -65,13 +68,14 @@ object StainlessPlugin extends sbt.AutoPlugin {
     resolvers += Resolver.bintrayRepo("epfl-lara", "maven")
   ) ++
     inConfig(Compile)(stainlessConfigSettings) ++ // overrides settings that are scoped (by sbt) at the `Compile` configuration
-    inConfig(Test)(stainlessConfigSettings) ++    // overrides settings that are scoped (by sbt) at the `Test` configuration
-    inConfig(Compile)(compileSettings)            // overrides settings that are scoped (by sbt) at the `Compile` configuration
+    inConfig(Test)(stainlessConfigSettings) ++ // overrides settings that are scoped (by sbt) at the `Test` configuration
+    inConfig(Compile)(compileSettings) // overrides settings that are scoped (by sbt) at the `Compile` configuration
 
   private def stainlessModules: Def.Initialize[Seq[ModuleID]] = Def.setting {
     Seq(
       compilerPlugin("ch.epfl.lara" % s"stainless-scalac-plugin_${scalaVersion.value}" % stainlessVersion.value),
-      ("ch.epfl.lara" % s"stainless-library_${scalaVersion.value}" % stainlessVersion.value).sources() % StainlessLibSources
+      ("ch.epfl.lara" % s"stainless-library_${scalaVersion.value}" % stainlessVersion.value)
+        .sources() % StainlessLibSources
     )
   }
 
@@ -92,7 +96,8 @@ object StainlessPlugin extends sbt.AutoPlugin {
     val sourceJars = fetchJars(
       update.value,
       config,
-      artifact => artifact.classifier == Some(Artifact.SourceClassifier) && artifact.name.startsWith("stainless-library")
+      artifact =>
+        artifact.classifier == Some(Artifact.SourceClassifier) && artifact.name.startsWith("stainless-library")
     )
     log.debug(s"[$projectName] Configuration ${config.name} has modules: $sourceJars")
     if (sourceJars.length > 1)
@@ -109,7 +114,6 @@ object StainlessPlugin extends sbt.AutoPlugin {
       }
       destDir.toPath
     }
-
 
     /** Collect all .scala files in the passed `folders`.*/
     @annotation.tailrec
@@ -157,8 +161,7 @@ object StainlessPlugin extends sbt.AutoPlugin {
           Files.copy(archive.getInputStream(entry), entryDest, StandardCopyOption.REPLACE_EXISTING)
         }
       }
-    }
-    finally archive.close()
+    } finally archive.close()
   }
 
   private lazy val compileSettings: Seq[Def.Setting[_]] = inTask(compile)(compileInputsSettings)

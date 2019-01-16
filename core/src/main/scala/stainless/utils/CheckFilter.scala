@@ -13,19 +13,20 @@ trait CheckFilter {
   private def fullNameToPath(fullName: String): Path = (fullName split '.').toSeq
 
   // TODO this is probably done somewhere else in a cleaner fasion...
-  private def fixedFullName(id: Identifier): String = id.fullName
-    .replaceAllLiterally("$bar", "|")
-    .replaceAllLiterally("$up", "^")
-    .replaceAllLiterally("$eq", "=")
-    .replaceAllLiterally("$plus", "+")
-    .replaceAllLiterally("$minus", "-")
-    .replaceAllLiterally("$times", "*")
-    .replaceAllLiterally("$div", "/")
-    .replaceAllLiterally("$less", "<")
-    .replaceAllLiterally("$geater", ">")
-    .replaceAllLiterally("$colon", ":")
-    .replaceAllLiterally("$amp", "&")
-    .replaceAllLiterally("$tilde", "~")
+  private def fixedFullName(id: Identifier): String =
+    id.fullName
+      .replaceAllLiterally("$bar", "|")
+      .replaceAllLiterally("$up", "^")
+      .replaceAllLiterally("$eq", "=")
+      .replaceAllLiterally("$plus", "+")
+      .replaceAllLiterally("$minus", "-")
+      .replaceAllLiterally("$times", "*")
+      .replaceAllLiterally("$div", "/")
+      .replaceAllLiterally("$less", "<")
+      .replaceAllLiterally("$geater", ">")
+      .replaceAllLiterally("$colon", ":")
+      .replaceAllLiterally("$amp", "&")
+      .replaceAllLiterally("$tilde", "~")
 
   private lazy val pathsOpt: Option[Seq[Path]] = context.options.findOption(optFunctions) map { functions =>
     functions map fullNameToPath
@@ -60,4 +61,3 @@ object CheckFilter {
     override val trees: t.type = t
   }
 }
-

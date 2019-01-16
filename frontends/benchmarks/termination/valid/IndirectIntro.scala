@@ -17,10 +17,9 @@ object IndirectIntro {
 
   def f(x: BigInt)(implicit random: RandomSequence): Unit =
     if (x > 0) {
-      app(
-        abs(random(x)),
-        PartialFunction { (x2: BigInt) => require(0 <= x2 && x2 < x); f(x2) },
-        x - 1)
+      app(abs(random(x)), PartialFunction { (x2: BigInt) =>
+        require(0 <= x2 && x2 < x); f(x2)
+      }, x - 1)
     } else {
       ()
     }
