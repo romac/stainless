@@ -11,6 +11,11 @@ import evaluators._
 
 object SolverFactory {
 
+  private val defaultSolverOpts = Seq(
+    inox.solvers.optAssumeChecked                  -> true,
+    inox.solvers.unrolling.optDecideLambdaEquality -> false
+  )
+
   def getFromName(name: String)
                  (p: Program, ctx: inox.Context)
                  (enc: ProgramTransformer {
@@ -18,9 +23,10 @@ object SolverFactory {
                     val targetProgram: StainlessProgram
                   })(implicit sem: p.Semantics): SolverFactory { val program: p.type; type S <: TimeoutSolver { val program: p.type } } = {
     if (inox.solvers.SolverFactory.solvers(name)) {
-      val newCtx: inox.Context =
-        if (ctx.options.findOption(optAssumeChecked).isDefined) ctx
-        else ctx.withOpts(optAssumeChecked(true))
+      val newCtx = defaultSolverOpts.foldLeft(ctx) {
+        case (ctx, (opt, _)) if (ctx.options.findOption(opt).isDefined) => ctx
+        case (ctx, (opt, default)) => ctx.withOpts(opt(default))
+      }
 
       inox.solvers.SolverFactory.getFromName(name)(p, newCtx)(
         enc andThen InoxEncoder(enc.targetProgram, ctx)

@@ -9,4 +9,10 @@ trait Constructors extends inox.ast.Constructors { self: Trees =>
     case Annotated(body, flags) => Annotated(body, (flags :+ flag).distinct).copiedFrom(e)
     case _ => Annotated(e, Seq(flag)).copiedFrom(e)
   }
+
+  object HasType {
+    def unapply(e: Expr)(implicit s: Symbols): Option[(Expr, Type)] = {
+      Some((e, e.getType))
+    }
+  }
 }

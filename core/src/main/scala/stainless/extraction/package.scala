@@ -26,6 +26,7 @@ import scala.language.existentials
 package object extraction {
 
   val phases: Seq[(String, String)] = Seq(
+    "CheckEquality"             -> "Check whether equality tests are decidable",
     "PartialFunctions"          -> "Lift partial function preconditions",
     "Laws"                      -> "Rewrite laws as abstract functions with contracts",
     "SuperCalls"                -> "Resolve super-function calls",
