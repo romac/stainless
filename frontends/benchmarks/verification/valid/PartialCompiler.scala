@@ -3,7 +3,7 @@ import stainless.annotation._
 import stainless.collection._
 import stainless.util.Random
 
-object comp {
+object PartialCompiler {
 
   sealed trait Expr
   case class Var(name: String)     extends Expr
@@ -15,7 +15,7 @@ object comp {
   type Context = Map[String, Expr]
 
   @extern
-  def random(max: Int): Int = 42
+  def random(max: Int): Int = 4
 
   case class Error(msg: String)
 
@@ -52,15 +52,19 @@ object comp {
   def left_unbound(y: Int) = partialEval {
     val ctx: Context = Map("y" -> Num(y))
     interpret(program, ctx)(42)                                // Left(Error("Unbound variable: x"))
-  } ensuring { _ == Left[Error, Int](Error("Unbound variable: x")) }
+  } ensuring { res =>
+    res == Left[Error, Int](Error("Unbound variable: x"))
+  }
 
   def left_fuel(x: Int) = partialEval {
     val ctx: Context = Map("x" -> Num(x))
-    interpret(program, ctx)(2)                                // Left(Error("No more fuel"))
-  } ensuring { _ == Left[Error, Int](Error("No more fuel")) }
+    interpret(program, ctx)(2)                                 // Left(Error("No more fuel"))
+  } ensuring { res =>
+    res == Left[Error, Int](Error("No more fuel"))
+  }
 
   def right(x: Int) = partialEval {
-    interpret(program, Map("x" -> Num(x)))(42)                 // Right(10 * (ctx("x") + random(42)))
+    interpret(program, Map("x" -> Num(x)))(42)                 // Right(10 * (x + random(42)))
   } ensuring { _.isRight }
 
 }
