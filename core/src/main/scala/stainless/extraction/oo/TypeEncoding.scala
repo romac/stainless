@@ -754,6 +754,23 @@ trait TypeEncoding
       case ta: s.TypeApply if !ta.isAbstract =>
         transform(ta.resolve)
 
+      case hk @ s.HKTypeApply(tp, tps) =>
+        hk.applied match {
+          case Some(tp) => transform(tp)
+          case None => refinement(("x" :: ref.copiedFrom(hk)).copiedFrom(hk)) { x =>
+            t.Application(
+              t.Application(testers(tp).copiedFrom(hk), tps.map(testers(_).copiedFrom(hk))).copiedFrom(hk),
+              Seq(x)
+            ).copiedFrom(hk)
+          }.copiedFrom(tp)
+        }
+
+      case tl: s.TypeLambda =>
+        ???
+
+      case tp: s.TypeParameter if tp.isHigherKinded && (testers contains tp) =>
+        ???
+
       case tp: s.TypeParameter if testers contains tp =>
         refinement(("x" :: ref.copiedFrom(tp)).copiedFrom(tp)) {
           x => t.Annotated(instanceOf(x, s.AnyType().copiedFrom(tp), tp), Seq(t.Unchecked)).copiedFrom(tp)
@@ -944,9 +961,18 @@ trait TypeEncoding
           case ((scope, vds), tp) =>
             val s.TypeBounds(lowerBound, upperBound, _) = tp.bounds
 
-            val tpe = if (lowerBound == s.NothingType() && upperBound == s.AnyType()) {
+            val tpe =  if (tp.isHigherKinded) {
+              val arr = (ref.copiedFrom(tp) =>: t.BooleanType().copiedFrom(tp)).copiedFrom(tp)
+              def go(i: Int, acc: Type): Type = i match {
+                case 0 => acc
+                case n => arr =>: go(n - 1, acc)
+              }
+              go(tp.arity, arr)
+            }
+            else if (lowerBound == s.NothingType() && upperBound == s.AnyType()) {
               (ref.copiedFrom(tp) =>: t.BooleanType().copiedFrom(tp)).copiedFrom(tp)
-            } else {
+            }
+            else {
               pi(("x" :: ref.copiedFrom(tp)).copiedFrom(tp)) { x =>
                 refinement(("b" :: t.BooleanType().copiedFrom(tp)).copiedFrom(tp)) { b =>
                   t.Annotated(t.and(
@@ -1057,19 +1083,23 @@ trait TypeEncoding
               super.transform(tpe)
 
             case tp: s.TypeParameter if simple(tp) =>
-              val bounds = tp.flags.collect {
-                case s.Bounds(lo, hi) => Seq(lo, hi)
-              }.flatten.toSet
+              val hasComplexBounds = tp.flags
+                .collect { case s.Bounds(lo, hi) => s.typeOps.typeParamsOf(lo) ++ s.typeOps.typeParamsOf(hi) }
+                .flatMap(boundParams => tparams.filter(boundParams))
+                .filterNot(simple)
+                .nonEmpty
 
-              val boundParams = tparams.filter(bounds.flatMap(s.typeOps.typeParamsOf))
+              if (hasComplexBounds || tp.isHigherKinded) simple -= tp
 
-              if (bounds.nonEmpty) {
-                simple -= tp
-                boundParams foreach { param =>
-                  simple -= param
-                }
-              }
+              super.transform(tpe)
 
+            case s.TypeLambda(params, _) =>
+              simple --= params.map(_.tp)
+              super.transform(tpe)
+
+            case s.HKTypeApply(tp, tps) =>
+              val tparams = (tp +: tps).collect { case tp: s.TypeParameter => tp }
+              simple --= tparams
               super.transform(tpe)
 
             case _ => super.transform(tpe)

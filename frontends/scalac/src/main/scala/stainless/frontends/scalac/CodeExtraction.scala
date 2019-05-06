@@ -653,10 +653,10 @@ trait CodeExtraction extends ASTExtractors {
   }
 
   private def typeParamSymbols(tps: Seq[Type]): Seq[Symbol] = tps.flatMap {
-    case TypeRef(_, sym, Nil) =>
+    case TypeRef(_, sym, _) =>
       Some(sym)
     case t =>
-      outOfSubsetError(t.typeSymbol.pos, "Unhandled type for parameter: "+t)
+      outOfSubsetError(t.typeSymbol.pos, s"Unhandled type for parameter: $t (${t.getClass})")
       None
   }
 
@@ -675,8 +675,12 @@ trait CodeExtraction extends ASTExtractors {
         case _ => None
       }
 
+      val higherKinded = if (sym.typeParams.nonEmpty) {
+        Some(xt.HigherKinded(sym.typeParams.length))
+      } else None
+
       val flags = annotationsOf(sym, ignoreOwner = true)
-      val tp = xt.TypeParameter(getIdentifier(sym), flags ++ variance.toSeq ++ bounds).setPos(sym.pos)
+      val tp = xt.TypeParameter(getIdentifier(sym), flags ++ variance.toSeq ++ higherKinded.toSeq ++ bounds).setPos(sym.pos)
       (dctx.copy(tparams = dctx.tparams + (sym -> tp)), tparams :+ tp)
     }._2
   }
@@ -1668,7 +1672,7 @@ trait CodeExtraction extends ASTExtractors {
     case TypeRef(_, sym, tps) if isByNameSym(sym) =>
       extractType(tps.head)
 
-    case TypeRef(_, sym, _) if sym.isAbstractType && (dctx.tparams contains sym) =>
+    case TypeRef(_, sym, Nil) if sym.isAbstractType && (dctx.tparams contains sym) =>
       dctx.tparams(sym)
 
     case tr @ TypeRef(_, sym, tps) if sym.isClass =>
@@ -1678,9 +1682,17 @@ trait CodeExtraction extends ASTExtractors {
         case None => xt.ClassType(id, tps map extractType)
       }
 
+    case tr @ TypeRef(_, sym, tps) if sym.isClass =>
+      val params = extractTypeParams(sym.typeParams).map(xt.TypeParameterDef(_))
+      xt.TypeLambda(params, xt.ClassType(getIdentifier(sym), params.map(_.tp)))
+
     case tr @ TypeRef(_, sym, tps) if dctx.resolveTypes && (sym.isAliasType || sym.isAbstractType) =>
       if (tr != tr.dealias) extractType(tr.dealias)
       else extractType(tr)(dctx.setResolveTypes(false), pos)
+
+    case tr @ TypeRef(_, sym, tps) if sym.isAbstractType && (dctx.tparams contains sym) =>
+      val tp = dctx.tparams(sym)
+      xt.HKTypeApply(tp, tps map extractType)
 
     case tr @ TypeRef(prefix, sym, tps) if sym.isAbstractType || sym.isAliasType =>
       val selector = prefix match {

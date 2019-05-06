@@ -158,6 +158,29 @@ trait Trees extends innerfuns.Trees with Definitions { self =>
     def resolve(implicit s: Symbols): Type = applied.resolve
   }
 
+  case class HKTypeApply(hkt: Type, tps: Seq[Type]) extends Type {
+    override protected def computeType(implicit s: Symbols): Type = hkt match {
+      case tp: TypeParameter if tp.arity == tps.length => this
+      case tl: TypeLambda if tl.arity == tps.length => tl.applied(tps)
+      case _ => Untyped
+    }
+
+    def applied: Option[Type] = hkt match {
+      case tl: TypeLambda => Some(tl.applied(tps))
+      case _ => None
+    }
+  }
+
+  case class TypeLambda(params: Seq[TypeParameterDef], body: Type) extends Type {
+    def arity: Int = params.length
+
+    def applied(tps: Seq[Type]): Type = {
+      require(tps.length == params.length)
+      val subst = params.map(_.tp).zip(tps).toMap
+      typeOps.instantiateType(body, subst)
+    }
+  }
+
   protected def widenTypeParameter(tpe: Typed)(implicit s: Symbols): Type = tpe.getType match {
     case tp: TypeParameter => widenTypeParameter(tp.upperBound)
     case ta: TypeApply => widenTypeParameter(ta.upperBound)
@@ -298,18 +321,29 @@ trait Printer extends innerfuns.Printer {
     case TypeBounds(lo, hi, _) =>
       p"_ >: $lo <: $hi"
 
-    case TypeSelect(None, id) =>
-      p"$id"
-
-    case TypeSelect(Some(expr), id) =>
-      p"$expr.$id"
+    case TypeSelect(sel, id) =>
+      sel.fold(p"$id")(sel => p"$sel.$id")
 
     case TypeApply(selector, tps) =>
       p"${selector}${nary(tps, ", ", "[", "]")}"
 
+    case TypeLambda(_, body: ClassType) => p"${body.id}"
+    case TypeLambda(_, body: ADTType) => p"${body.id}"
+
+    case TypeLambda(params, body) =>
+      p"${nary(params, ",", "[", "]")} => $body"
+
+    case HKTypeApply(lam: TypeLambda, tps) =>
+      p"${lam}${nary(tps, ", ", "[", "]")}"
+
+    case HKTypeApply(tp, tps) =>
+      p"${tp}${nary(tps, ", ", "[", "]")}"
+
     case tpd: TypeParameterDef =>
       tpd.tp.flags collectFirst { case Variance(v) => v } foreach (if (_) p"+" else p"-")
       p"${tpd.tp}"
+      val params = List.fill(tpd.tp.arity)("_")
+      p"${nary(params, ",", "[", "]")}"
       tpd.tp.flags collectFirst { case Bounds(lo, hi) => (lo, hi) } foreach { case (lo, hi) =>
         if (lo != NothingType()) p" >: $lo"
         if (hi != AnyType()) p" <: $hi"
@@ -463,6 +497,12 @@ trait TreeDeconstructor extends innerfuns.TreeDeconstructor {
     case s.TypeApply(sel, tps) => (Seq(), Seq(), Seq(), sel +: tps, Seq(), (_, _, _, tps, _) =>
       t.TypeApply(tps.head.asInstanceOf[t.TypeSelect], tps.tail))
 
+    case s.HKTypeApply(lam, tps) => (Seq(), Seq(), Seq(), lam +: tps, Seq(), (_, _, _, tps, _) =>
+      t.HKTypeApply(tps.head, tps.tail))
+
+    case s.TypeLambda(params, body) => (Seq(), Seq(), Seq(), body +: params.map(_.tp), Seq(), (_, _, _, tps, _) =>
+      t.TypeLambda(tps.tail.map(tp => t.TypeParameterDef(tp.asInstanceOf[t.TypeParameter])), tps.head))
+
     case _ => super.deconstruct(tpe)
   }
 
@@ -473,6 +513,7 @@ trait TreeDeconstructor extends innerfuns.TreeDeconstructor {
     case s.IsSealed => (Seq(), Seq(), Seq(), (_, _, _) => t.IsSealed)
     case s.Bounds(lo, hi) => (Seq(), Seq(), Seq(lo, hi), (_, _, tps) => t.Bounds(tps(0), tps(1)))
     case s.Variance(v) => (Seq(), Seq(), Seq(), (_, _, _) => t.Variance(v))
+    case s.HigherKinded(i) => (Seq(), Seq(), Seq(), (_, _, _) => t.HigherKinded(i))
     case s.IsTypeMemberOf(id) => (Seq(id), Seq(), Seq(), (ids, _, _) => t.IsTypeMemberOf(ids(0)))
     case _ => super.deconstruct(f)
   }

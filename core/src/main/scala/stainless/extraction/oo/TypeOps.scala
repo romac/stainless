@@ -75,6 +75,21 @@ trait TypeOps extends innerfuns.TypeOps {
       case _                 => Some(tpe)
     }
 
+    case (hk1: HKTypeApply, hk2: HKTypeApply) if hk1 == hk2 =>
+      Some(hk1)
+
+    case (hk1: HKTypeApply, hk2: HKTypeApply) =>
+      hk1.applied.zip(hk2.applied).headOption match {
+        case Some((tp1, tp2)) => Some(typeBound(tp1, tp2, upper))
+        case None => Some(Untyped)
+      }
+
+    case (hk: HKTypeApply, tp2) =>
+      Some(hk.applied.fold(Untyped: Type)(typeBound(_, tp2, upper)))
+
+    case (tp1, hk: HKTypeApply) =>
+      Some(hk.applied.fold(Untyped: Type)(typeBound(tp1, _, upper)))
+
     case (adt: ADTType, _) if adt.lookupSort.isEmpty => Some(Untyped)
     case (_, adt: ADTType) if adt.lookupSort.isEmpty => Some(Untyped)
 

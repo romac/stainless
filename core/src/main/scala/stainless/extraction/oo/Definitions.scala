@@ -315,6 +315,7 @@ trait Definitions extends innerfuns.Trees { self: Trees =>
   case object IsCaseObject extends Flag("caseObject", Seq.empty)
   case class Bounds(lo: Type, hi: Type) extends Flag("bounds", Seq(lo, hi))
   case class Variance(variance: Boolean) extends Flag("variance", Seq.empty)
+  case class HigherKinded(arity: Int) extends Flag("variance", Seq.empty)
   case class IsTypeMemberOf(id: Identifier) extends Flag("typeMember", Seq(id))
 
   override def extractFlag(name: String, args: Seq[Expr]): Flag = (name, args) match {
@@ -328,6 +329,12 @@ trait Definitions extends innerfuns.Trees { self: Trees =>
       tp.flags.collectFirst { case Bounds(lo, hi) => TypeBounds(lo, hi, flags) }
         .getOrElse(TypeBounds(NothingType(), AnyType(), flags))
     }
+
+    def isHigherKinded: Boolean =
+      tp.flags.exists { case _: HigherKinded => true case _ => false }
+
+    def arity: Int =
+      tp.flags.collectFirst { case HigherKinded(i) => i }.getOrElse(0)
 
     def lowerBound: Type = bounds.lo
     def upperBound: Type = bounds.hi
