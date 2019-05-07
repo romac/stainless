@@ -70,6 +70,7 @@ trait TypeEncoding
     case s.TypeBounds(_, _, _) => true
     case tp: s.TypeParameter => scope.tparams contains tp
     case ta: s.TypeApply => ta.isAbstract(scope.symbols)
+    case _: s.HKTypeApply => true
     case _ => false
   }
 
@@ -487,7 +488,11 @@ trait TypeEncoding
       case (_, s.RealType()) if isObject(in) => e is real
       case (_, s.StringType()) if isObject(in) => e is str
       case (_, s.UnitType()) if isObject(in) => e is unit
-      case _ => t.BooleanLiteral(false)
+      case (in, tpe) =>
+        println(e -> e.getClass)
+        println(in -> in.getClass)
+        println(tpe -> tpe.getClass)
+        t.BooleanLiteral(false)
     }).copiedFrom(e)
   }
 
@@ -665,10 +670,12 @@ trait TypeEncoding
         case ((cond, thenn), elze) => t.IfExpr(cond, thenn, elze)
       }
 
-      new t.FunDef(
+      val res = new t.FunDef(
         convertID(id), (tin ++ tout).map(t.TypeParameterDef(_)), x +: fs, T(id)(tout: _*), fullBody,
         Seq(t.Unchecked, t.Synthetic)
       ).setPos(sort)
+      println(sort)
+      res
     }
   }
 
@@ -754,7 +761,7 @@ trait TypeEncoding
       case ta: s.TypeApply if !ta.isAbstract =>
         transform(ta.resolve)
 
-      case hk @ s.HKTypeApply(tp, tps) =>
+      case hk @ s.HKTypeApply(tp, tps) if testers contains tp =>
         hk.applied match {
           case Some(tp) => transform(tp)
           case None => refinement(("x" :: ref.copiedFrom(hk)).copiedFrom(hk)) { x =>
