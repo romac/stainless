@@ -22,7 +22,8 @@ object BigIntRing {
     def one: A = fromInteger(1)
 
     @law def law_times_associative(x: A, y: A, z: A) = times(times(x, y), z) == times(x, times(y, z))
-    @law def law_times_identity(x: A) = times(x, one) == x
+    @law def law_times_leftIdentity(x: A) = times(one, x) == x
+    @law def law_times_rightIdentity(x: A) = times(x, one) == x
     @law def law_left_distributivity(x: A, y: A, z: A) = times(x, plus(y, z)) == plus(times(x, y), times(x, z))
     @law def law_right_distributivity(x: A, y: A, z: A) = times(plus(y, z), x) == plus(times(y, x), times(z, x))
   }
