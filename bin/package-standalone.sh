@@ -16,8 +16,16 @@ fi
 SCALA_VERSION="2.12"
 Z3_VERSION="4.7.1"
 
-SBT_PACKAGE="sbt stainless-scalac-standalone/assembly"
-STAINLESS_JAR_PATH="./frontends/stainless-scalac-standalone/target/scala-$SCALA_VERSION/stainless-scalac-standalone-$STAINLESS_VERSION.jar"
+stainless_jar_path() {
+  ""
+}
+
+SBT_PACKAGE_SCALAC="sbt stainless-scalac-standalone/assembly"
+STAINLESS_SCALAC_JAR_PATH="./frontends/stainless-scalac-standalone/target/scala-$SCALA_VERSION/stainless-scalac-standalone-$STAINLESS_VERSION.jar"
+
+SBT_PACKAGE_DOTTY="sbt stainless-dotty-standalone/assembly"
+STAINLESS_DOTTY_JAR_PATH="./frontends/stainless-dotty-standalone/target/scala-$SCALA_VERSION/stainless-dotty-standalone-$STAINLESS_VERSION.jar"
+
 SCALAZ3_JAR_LINUX_PATH="./unmanaged/scalaz3-unix-64-$SCALA_VERSION.jar"
 SCALAZ3_JAR_MAC_PATH="./unmanaged/scalaz3-mac-64-$SCALA_VERSION.jar"
 
@@ -50,7 +58,8 @@ function fail {
 
 TMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t "stainless-package-standalone")
 
-STAINLESS_JAR_BASENAME=$(basename "$STAINLESS_JAR_PATH")
+STAINLESS_SCALAC_JAR_BASENAME=$(basename "$STAINLESS_SCALAC_JAR_PATH")
+STAINLESS_DOTTY_JAR_BASENAME=$(basename "$STAINLESS_DOTTY_JAR_PATH")
 
 function check_tools {
   for tool in \
@@ -92,7 +101,11 @@ function fetch_z3 {
 
 function generate_launcher {
   local TARGET="$1"
-  local SCALAZ3_JAR_BASENAME="$2"
+  local STAINLESS_JAR_PATH="$3"
+  local SCALAZ3_JAR_BASENAME="$4"
+  local STAINLESS_JAR_BASENAME
+  STAINLESS_JAR_BASENAME=$(basename "$STAINLESS_JAR_BASENAME")
+
   cat << END > "$TARGET"
 #!/usr/bin/env bash
 
@@ -116,7 +129,9 @@ END
 
 function package {
   local PLAT="$1"
-  local SCALAZ3_JAR_PATH="$2"
+  local VARIANT="$2"
+  local STAINLESS_JAR_PATH="$3"
+  local SCALAZ3_JAR_PATH="$4"
   local SCALAZ3_JAR_BASENAME
   SCALAZ3_JAR_BASENAME=$(basename "$SCALAZ3_JAR_PATH")
 
@@ -131,7 +146,7 @@ function package {
     info "    (Removed old archive.)"
   fi
 
-  generate_launcher "$TMPD/stainless" "$SCALAZ3_JAR_BASENAME" || fail
+  generate_launcher "$TMPD/stainless-$VARIANT" "$STAINLESS_JAR_PATH" "$SCALAZ3_JAR_BASENAME" || fail
 
   local TGTLIBD="$TMPD/lib"
   mkdir "$TGTLIBD" >> $LOG || fail
@@ -139,7 +154,7 @@ function package {
   cp "$SCALAZ3_JAR_PATH" "$TGTLIBD/$SCALAZ3_JAR_BASENAME" >> $LOG || fail
 
   cd "$TMPD" && \
-    zip "$ZIPF" lib/** z3/** stainless >> $LOG && \
+    zip "$ZIPF" lib/** z3/** "stainless-$VARIANT" >> $LOG && \
     cd - >/dev/null || fail
   info "    Created archive $ZIPF"
 
@@ -153,11 +168,18 @@ echo -e "Starting packaging version $STAINLESS_VERSION on $(date).\n-----\n" | t
 info "${BLD}[] Checking required tools..."
 check_tools
 
-info "${BLD}[] Assembling fat jar..."
-if [ -f "$STAINLESS_JAR_PATH" ]; then
+info "${BLD}[] Assembling fat Scala jar..."
+if [ -f "$STAINLESS_SCALAC_JAR_PATH" ]; then
   info "  (JAR already exists, skipping sbt assembly step.)" && okay
 else
-  $SBT_PACKAGE >> $LOG && okay || fail
+  $SBT_PACKAGE_SCALAC >> $LOG && okay || fail
+fi
+
+info "${BLD}[] Assembling fat Dotty jar..."
+if [ -f "$STAINLESS_SCALAC_JAR_PATH" ]; then
+  info "  (JAR already exists, skipping sbt assembly step.)" && okay
+else
+  $SBT_PACKAGE_DOTTY >> $LOG && okay || fail
 fi
 
 info "${BLD}\n[] Downloading Z3 binaries..."
@@ -165,8 +187,10 @@ fetch_z3 "linux" $Z3_LINUX_NAME
 fetch_z3 "mac" $Z3_MAC_NAME
 
 info "${BLD}\n[] Packaging..."
-package "linux" $SCALAZ3_JAR_LINUX_PATH
-package "mac" $SCALAZ3_JAR_MAC_PATH
+package "linux" "scalac" "$STAINLESS_SCALAC_JAR_PATH" "$SCALAZ3_JAR_LINUX_PATH"
+package "mac"   "scalac" "$STAINLESS_SCALAC_JAR_PATH" "$SCALAZ3_JAR_MAC_PATH"
+package "linux" "dotty"  "$STAINLESS_DOTTY_JAR_PATH"  "$SCALAZ3_JAR_LINUX_PATH"
+package "mac"   "dotty"  "$STAINLESS_DOTTY_JAR_PATH"  "$SCALAZ3_JAR_MAC_PATH"
 
 info "\n${BLD}[] Cleaning up..."
 rm -r "$TMP_DIR" && okay

@@ -283,6 +283,12 @@ lazy val `stainless-dotty` = (project in file("frontends/stainless-dotty"))
   .settings(
     name := "stainless-dotty",
     frontendClass := "dotc.DottyCompiler",
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
+    assemblyExcludedJars in assembly := {
+      val cp = (fullClasspath in assembly).value
+      // Don't include scalaz3 dependency because it is OS dependent
+      cp filter {_.data.getName.startsWith("scalaz3")}
+    },
   )
   //.dependsOn(inox % "test->test;it->test,it")
   .dependsOn(`stainless-dotty-frontend`)
@@ -290,6 +296,19 @@ lazy val `stainless-dotty` = (project in file("frontends/stainless-dotty"))
   // Should truly depend on dotty, overriding the "provided" modifier above:
   .settings(libraryDependencies += "ch.epfl.lamp" % dottyLibrary % dottyVersion)
   .configs(IntegrationTest)
+
+lazy val `stainless-dotty-standalone` = (project in file("frontends") / "stainless-dotty-standalone")
+  .enablePlugins(BuildInfoPlugin)
+  .enablePlugins(JavaAppPackaging)
+  .settings(artifactSettings, assemblySettings)
+  .settings(
+    name := "stainless-dotty-standalone",
+    buildInfoKeys ++= Seq[BuildInfoKey]("useJavaClassPath" -> true),
+    (mainClass in assembly) := Some("stainless.Main"),
+    (assemblyJarName in assembly) := (name.value + "-" + version.value + ".jar"),
+    (unmanagedJars in Runtime) := (unmanagedJars in (`stainless-dotty`, Runtime)).value
+  )
+  .dependsOn(`stainless-dotty`)
 
 lazy val `sbt-stainless` = (project in file("sbt-plugin"))
   .enablePlugins(BuildInfoPlugin)
