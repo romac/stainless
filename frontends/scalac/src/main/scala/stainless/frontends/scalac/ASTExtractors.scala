@@ -1135,7 +1135,7 @@ trait ASTExtractors {
       }
     }
 
-    object ExCall {
+    object ExAnyCall {
       def unapply(tree: Tree): Option[(Option[Tree], Symbol, Seq[Tree], Seq[Tree])] = {
         val res = tree match {
           // a.foo
@@ -1168,11 +1168,35 @@ trait ASTExtractors {
         }
 
         res.map { case (rec, sym, tps, args) =>
-          val newRec = rec.filter(r => r.symbol == null || !(r.symbol.isModule && !r.symbol.isCase || r.symbol.isModuleClass))
+          val newRec = rec.filter(r => r.symbol != null)
           (newRec, sym, tps, args)
         }
       }
     }
 
+    object ExCall {
+      def unapply(tree: Tree): Option[(Option[Tree], Symbol, Seq[Tree], Seq[Tree])] = {
+        val res = ExAnyCall.unapply(tree)
+        res.map { case (rec, sym, tps, args) =>
+          val newRec = rec.filter(r => !(r.symbol.isModule && !r.symbol.isCase || r.symbol.isModuleClass))
+          (newRec, sym, tps, args)
+        }
+      }
+    }
+
+    object ExCaseObjectCall {
+      def unapply(tree: Tree): Option[(Tree, Symbol, Seq[Tree], Seq[Tree])] = {
+        val res = ExAnyCall.unapply(tree)
+        res
+          .filter {
+            case (None, _, _, _) => false
+            case (Some(r), _, _, _) if r.symbol == null => false
+            case (Some(r), _, _, _) => r.symbol.isModuleClass && r.symbol.isCase
+          }
+          .collect {
+            case (Some(rec), sym, tps, args) => (rec, sym, tps, args)
+          }
+      }
+    }
   }
 }

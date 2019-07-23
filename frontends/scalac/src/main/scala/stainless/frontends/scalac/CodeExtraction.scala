@@ -1228,19 +1228,20 @@ trait CodeExtraction extends ASTExtractors {
       val rc = cses.map(extractMatchCase)
       xt.MatchExpr(rs, rc)
 
-    case t: This =>
-      extractType(t) match {
-        case ct: xt.ClassType => xt.This(ct)
-        case lct: xt.LocalClassType => xt.LocalThis(lct)
-        case _ => outOfSubsetError(t, "Invalid usage of `this`")
-      }
-
     case s: Super =>
       extractType(s) match {
         case ct: xt.ClassType => xt.Super(ct)
         case lct: xt.LocalClassType => xt.Super(lct.toClassType)
 
         case _ => outOfSubsetError(s, s"Invalid usage of `super`")
+      }
+
+
+    case t: This =>
+      extractType(t) match {
+        case ct: xt.ClassType => xt.This(ct)
+        case lct: xt.LocalClassType => xt.LocalThis(lct)
+        case _ => outOfSubsetError(t, "Invalid usage of `this`")
       }
 
     case ExArrayFill(baseType, length, defaultValue) =>
@@ -1271,18 +1272,18 @@ trait CodeExtraction extends ASTExtractors {
     case ExImplies(lhs, rhs) =>
       xt.Implies(extractTree(lhs), extractTree(rhs))
 
-    case c @ ExCall(rec, sym, tps, args) => rec match {
-      // Case object fields and methods are treated differently by scalac for some reason
-      // so we need a special extractor here.
-      case None if sym.owner.isModuleClass && sym.owner.isCase =>
-        val ct = extractType(sym.owner.tpe)(dctx, c.pos).asInstanceOf[xt.ClassType]
-        xt.MethodInvocation(
-          xt.ClassConstructor(ct, Seq.empty).setPos(c.pos),
-          getIdentifier(sym),
-          tps map extractType,
-          args map extractTree
-        ).setPos(c.pos)
+    // Case objects only have methods in Stainless
+    case c @ ExCaseObjectCall(rec, sym, tps, args) =>
+      val ct = extractType(rec).asInstanceOf[xt.ClassType]
+      val receiver = extractTree(rec)
+      xt.MethodInvocation(
+        receiver,
+        getIdentifier(sym),
+        tps map extractType,
+        args map extractTree
+      ).setPos(c.pos)
 
+    case c @ ExCall(rec, sym, tps, args) => rec match {
       case None =>
         dctx.localFuns.get(sym) match {
           case None =>
@@ -1291,199 +1292,201 @@ trait CodeExtraction extends ASTExtractors {
             xt.ApplyLetRec(id, tparams.map(_.tp), tpe, tps.map(extractType), extractArgs(sym, args)).setPos(c.pos)
         }
 
-      case Some(lhs) => extractType(lhs)(dctx.setResolveTypes(true)) match {
-        case ct: xt.ClassType =>
-          val isField = sym.isParamAccessor || sym.isCaseAccessor
-          val isMethod = sym.isMethod || sym.isAccessor || !isField
+      case Some(lhs) =>
+        val lhsType = extractType(lhs)(dctx.setResolveTypes(true))
+        lhsType match {
+          case ct: xt.ClassType =>
+            val isField = sym.isParamAccessor || sym.isCaseAccessor
+            val isMethod = sym.isMethod || sym.isAccessor || !isField
 
-          if (isMethod) xt.MethodInvocation(
-            extractTree(lhs),
-            getIdentifier(sym),
-            tps.map(extractType),
-            extractArgs(sym, args)
-          ).setPos(c.pos) else args match {
-            case Seq() if sym.isParamAccessor =>
-              xt.ClassSelector(extractTree(lhs), getIdentifier(sym)).setPos(c.pos)
-            case _ =>
-              outOfSubsetError(tr, s"Unexpected call: $tr")
-          }
-
-        case lct: xt.LocalClassType =>
-          val isField = sym.isParamAccessor || sym.isCaseAccessor
-          val isMethod = sym.isMethod || sym.isAccessor || !isField
-
-          if (isMethod) {
-            val lcd = dctx.localClasses(lct.id)
-            val id = getIdentifier(sym)
-            val fd = lcd.methods.find(_.id == id).get
-            xt.LocalMethodInvocation(
+            if (isMethod) xt.MethodInvocation(
               extractTree(lhs),
-              xt.ValDef(id, xt.FunctionType(fd.params.map(_.tpe), fd.returnType)).toVariable,
-              fd.tparams.map(_.tp),
+              getIdentifier(sym),
               tps.map(extractType),
               extractArgs(sym, args)
-            )
-          } else args match {
-            case Seq() if sym.isParamAccessor =>
-              val lcd = dctx.localClasses(lct.id)
-              val id = getIdentifier(sym)
-              val field = lcd.fields.collectFirst { case vd @ xt.ValDef(`id`, _, _) => vd }
-              xt.LocalClassSelector(extractTree(lhs), id, field.map(_.tpe).getOrElse(xt.Untyped))
-          case _ =>
-            outOfSubsetError(tr, "Unexpected call")
-        }
-
-        case ft: xt.FunctionType =>
-          xt.Application(extractTree(lhs), args.map(extractTree)).setPos(ft)
-
-        case tpe => (tpe, sym.name.decode.toString, args) match {
-          case (xt.StringType(), "+", Seq(rhs)) => xt.StringConcat(extractTree(lhs), extractTree(rhs))
-          case (xt.IntegerType() | xt.BVType(_, _) | xt.RealType(), "+", Seq(rhs)) => injectCasts(xt.Plus)(lhs, rhs)
-
-          case (xt.SetType(_), "+",  Seq(rhs)) => xt.SetAdd(extractTree(lhs), extractTree(rhs))
-          case (xt.SetType(_), "++", Seq(rhs)) => xt.SetUnion(extractTree(lhs), extractTree(rhs))
-          case (xt.SetType(_), "&",  Seq(rhs)) => xt.SetIntersection(extractTree(lhs), extractTree(rhs))
-          case (xt.SetType(_), "--", Seq(rhs)) => xt.SetDifference(extractTree(lhs), extractTree(rhs))
-          case (xt.SetType(_), "subsetOf", Seq(rhs)) => xt.SubsetOf(extractTree(lhs), extractTree(rhs))
-          case (xt.SetType(_), "contains", Seq(rhs)) => xt.ElementOfSet(extractTree(rhs), extractTree(lhs))
-          case (xt.SetType(b), "isEmpty", Seq()) => xt.Equals(extractTree(lhs), xt.FiniteSet(Seq(), b))
-          case (xt.SetType(b), "-", Seq(rhs))  => xt.SetDifference(extractTree(lhs), xt.FiniteSet(Seq(extractTree(rhs)), b).setPos(tr.pos))
-
-          case (xt.BagType(_), "+",   Seq(rhs)) => xt.BagAdd(extractTree(lhs), extractTree(rhs))
-          case (xt.BagType(_), "++",  Seq(rhs)) => xt.BagUnion(extractTree(lhs), extractTree(rhs))
-          case (xt.BagType(_), "&",   Seq(rhs)) => xt.BagIntersection(extractTree(lhs), extractTree(rhs))
-          case (xt.BagType(_), "--",  Seq(rhs)) => xt.BagDifference(extractTree(lhs), extractTree(rhs))
-          case (xt.BagType(_), "get", Seq(rhs)) => xt.MultiplicityInBag(extractTree(rhs), extractTree(lhs))
-
-          case (xt.MutableMapType(_, _), "apply", Seq(rhs)) =>
-            xt.MutableMapApply(extractTree(lhs), extractTree(rhs))
-
-          case (xt.MutableMapType(_, _), "update", Seq(key, value)) =>
-            xt.MutableMapUpdate(extractTree(lhs), extractTree(key), extractTree(value))
-
-          case (xt.MutableMapType(_, _), "updated", Seq(key, value)) =>
-            xt.MutableMapUpdated(extractTree(lhs), extractTree(key), extractTree(value))
-
-          case (xt.MutableMapType(_, _), "duplicate", Seq()) =>
-            xt.MutableMapDuplicate(extractTree(lhs))
-
-          case (xt.MapType(_, _), "get", Seq(rhs)) =>
-            xt.MapApply(extractTree(lhs), extractTree(rhs))
-
-          case (xt.MapType(_, xt.ClassType(_, Seq(to))), "apply", Seq(rhs)) =>
-            val (l, r) = (extractTree(lhs), extractTree(rhs))
-            val someTpe = xt.ClassType(getIdentifier(someSymbol), Seq(to)).setPos(tr.pos)
-            xt.Assert(
-              xt.IsInstanceOf(xt.MapApply(l, r).setPos(tr.pos), someTpe).setPos(tr.pos),
-              Some("Map undefined at this index"),
-              xt.ClassSelector(
-                xt.AsInstanceOf(xt.MapApply(l, r).setPos(tr.pos), someTpe).setPos(tr.pos),
-                getIdentifier(someSymbol.caseFieldAccessors.head.accessedOrSelf)
-              ).setPos(tr.pos)
-            )
-
-          case (xt.MapType(_, xt.ClassType(_, Seq(to))), "isDefinedAt" | "contains", Seq(rhs)) =>
-            xt.Not(xt.Equals(
-              xt.MapApply(extractTree(lhs), extractTree(rhs)).setPos(tr.pos),
-              xt.ClassConstructor(
-                xt.ClassType(getIdentifier(noneSymbol), Seq(to)).setPos(tr.pos),
-                Seq()
-              ).setPos(tr.pos)
-            ).setPos(tr.pos))
-
-          case (xt.MapType(_, xt.ClassType(_, Seq(to))), "updated" | "+", Seq(key, value)) =>
-            xt.MapUpdated(
-              extractTree(lhs), extractTree(key),
-              xt.ClassConstructor(
-                xt.ClassType(getIdentifier(someSymbol), Seq(to)).setPos(tr.pos),
-                Seq(extractTree(value))
-              ).setPos(tr.pos)
-            )
-
-          case (xt.MapType(_, xt.ClassType(_, Seq(to))), "+", Seq(rhs)) =>
-            val value = extractTree(rhs)
-            xt.MapUpdated(
-              extractTree(lhs), xt.TupleSelect(value, 1).setPos(tr.pos),
-              xt.ClassConstructor(
-                xt.ClassType(getIdentifier(someSymbol), Seq(to)).setPos(tr.pos),
-                Seq(xt.TupleSelect(value, 2).setPos(tr.pos))
-              ).setPos(tr.pos)
-            )
-
-          case (xt.MapType(_, xt.ClassType(_, Seq(to))), "++", Seq(rhs)) =>
-            extractTree(rhs) match {
-              case xt.FiniteMap(pairs,  default, keyType, valueType) =>
-                pairs.foldLeft(extractTree(lhs)) { case (map, (k, v)) =>
-                  xt.MapUpdated(map, k, v).setPos(tr.pos)
-                }
-
-              case _ => outOfSubsetError(tr, "Can't extract map union with non-finite map")
+            ).setPos(c.pos) else args match {
+              case Seq() if sym.isParamAccessor =>
+                xt.ClassSelector(extractTree(lhs), getIdentifier(sym)).setPos(c.pos)
+              case _ =>
+                outOfSubsetError(tr, s"Unexpected call: $tr")
             }
 
-          case (xt.MapType(_, xt.ClassType(_, Seq(to))), "getOrElse", Seq(key, orElse)) =>
-            xt.MethodInvocation(
-              xt.MapApply(extractTree(lhs), extractTree(key)).setPos(tr.pos),
-              getIdentifier(optionSymbol.tpe.member(TermName("getOrElse"))),
-              Seq.empty,
-              Seq(xt.Lambda(Seq(), extractTree(orElse)).setPos(tr.pos))
-            ).setPos(c.pos)
+          case lct: xt.LocalClassType =>
+            val isField = sym.isParamAccessor || sym.isCaseAccessor
+            val isMethod = sym.isMethod || sym.isAccessor || !isField
 
-          case (_, "unary_+", Seq()) => injectCast(e => e)(lhs)
-          case (_, "-",   Seq(rhs)) => injectCasts(xt.Minus)(lhs, rhs)
-          case (_, "*",   Seq(rhs)) => injectCasts(xt.Times)(lhs, rhs)
-          case (_, "%",   Seq(rhs)) => injectCasts(xt.Remainder)(lhs, rhs)
-          case (_, "mod", Seq(rhs)) => xt.Modulo(extractTree(lhs), extractTree(rhs))
-          case (_, "/",   Seq(rhs)) => injectCasts(xt.Division)(lhs, rhs)
-          case (_, ">",   Seq(rhs)) => injectCasts(xt.GreaterThan)(lhs, rhs)
-          case (_, ">=",  Seq(rhs)) => injectCasts(xt.GreaterEquals)(lhs, rhs)
-          case (_, "<",   Seq(rhs)) => injectCasts(xt.LessThan)(lhs, rhs)
-          case (_, "<=",  Seq(rhs)) => injectCasts(xt.LessEquals)(lhs, rhs)
-
-          case (xt.BVType(_, _), "|",   Seq(rhs)) => injectCasts(xt.BVOr)(lhs, rhs)
-          case (xt.BVType(_, _), "&",   Seq(rhs)) => injectCasts(xt.BVAnd)(lhs, rhs)
-          case (xt.BVType(_, _), "^",   Seq(rhs)) => injectCasts(xt.BVXor)(lhs, rhs)
-          case (xt.BVType(_, _), "<<",  Seq(rhs)) => injectCastsForShift(xt.BVShiftLeft)(lhs, rhs)
-          case (xt.BVType(_, _), ">>",  Seq(rhs)) => injectCastsForShift(xt.BVAShiftRight)(lhs, rhs)
-          case (xt.BVType(_, _), ">>>", Seq(rhs)) => injectCastsForShift(xt.BVLShiftRight)(lhs, rhs)
-
-          case (xt.BooleanType(), "|", Seq(rhs)) => xt.BoolBitwiseOr(extractTree(lhs), extractTree(rhs))
-          case (xt.BooleanType(), "&", Seq(rhs)) => xt.BoolBitwiseAnd(extractTree(lhs), extractTree(rhs))
-          case (xt.BooleanType(), "^", Seq(rhs)) => xt.BoolBitwiseXor(extractTree(lhs), extractTree(rhs))
-
-          case (_, "&&",  Seq(rhs)) => xt.And(extractTree(lhs), extractTree(rhs))
-          case (_, "||",  Seq(rhs)) => xt.Or(extractTree(lhs), extractTree(rhs))
-
-          case (tpe, "toByte", Seq()) => tpe match {
-            case xt.BVType(true, 8) => extractTree(lhs)
-            case xt.BVType(true, 16 | 32 | 64) => xt.BVNarrowingCast(extractTree(lhs), xt.BVType(true, 8))
-            case tpe => outOfSubsetError(tr, s"Unexpected cast .toByte from $tpe")
+            if (isMethod) {
+              val lcd = dctx.localClasses(lct.id)
+              val id = getIdentifier(sym)
+              val fd = lcd.methods.find(_.id == id).get
+              xt.LocalMethodInvocation(
+                extractTree(lhs),
+                xt.ValDef(id, xt.FunctionType(fd.params.map(_.tpe), fd.returnType)).toVariable,
+                fd.tparams.map(_.tp),
+                tps.map(extractType),
+                extractArgs(sym, args)
+              )
+            } else args match {
+              case Seq() if sym.isParamAccessor =>
+                val lcd = dctx.localClasses(lct.id)
+                val id = getIdentifier(sym)
+                val field = lcd.fields.collectFirst { case vd @ xt.ValDef(`id`, _, _) => vd }
+                xt.LocalClassSelector(extractTree(lhs), id, field.map(_.tpe).getOrElse(xt.Untyped))
+            case _ =>
+              outOfSubsetError(tr, "Unexpected call")
           }
 
-          case (tpe, "toShort", Seq()) => tpe match {
-            case xt.BVType(true, 8) => xt.BVWideningCast(extractTree(lhs), xt.BVType(true, 16))
-            case xt.BVType(true, 16) => extractTree(lhs)
-            case xt.BVType(true, 32 | 64) => xt.BVNarrowingCast(extractTree(lhs), xt.BVType(true, 16))
-            case tpe => outOfSubsetError(tr, s"Unexpected cast .toShort from $tpe")
-          }
+          case ft: xt.FunctionType =>
+            xt.Application(extractTree(lhs), args.map(extractTree)).setPos(ft)
 
-          case (tpe, "toInt", Seq()) => tpe match {
-            case xt.BVType(true, 8 | 16) => xt.BVWideningCast(extractTree(lhs), xt.BVType(true, 32))
-            case xt.BVType(true, 32) => extractTree(lhs)
-            case xt.BVType(true, 64) => xt.BVNarrowingCast(extractTree(lhs), xt.BVType(true, 32))
-            case tpe => outOfSubsetError(tr, s"Unexpected cast .toInt from $tpe")
-          }
+          case tpe => (tpe, sym.name.decode.toString, args) match {
+            case (xt.StringType(), "+", Seq(rhs)) => xt.StringConcat(extractTree(lhs), extractTree(rhs))
+            case (xt.IntegerType() | xt.BVType(_, _) | xt.RealType(), "+", Seq(rhs)) => injectCasts(xt.Plus)(lhs, rhs)
 
-          case (tpe, "toLong", Seq()) => tpe match {
-            case xt.BVType(true, 8 | 16 | 32 ) => xt.BVWideningCast(extractTree(lhs), xt.BVType(true, 64))
-            case xt.BVType(true, 64) => extractTree(lhs)
-            case tpe => outOfSubsetError(tr, s"Unexpected cast .toLong from $tpe")
-          }
+            case (xt.SetType(_), "+",  Seq(rhs)) => xt.SetAdd(extractTree(lhs), extractTree(rhs))
+            case (xt.SetType(_), "++", Seq(rhs)) => xt.SetUnion(extractTree(lhs), extractTree(rhs))
+            case (xt.SetType(_), "&",  Seq(rhs)) => xt.SetIntersection(extractTree(lhs), extractTree(rhs))
+            case (xt.SetType(_), "--", Seq(rhs)) => xt.SetDifference(extractTree(lhs), extractTree(rhs))
+            case (xt.SetType(_), "subsetOf", Seq(rhs)) => xt.SubsetOf(extractTree(lhs), extractTree(rhs))
+            case (xt.SetType(_), "contains", Seq(rhs)) => xt.ElementOfSet(extractTree(rhs), extractTree(lhs))
+            case (xt.SetType(b), "isEmpty", Seq()) => xt.Equals(extractTree(lhs), xt.FiniteSet(Seq(), b))
+            case (xt.SetType(b), "-", Seq(rhs))  => xt.SetDifference(extractTree(lhs), xt.FiniteSet(Seq(extractTree(rhs)), b).setPos(tr.pos))
 
-          case (tpe, name, args) =>
-            outOfSubsetError(tr, "Unknown call to " + name +
-              s" on $lhs (${extractType(lhs)}) with arguments $args of type ${args.map(a => extractType(a))}")
+            case (xt.BagType(_), "+",   Seq(rhs)) => xt.BagAdd(extractTree(lhs), extractTree(rhs))
+            case (xt.BagType(_), "++",  Seq(rhs)) => xt.BagUnion(extractTree(lhs), extractTree(rhs))
+            case (xt.BagType(_), "&",   Seq(rhs)) => xt.BagIntersection(extractTree(lhs), extractTree(rhs))
+            case (xt.BagType(_), "--",  Seq(rhs)) => xt.BagDifference(extractTree(lhs), extractTree(rhs))
+            case (xt.BagType(_), "get", Seq(rhs)) => xt.MultiplicityInBag(extractTree(rhs), extractTree(lhs))
+
+            case (xt.MutableMapType(_, _), "apply", Seq(rhs)) =>
+              xt.MutableMapApply(extractTree(lhs), extractTree(rhs))
+
+            case (xt.MutableMapType(_, _), "update", Seq(key, value)) =>
+              xt.MutableMapUpdate(extractTree(lhs), extractTree(key), extractTree(value))
+
+            case (xt.MutableMapType(_, _), "updated", Seq(key, value)) =>
+              xt.MutableMapUpdated(extractTree(lhs), extractTree(key), extractTree(value))
+
+            case (xt.MutableMapType(_, _), "duplicate", Seq()) =>
+              xt.MutableMapDuplicate(extractTree(lhs))
+
+            case (xt.MapType(_, _), "get", Seq(rhs)) =>
+              xt.MapApply(extractTree(lhs), extractTree(rhs))
+
+            case (xt.MapType(_, xt.ClassType(_, Seq(to))), "apply", Seq(rhs)) =>
+              val (l, r) = (extractTree(lhs), extractTree(rhs))
+              val someTpe = xt.ClassType(getIdentifier(someSymbol), Seq(to)).setPos(tr.pos)
+              xt.Assert(
+                xt.IsInstanceOf(xt.MapApply(l, r).setPos(tr.pos), someTpe).setPos(tr.pos),
+                Some("Map undefined at this index"),
+                xt.ClassSelector(
+                  xt.AsInstanceOf(xt.MapApply(l, r).setPos(tr.pos), someTpe).setPos(tr.pos),
+                  getIdentifier(someSymbol.caseFieldAccessors.head.accessedOrSelf)
+                ).setPos(tr.pos)
+              )
+
+            case (xt.MapType(_, xt.ClassType(_, Seq(to))), "isDefinedAt" | "contains", Seq(rhs)) =>
+              xt.Not(xt.Equals(
+                xt.MapApply(extractTree(lhs), extractTree(rhs)).setPos(tr.pos),
+                xt.ClassConstructor(
+                  xt.ClassType(getIdentifier(noneSymbol), Seq(to)).setPos(tr.pos),
+                  Seq()
+                ).setPos(tr.pos)
+              ).setPos(tr.pos))
+
+            case (xt.MapType(_, xt.ClassType(_, Seq(to))), "updated" | "+", Seq(key, value)) =>
+              xt.MapUpdated(
+                extractTree(lhs), extractTree(key),
+                xt.ClassConstructor(
+                  xt.ClassType(getIdentifier(someSymbol), Seq(to)).setPos(tr.pos),
+                  Seq(extractTree(value))
+                ).setPos(tr.pos)
+              )
+
+            case (xt.MapType(_, xt.ClassType(_, Seq(to))), "+", Seq(rhs)) =>
+              val value = extractTree(rhs)
+              xt.MapUpdated(
+                extractTree(lhs), xt.TupleSelect(value, 1).setPos(tr.pos),
+                xt.ClassConstructor(
+                  xt.ClassType(getIdentifier(someSymbol), Seq(to)).setPos(tr.pos),
+                  Seq(xt.TupleSelect(value, 2).setPos(tr.pos))
+                ).setPos(tr.pos)
+              )
+
+            case (xt.MapType(_, xt.ClassType(_, Seq(to))), "++", Seq(rhs)) =>
+              extractTree(rhs) match {
+                case xt.FiniteMap(pairs,  default, keyType, valueType) =>
+                  pairs.foldLeft(extractTree(lhs)) { case (map, (k, v)) =>
+                    xt.MapUpdated(map, k, v).setPos(tr.pos)
+                  }
+
+                case _ => outOfSubsetError(tr, "Can't extract map union with non-finite map")
+              }
+
+            case (xt.MapType(_, xt.ClassType(_, Seq(to))), "getOrElse", Seq(key, orElse)) =>
+              xt.MethodInvocation(
+                xt.MapApply(extractTree(lhs), extractTree(key)).setPos(tr.pos),
+                getIdentifier(optionSymbol.tpe.member(TermName("getOrElse"))),
+                Seq.empty,
+                Seq(xt.Lambda(Seq(), extractTree(orElse)).setPos(tr.pos))
+              ).setPos(c.pos)
+
+            case (_, "unary_+", Seq()) => injectCast(e => e)(lhs)
+            case (_, "-",   Seq(rhs)) => injectCasts(xt.Minus)(lhs, rhs)
+            case (_, "*",   Seq(rhs)) => injectCasts(xt.Times)(lhs, rhs)
+            case (_, "%",   Seq(rhs)) => injectCasts(xt.Remainder)(lhs, rhs)
+            case (_, "mod", Seq(rhs)) => xt.Modulo(extractTree(lhs), extractTree(rhs))
+            case (_, "/",   Seq(rhs)) => injectCasts(xt.Division)(lhs, rhs)
+            case (_, ">",   Seq(rhs)) => injectCasts(xt.GreaterThan)(lhs, rhs)
+            case (_, ">=",  Seq(rhs)) => injectCasts(xt.GreaterEquals)(lhs, rhs)
+            case (_, "<",   Seq(rhs)) => injectCasts(xt.LessThan)(lhs, rhs)
+            case (_, "<=",  Seq(rhs)) => injectCasts(xt.LessEquals)(lhs, rhs)
+
+            case (xt.BVType(_, _), "|",   Seq(rhs)) => injectCasts(xt.BVOr)(lhs, rhs)
+            case (xt.BVType(_, _), "&",   Seq(rhs)) => injectCasts(xt.BVAnd)(lhs, rhs)
+            case (xt.BVType(_, _), "^",   Seq(rhs)) => injectCasts(xt.BVXor)(lhs, rhs)
+            case (xt.BVType(_, _), "<<",  Seq(rhs)) => injectCastsForShift(xt.BVShiftLeft)(lhs, rhs)
+            case (xt.BVType(_, _), ">>",  Seq(rhs)) => injectCastsForShift(xt.BVAShiftRight)(lhs, rhs)
+            case (xt.BVType(_, _), ">>>", Seq(rhs)) => injectCastsForShift(xt.BVLShiftRight)(lhs, rhs)
+
+            case (xt.BooleanType(), "|", Seq(rhs)) => xt.BoolBitwiseOr(extractTree(lhs), extractTree(rhs))
+            case (xt.BooleanType(), "&", Seq(rhs)) => xt.BoolBitwiseAnd(extractTree(lhs), extractTree(rhs))
+            case (xt.BooleanType(), "^", Seq(rhs)) => xt.BoolBitwiseXor(extractTree(lhs), extractTree(rhs))
+
+            case (_, "&&",  Seq(rhs)) => xt.And(extractTree(lhs), extractTree(rhs))
+            case (_, "||",  Seq(rhs)) => xt.Or(extractTree(lhs), extractTree(rhs))
+
+            case (tpe, "toByte", Seq()) => tpe match {
+              case xt.BVType(true, 8) => extractTree(lhs)
+              case xt.BVType(true, 16 | 32 | 64) => xt.BVNarrowingCast(extractTree(lhs), xt.BVType(true, 8))
+              case tpe => outOfSubsetError(tr, s"Unexpected cast .toByte from $tpe")
+            }
+
+            case (tpe, "toShort", Seq()) => tpe match {
+              case xt.BVType(true, 8) => xt.BVWideningCast(extractTree(lhs), xt.BVType(true, 16))
+              case xt.BVType(true, 16) => extractTree(lhs)
+              case xt.BVType(true, 32 | 64) => xt.BVNarrowingCast(extractTree(lhs), xt.BVType(true, 16))
+              case tpe => outOfSubsetError(tr, s"Unexpected cast .toShort from $tpe")
+            }
+
+            case (tpe, "toInt", Seq()) => tpe match {
+              case xt.BVType(true, 8 | 16) => xt.BVWideningCast(extractTree(lhs), xt.BVType(true, 32))
+              case xt.BVType(true, 32) => extractTree(lhs)
+              case xt.BVType(true, 64) => xt.BVNarrowingCast(extractTree(lhs), xt.BVType(true, 32))
+              case tpe => outOfSubsetError(tr, s"Unexpected cast .toInt from $tpe")
+            }
+
+            case (tpe, "toLong", Seq()) => tpe match {
+              case xt.BVType(true, 8 | 16 | 32 ) => xt.BVWideningCast(extractTree(lhs), xt.BVType(true, 64))
+              case xt.BVType(true, 64) => extractTree(lhs)
+              case tpe => outOfSubsetError(tr, s"Unexpected cast .toLong from $tpe")
+            }
+
+            case (tpe, name, args) =>
+              outOfSubsetError(tr, "Unknown call to " + name +
+                s" on $lhs (${extractType(lhs)}) with arguments $args of type ${args.map(a => extractType(a))}")
+          }
         }
-      }
     }
 
     // default behaviour is to complain :)
