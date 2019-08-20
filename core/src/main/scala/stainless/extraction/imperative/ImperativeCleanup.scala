@@ -28,7 +28,7 @@ trait ImperativeCleanup
     import symbols._
 
     def isImperativeFlag(f: s.Flag): Boolean = f match {
-      case s.IsPure | s.IsVar| s.IsMutable => true
+      case s.IsPure | s.IsVar| s.IsMutable | s.Ghost => true
       case _ => false
     }
 
@@ -64,6 +64,13 @@ trait ImperativeCleanup
       case s.MutableMapApply(map, index) => t.MapApply(transform(map), transform(index))
       case s.MutableMapUpdated(map, key, value) => t.MapUpdated(transform(map), transform(key), transform(value))
       case s.MutableMapDuplicate(map) => transform(map)
+
+      case s.Annotated(expr, flags) if flags forall isImperativeFlag =>
+        transform(expr)
+
+      case s.Annotated(expr, flags) =>
+        val newFlags = flags.filterNot(isImperativeFlag).map(transform(_))
+        t.Annotated(transform(expr), newFlags).copiedFrom(expr)
 
       case _ => super.transform(expr)
     }
