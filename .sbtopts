@@ -4,3 +4,4 @@
 -J-XX:MaxMetaspaceSize=512M
 -J-XX:+UseCodeCacheFlushing
 -J-XX:ReservedCodeCacheSize=256M
+-Dsbt.io.implicit.relative.glob.conversion=allow
