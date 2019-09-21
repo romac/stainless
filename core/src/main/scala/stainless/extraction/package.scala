@@ -26,8 +26,8 @@ import scala.language.existentials
 package object extraction {
 
   val phases: Seq[(String, String)] = Seq(
-    "Meta"                      -> "TODO",
     "PartialFunctions"          -> "Lift partial function preconditions",
+    "Meta"                      -> "TODO",
     "InnerClasses"              -> "Lift inner classes",
     "Laws"                      -> "Rewrite laws as abstract functions with contracts",
     "SuperCalls"                -> "Resolve super-function calls",
@@ -94,6 +94,7 @@ package object extraction {
 
   def pipeline(implicit ctx: inox.Context): StainlessPipeline = {
     xlang.extractor        andThen
+    meta.extractor         andThen
     innerclasses.extractor andThen
     methods.extractor      andThen
     throwing.extractor     andThen

@@ -22,7 +22,7 @@ package object xlang {
   def extractor(implicit ctx: inox.Context) = {
     val lowering: ExtractionPipeline {
       val s: trees.type
-      val t: innerclasses.trees.type
+      val t: meta.trees.type
     } = new oo.SimplePhase
           with SimplyCachedFunctions
           with SimplyCachedSorts
@@ -30,7 +30,7 @@ package object xlang {
           with oo.SimplyCachedClasses { self =>
 
       override val s: trees.type = trees
-      override val t: innerclasses.trees.type = innerclasses.trees
+      override val t: meta.trees.type = meta.trees
       override val context = ctx
 
       override protected type TransformerContext = identity.type
@@ -55,7 +55,6 @@ package object xlang {
         transformer.transform(cd.copy(flags = cd.flags filterNot (_ == s.Ignore)))
     }
 
-    utils.DebugPipeline("Meta", Meta(trees)) andThen
     utils.DebugPipeline("PartialFunctions", PartialFunctions(trees)) andThen
     lowering
   }
