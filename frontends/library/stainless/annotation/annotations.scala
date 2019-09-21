@@ -80,3 +80,6 @@ class erasable extends Annotation
 
 @ignore
 class indexedAt(n: BigInt) extends Annotation
+
+@ignore
+class meta extends StaticAnnotation

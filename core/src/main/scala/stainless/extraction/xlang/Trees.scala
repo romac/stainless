@@ -53,6 +53,16 @@ trait Trees extends innerclasses.Trees { self =>
     def allTypeDefs: Seq[Identifier] = modules.flatMap(_.allTypeDefs) ++ typeDefs
   }
 
+  case class Splice(metaExpr: Expr, tpe: Type) extends Expr {
+    def getType(implicit s: Symbols) = tpe
+  }
+
+  case class Quote(expr: Expr) extends Expr {
+    def getType(implicit s: Symbols) = {
+      s.lookup.get[ClassDef]("stainless.meta.api.Expr").get.typed.toType
+    }
+  }
+
   override def getDeconstructor(that: inox.ast.Trees): inox.ast.TreeDeconstructor { val s: self.type; val t: that.type } = that match {
     case tree: Trees => new TreeDeconstructor {
       protected val s: self.type = self
@@ -114,6 +124,12 @@ trait Printer extends innerclasses.Printer {
                                 |"""
       p"|}"
 
+    case Splice(metaExpr, tpe) =>
+      p"splice[$tpe]($metaExpr)"
+
+    case Quote(expr) =>
+      p"quote($expr)"
+
     case _ => super.ppBody(tree)
   }
 }
@@ -130,5 +146,14 @@ trait TreeDeconstructor extends innerclasses.TreeDeconstructor {
   override def deconstruct(f: s.Flag): DeconstructedFlag = f match {
     case s.Ignore => (Seq(), Seq(), Seq(), (_, _, _) => t.Ignore)
     case _ => super.deconstruct(f)
+  }
+
+  override def deconstruct(e: s.Expr): Deconstructed[t.Expr] = e match {
+    case s.Splice(e, tpe) =>
+      (Seq(), Seq(), Seq(e), Seq(tpe), Seq(), (_, _, es, tps, _) => t.Splice(es.head, tps.head))
+    case s.Quote(e) =>
+      (Seq(), Seq(), Seq(e), Seq(), Seq(), (_, _, es, tps, _) => t.Quote(es.head))
+    case _ =>
+      super.deconstruct(e)
   }
 }

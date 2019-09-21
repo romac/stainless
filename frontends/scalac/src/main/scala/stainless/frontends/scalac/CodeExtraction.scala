@@ -1280,6 +1280,12 @@ trait CodeExtraction extends ASTExtractors {
     case ExImplies(lhs, rhs) =>
       xt.Implies(extractTree(lhs), extractTree(rhs))
 
+    case ExSplice(tpe, metaExpr) =>
+      xt.Splice(extractTree(metaExpr), extractType(tpe))
+
+    case ExQuote(expr) =>
+      xt.Quote(extractTree(expr))
+
     case c @ ExCall(rec, sym, tps, args) => rec match {
       case None if sym.owner.isModuleClass && sym.owner.isCase =>
         val ct = extractType(sym.owner.tpe)(dctx, c.pos).asInstanceOf[xt.ClassType]

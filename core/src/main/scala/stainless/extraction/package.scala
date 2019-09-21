@@ -26,6 +26,7 @@ import scala.language.existentials
 package object extraction {
 
   val phases: Seq[(String, String)] = Seq(
+    "Meta"                      -> "TODO",
     "PartialFunctions"          -> "Lift partial function preconditions",
     "InnerClasses"              -> "Lift inner classes",
     "Laws"                      -> "Rewrite laws as abstract functions with contracts",

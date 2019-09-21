@@ -482,6 +482,28 @@ trait ASTExtractors {
       }
     }
 
+    object ExSplice {
+      def unapply(tree: Apply): Option[(Tree, Tree)] = tree  match {
+        case Apply(
+              TypeApply(ExSelected("stainless", "meta", "package", "api", "splice"), tpe :: Nil),
+              Seq(expr)) =>
+          Some((tpe, expr))
+        case _ =>
+          None
+      }
+    }
+
+    object ExQuote {
+      def unapply(tree: Apply): Option[Tree] = tree  match {
+        case Apply(
+              TypeApply(ExSelected("stainless", "meta", "package", "api", "quote"), tpe :: Nil),
+              Seq(expr)) =>
+          Some(expr)
+        case _ =>
+          None
+      }
+    }
+
     /** Extracts the 'assert' contract from an expression (only if it's the
       * first call in the block). */
     object ExAssertExpression {
