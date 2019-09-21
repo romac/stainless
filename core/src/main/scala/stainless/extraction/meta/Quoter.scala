@@ -11,7 +11,6 @@ trait Quoter {
   implicit val symbols: trees.Symbols
   implicit val context: inox.Context
 
-  val splice = meta.Splicer(trees)(symbols)
   val lib = meta.Library(trees)(symbols)
 
   def apply(expr: Expr): Expr = quote(expr)
@@ -20,8 +19,20 @@ trait Quoter {
     case Splice(expr, tpe) =>
       expr
 
-    case BVLiteral(true, value, 32) =>
+    case BVLiteral(true, _, 32) =>
       ClassConstructor(lib.IntLiteralClass.typed.toType, Seq(expr))
+
+    case BooleanLiteral(_) =>
+      ClassConstructor(lib.BooleanLiteralClass.typed.toType, Seq(expr))
+
+    case Plus(lhs, rhs) =>
+      ClassConstructor(lib.PlusClass.typed.toType, Seq(quote(lhs), quote(rhs)))
+
+    case Equals(lhs, rhs) =>
+      ClassConstructor(lib.EqualsClass.typed.toType, Seq(quote(lhs), quote(rhs)))
+
+    case Assert(pred, msg, body) =>
+      ClassConstructor(lib.AssertClass.typed.toType, Seq(quote(pred), quote(body)))
 
     case other => sys.error(s"TODO: $other (${other.getClass})")
   }

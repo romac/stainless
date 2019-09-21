@@ -36,6 +36,11 @@ package object meta {
       }
 
       @library
+      case class BooleanLiteral(value: Boolean) extends Expr[Boolean] {
+        def getType = Type.Boolean
+      }
+
+      @library
       case class Plus(lhs: Expr[Int], rhs: Expr[Int]) extends Expr[Int] {
         def getType = Type.Int
       }
@@ -46,7 +51,7 @@ package object meta {
       }
 
       @library
-      case class Assert[A](pred: Expr[Boolean], error: Option[String], body: Expr[A]) extends Expr {
+      case class Assert[A](pred: Expr[Boolean], body: Expr[A]) extends Expr {
         def getType = body.getType
       }
     }

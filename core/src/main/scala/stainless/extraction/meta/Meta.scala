@@ -14,24 +14,25 @@ trait Meta
      with oo.SimplyCachedClasses { self =>
 
   val s: Trees
-  val t: Trees
+  val t: s.type
 
-  import s._
+  val trees: s.type = s
+  import trees._
 
   override protected def getContext(symbols: Symbols) = new TransformerContext(symbols)
 
-  protected class TransformerContext(val symbols: s.Symbols) extends oo.TreeTransformer {
-    override final val s: self.s.type = self.s
-    override final val t: self.t.type = self.t
+  protected class TransformerContext(val symbols: self.trees.Symbols) extends oo.TreeTransformer {
+    override final val s: self.trees.type = self.trees
+    override final val t: self.trees.type = self.trees
 
     implicit val syms: symbols.type = symbols
 
-    val splicer = meta.Splicer(s)(symbols)
-    val quote   = meta.Quoter(s)(symbols)
-    val lib     = meta.Library(s)(symbols)
+    val splicer = meta.Splicer(trees)(symbols)
+    val quote   = meta.Quoter(trees)(symbols)
+    val lib     = meta.Library(trees)(symbols)
 
     def splice(metaExpr: Expr, tpe: Type): Expr = {
-      val spliced = splicer.apply(metaExpr)
+      val spliced = splicer.splice(metaExpr)
 
       if (!symbols.isSubtypeOf(spliced.getType, tpe)) {
         sys.error(s"Incompatible types: ${spliced.getType} <-> $tpe")
@@ -48,7 +49,7 @@ trait Meta
       case _ => sys.error("@meta methods must return an Expr[_]")
     }
 
-    override def transform(e: Expr): t.Expr = e match {
+    override def transform(e: Expr): Expr = e match {
       case fi @ FunctionInvocation(id, tps, args) if symbols.functions(id).flags contains s.Meta =>
         transform(splice(fi, symbols.functions(id).returnType))
 
@@ -59,16 +60,34 @@ trait Meta
 
       case other => super.transform(e)
     }
+
+    override def transform(fd: FunDef): FunDef = fd match {
+      case fd if fd.flags contains trees.Meta => fd
+      case fd => super.transform(fd)
+    }
   }
+
+  def isMeta(defn: Definition): Boolean = {
+    defn.flags.contains(trees.Meta) ||
+    defn.id.asInstanceOf[SymbolIdentifier].symbol.name.startsWith("stainless.meta.api")
+  }
+
+  override protected def registerFunctions(symbols: t.Symbols, functions: Seq[t.FunDef]): t.Symbols =
+    symbols.withFunctions(functions.filterNot(isMeta))
+
+  override protected def registerClasses(symbols: t.Symbols, classes: Seq[t.ClassDef]): t.Symbols =
+    symbols.withClasses(classes.filterNot(isMeta))
+
 }
 
 object Meta {
-  def apply(trees: Trees)(implicit ctx: inox.Context): ExtractionPipeline {
-    val s: trees.type
-    val t: trees.type
-  } = new Meta {
-    override val s: trees.type = trees
-    override val t: trees.type = trees
+  def apply(tr: Trees)(implicit ctx: inox.Context): ExtractionPipeline {
+    val s: tr.type
+    val t: tr.type
+  } = new {
+    val s: tr.type = tr
+    val t: tr.type = tr
+  } with Meta {
     override val context = ctx
   }
 }
