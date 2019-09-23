@@ -22,13 +22,7 @@ trait ComponentTestSuite extends inox.TestSuite with inox.ResourceUtils with Inp
   }
 
   protected val runSlowTests: Boolean = {
-    sys.env
-      .get("RUN_SLOW_TESTS")
-      .map {
-        case "true" => true
-        case _      => false
-      }
-      .getOrElse(false)
+    utils.Env.getBooleanOrDefault("RUN_SLOW_TESTS", false)
   }
 
   protected val slowBenchmarks = Set(

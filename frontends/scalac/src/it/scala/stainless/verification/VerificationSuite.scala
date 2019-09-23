@@ -5,12 +5,21 @@ package verification
 
 import org.scalatest._
 
+import stainless.Main.optDebug
+
 trait VerificationSuite extends ComponentTestSuite {
 
   val component = VerificationComponent
 
-  override def configurations = super.configurations.map {
-    seq => optFailInvalid(true) +: seq
+  protected val dumpSMTSessions: Boolean = {
+    println(new java.io.File("test").getAbsolutePath())
+    utils.Env.getBooleanOrDefault("DUMP_SMT_SESSIONS", false)
+  }
+
+  override def configurations = super.configurations.map { seq =>
+    Seq(optFailInvalid(true)) ++
+    Seq(optDebug(Set(inox.solvers.DebugSectionSolver))).filter(_ => dumpSMTSessions) ++
+    seq
   }
 
   override protected def optionsString(options: inox.Options): String = {
@@ -30,6 +39,9 @@ trait VerificationSuite extends ComponentTestSuite {
   }
 
   testAll("verification/valid") { (analysis, reporter) =>
+    implicit val debugSection = inox.solvers.DebugSectionSolver
+    println(reporter.isDebugEnabled)
+    sys.exit(0)
     assert(analysis.toReport.stats.validFromCache == 0, "no cache should be used for these tests")
     for ((vc, vr) <- analysis.vrs) {
       if (vr.isInvalid) fail(s"The following verification condition was invalid: $vc @${vc.getPos}")
@@ -38,18 +50,20 @@ trait VerificationSuite extends ComponentTestSuite {
     reporter.terminateIfError()
   }
 
-  testAll("verification/invalid") { (analysis, _) =>
-    val report = analysis.toReport
-    assert(report.totalInvalid > 0, "There should be at least one invalid verification condition. " + report.stats)
-  }
+  // testAll("verification/invalid") { (analysis, _) =>
+  //   val report = analysis.toReport
+  //   assert(report.totalInvalid > 0, "There should be at least one invalid verification condition. " + report.stats)
+  // }
 }
 
 class SMTZ3VerificationSuite extends VerificationSuite {
   override def configurations = super.configurations.map {
-    seq => Seq(
+    seq => val res = Seq(
       inox.optSelectedSolvers(Set("smt-z3")),
       inox.solvers.optCheckModels(true)
     ) ++ seq
+  println(res)
+  res
   }
 
   override def filter(ctx: inox.Context, name: String): FilterStatus = name match {
