@@ -30,6 +30,40 @@ trait Splicer { self =>
     }
   }
 
+  def toIdentifier(expr: Expr): Identifier = expr match {
+    case ClassConstructor(ct, Seq(name, globalId, id)) if ct.id == lib.IdentifierClass.id =>
+      new Identifier(toString(name), toInt(globalId), toInt(id))
+
+    case other => sys.error(s"splice.NotAnIdentifier: $other (${other.getClass})")
+  }
+
+  def toString(expr: Expr): String = expr match {
+    case ClassConstructor(ct, Seq(StringLiteral(value))) if ct.id == lib.StringLiteralClass.id =>
+      value.toString
+
+    case other => sys.error(s"splice.NotAString: $other (${other.getClass})")
+  }
+
+  def toInt(expr: Expr): Int = expr match {
+    case ClassConstructor(ct, Seq(bv: BVLiteral)) if ct.id == lib.IntLiteralClass.id =>
+      bv.toBigInt.toInt
+
+    case other => sys.error(s"splice.NotAString: $other (${other.getClass})")
+  }
+
+  def toType(expr: Expr): Type = expr match {
+    case ClassConstructor(ct, Seq()) if ct.id == lib.IntTypeClass.id =>
+      BVType(true, 32)
+
+    case ClassConstructor(ct, Seq()) if ct.id == lib.BooleanTypeClass.id =>
+      BooleanType()
+
+    case ClassConstructor(ct, Seq()) if ct.id == lib.StringTypeClass.id =>
+      StringType()
+
+    case other => sys.error(s"splice.NotAType: $other (${other.getClass})")
+  }
+
   def splice(expr: Expr): Expr = expr match {
     case Quote(quoted) =>
       quoted
@@ -38,17 +72,28 @@ trait Splicer { self =>
       val result = eval(expr)
       splice(result)
 
-    case ClassConstructor(ct, args) if ct.id == lib.IntLiteralClass.id =>
-      args.head
+    case ClassConstructor(ct, Seq(metaId, metaTpe)) if ct.id == lib.VariableClass.id =>
+      val id = toIdentifier(eval(metaId))
+      val tpe = toType(eval(metaTpe))
+      Variable(id, tpe, Seq.empty)
 
-    case ClassConstructor(ct, args) if ct.id == lib.BooleanLiteralClass.id =>
-      args.head
+    case ClassConstructor(ct, Seq(value)) if ct.id == lib.IntLiteralClass.id =>
+      value
+
+    case ClassConstructor(ct, Seq(value)) if ct.id == lib.BooleanLiteralClass.id =>
+      value
+
+    case ClassConstructor(ct, Seq(value)) if ct.id == lib.StringLiteralClass.id =>
+      value
 
     case ClassConstructor(ct, Seq(lhs, rhs)) if ct.id == lib.PlusClass.id =>
       Plus(splice(lhs), splice(rhs))
 
     case ClassConstructor(ct, Seq(lhs, rhs)) if ct.id == lib.EqualsClass.id =>
       Equals(splice(lhs), splice(rhs))
+
+    case ClassConstructor(ct, Seq(lhs, rhs)) if ct.id == lib.StringConcatClass.id =>
+      StringConcat(splice(lhs), splice(rhs))
 
     case ClassConstructor(ct, Seq(lhs, rhs)) if ct.id == lib.AssertClass.id =>
       Assert(splice(lhs), None, splice(rhs))

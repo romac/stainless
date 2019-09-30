@@ -20,6 +20,7 @@ trait RecursiveEvaluator extends stainless.evaluators.RecursiveEvaluator {
 
     case ClassConstructor(ct, args) =>
       ClassConstructor(ct, args map e)
+
     case _ => super.e(expr)
   }
 }

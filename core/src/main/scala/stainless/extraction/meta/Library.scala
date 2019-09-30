@@ -17,12 +17,25 @@ trait Library {
   def Expr(name: String) =
     Api(s"Expr.$name")
 
+  def Type(name: String) =
+    Api(s"Type.$name")
+
+  def IdentifierClass = Api("Identifier")
+
+  def TypeClass           = Api("Type")
+  def IntTypeClass        = Type("Int")
+  def BooleanTypeClass    = Type("Boolean")
+  def StringTypeClass     = Type("String")
+
   def ExprClass           = Api("Expr")
+  def VariableClass       = Expr("Variable")
   def IntLiteralClass     = Expr("IntLiteral")
   def BooleanLiteralClass = Expr("BooleanLiteral")
+  def StringLiteralClass  = Expr("StringLiteral")
   def PlusClass           = Expr("Plus")
   def EqualsClass         = Expr("Equals")
   def AssertClass         = Expr("Assert")
+  def StringConcatClass   = Expr("StringConcat")
 }
 
 object Library {
