@@ -123,6 +123,10 @@ trait InoxEncoder extends ProgramEncoder {
 
       case s.Annotated(body, _) => transform(body)
 
+      // Recover implications removed in ImperativeCodeElimination because of #425
+      case s.Or(Seq(Not(a), b)) =>
+        t.Implies(transform(a), transform(b)).copiedFrom(e)
+
       case s.FiniteArray(elems, base) =>
         t.ADT(arrayCons.id, Seq(transform(base)), Seq(
           t.FiniteMap(

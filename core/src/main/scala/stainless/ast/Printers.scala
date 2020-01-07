@@ -155,6 +155,9 @@ trait Printer extends inox.ast.Printer {
       p"""|decreases($rank)
           |$body"""
 
+    case Or(Seq(Not(a), b)) =>
+      p"""${Implies(a, b).copiedFrom(tree)}"""
+
     case _ => super.ppBody(tree)
   }
 
