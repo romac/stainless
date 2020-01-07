@@ -72,6 +72,10 @@ class VerificationRun(override val pipeline: StainlessPipeline)
 
     val p = inox.Program(trees)(symbols)
 
+    if (functions.isEmpty) {
+      return Future.successful(VerificationAnalysis.empty(p, context))
+    }
+
     val assertions = AssertionInjector(p, context)
     val chooses = ChooseInjector(p)
 

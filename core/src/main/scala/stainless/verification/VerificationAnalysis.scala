@@ -29,3 +29,13 @@ trait VerificationAnalysis extends AbstractAnalysis {
   override def toReport = new VerificationReport(records, sources)
 
 }
+
+object VerificationAnalysis {
+  def empty(p: StainlessProgram, ctx: inox.Context): VerificationAnalysis { val program: p.type } =
+    new VerificationAnalysis {
+      val program: p.type = p
+      val context = ctx
+      val sources = Set.empty
+      val results = Map.empty
+    }
+}
